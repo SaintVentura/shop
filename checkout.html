@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Saint Ventura Checkout</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50 font-sans text-gray-900">
+
+  <!-- Header -->
+  <header class="bg-white shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+      <img src="https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1" alt="Saint Ventura Logo" class="w-10 h-10 rounded-lg object-cover">
+      <h1 class="text-2xl font-bold tracking-wide">Checkout</h1>
+    </div>
+  </header>
+
+  <!-- Main Section -->
+  <section class="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 lg:grid-cols-2 gap-10">
+    
+    <!-- Left: Form -->
+    <div class="bg-white p-8 rounded-xl shadow-md">
+      <h2 class="text-2xl font-semibold mb-6">Shipping Information</h2>
+
+      <form id="checkout-form" class="space-y-6" onsubmit="handleCheckout(event)">
+        <div>
+          <label class="block mb-2 font-medium">Full Name</label>
+          <input id="customer-name" type="text" required class="w-full border border-gray-300 rounded-lg px-4 py-3">
+        </div>
+
+        <div>
+          <label class="block mb-2 font-medium">Email</label>
+          <input id="customer-email" type="email" required class="w-full border border-gray-300 rounded-lg px-4 py-3">
+        </div>
+
+        <div>
+          <label class="block mb-2 font-medium">Delivery Method</label>
+          <select id="shipping-location" onchange="updateShipping()" required class="w-full border border-gray-300 rounded-lg px-4 py-3">
+            <option value="">Select your location</option>
+            <option value="door">Door-to-Door Courier (R130)</option>
+            <option value="uj">UJ Campus Delivery (R30)</option>
+          </select>
+        </div>
+
+        <div id="address-field" class="hidden">
+          <label class="block mb-2 font-medium">Address</label>
+          <textarea id="customer-address" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-3"></textarea>
+        </div>
+
+        <button type="submit" class="w-full bg-black text-white py-4 rounded-lg font-semibold hover:bg-gray-800 transition-all duration-300">
+          Proceed to Payment
+        </button>
+      </form>
+    </div>
+
+    <!-- Right: Summary -->
+    <div class="bg-white p-8 rounded-xl shadow-md">
+      <h2 class="text-2xl font-semibold mb-6">Your Order</h2>
+      <div id="cart-items" class="divide-y divide-gray-200 mb-6"></div>
+
+      <div class="border-t border-gray-200 pt-4 space-y-2 text-lg">
+        <div class="flex justify-between"><span>Subtotal:</span><span id="checkout-subtotal">R0</span></div>
+        <div class="flex justify-between"><span>Shipping:</span><span id="checkout-shipping">R0</span></div>
+        <div class="flex justify-between font-bold text-xl"><span>Total:</span><span id="checkout-total">R0</span></div>
+      </div>
+    </div>
+  </section>
+
+<script>
+ // Product data
+        const products = [
+            {
+                id: 1,
+                name: "The Saints Club Tee",
+                price: 550,
+                category: "tops",
+                description: "Exclusive Saints Club tee featuring premium cotton construction and iconic Saint Ventura branding. A must-have for true streetwear enthusiasts.",
+                details: ["100% Premium Cotton", "Screen-printed graphics", "Oversized fit", "Dropped shoulders"],
+                gradient: "from-gray-100 to-white",
+                // Replace these with your actual image URLs
+                images: [
+                    "https://dl.dropboxusercontent.com/scl/fi/j0pgw2egryb9f0470f3p3/1-2.png?rlkey=xaw4k5w0yhwswfae3pi1n0g2r&st=vnlwftci&dl=1",
+                    "https://dl.dropboxusercontent.com/scl/fi/zz0b97q19mm561t44ksj2/1-1.png?rlkey=kinak1p66dy82z8qgah2av2jd&st=vt0bzo6m&dl=1"
+                ],
+                sizes: ["XS", "S", "M", "L", "XL", "XXL"],
+                colors: ["White"],
+                availableColors: [{ name: "White", gradient: "from-gray-100 to-white", image: "https://dl.dropboxusercontent.com/scl/fi/j0pgw2egryb9f0470f3p3/1-2.png?rlkey=xaw4k5w0yhwswfae3pi1n0g2r&st=vnlwftci&dl=1", }]
+            },
+            {
+                id: 2,
+                name: "SV Till I R.I.P Tee",
+                price: 500,
+                category: "tops",
+                description: "Bold statement tee with the iconic 'SV Till I R.I.P' graphic. Made from premium cotton with a comfortable fit and striking design.",
+                details: ["100% Premium Cotton", "Bold graphic print", "Oversized fit", "Dropped shoulders"],
+                gradient: "from-gray-800 to-black",
+                images: [
+                  "https://dl.dropboxusercontent.com/scl/fi/6ribhwbytdqfqva6jgf3s/1-16.png?rlkey=s61uev3dxmsmo4coifrqtozge&st=z3y4nuri&dl=1",
+                  "https://dl.dropboxusercontent.com/scl/fi/2ma5ldkyiam6dm947eg8f/1-14.png?rlkey=0xb8p0qyps0st9t4z3ez47fm9&st=y2q4jni7&dl=1"
+                  ],
+                sizes: ["XS", "S", "M", "L", "XL", "XXL"],
+                colors: ["Black"],
+                availableColors: [{ name: "Black", gradient: "from-gray-800 to-black" , image: "https://dl.dropboxusercontent.com/scl/fi/6ribhwbytdqfqva6jgf3s/1-16.png?rlkey=s61uev3dxmsmo4coifrqtozge&st=z3y4nuri&dl=1", }]
+            },
+            {
+                id: 3,
+                name: "Visionaries by SV",
+                price: 200,
+                category: "accessories",
+                description: "Premium sunglasses designed for the visionaries and trendsetters. Features sleek black frames with UV protection and the signature SV branding for those who see the world differently.",
+                details: ["Premium acetate frame", "100% UV400 protection", "Polarized lenses", "SV logo on temples", "Scratch-resistant coating", "Includes protective case"],
+                gradient: "from-gray-900 to-black",
+                images: [
+                  "https://dl.dropboxusercontent.com/scl/fi/qs6id9xzrvfp8dctj2lqf/1-15.png?rlkey=shaa8t54va6ap95kulvvk1jee&st=tpwythhm&dl=1"
+                  ],
+                sizes: ["One Size Fits All"],
+                colors: ["Black"],
+                availableColors: [{ name: "Black", gradient: "from-gray-900 to-black" , image: "https://dl.dropboxusercontent.com/scl/fi/qs6id9xzrvfp8dctj2lqf/1-15.png?rlkey=shaa8t54va6ap95kulvvk1jee&st=tpwythhm&dl=1",}]
+            },
+            {
+                id: 4,
+                name: "SV Creators Hat",
+                price: 200,
+                category: "accessories",
+                description: "Premium snapback designed for the creative minds and innovators. Features bold embroidered SV logo with adjustable snapback closure for the perfect fit on any creator's journey.",
+                details: ["Premium cotton twill construction", "3D embroidered SV logo", "Adjustable snapback closure", "Structured 6-panel crown", "Interior moisture-wicking sweatband"],
+                gradient: "from-red-600 to-red-800",
+                images: [
+                  "https://dl.dropboxusercontent.com/scl/fi/16j1629tb9ces8c4vruvh/1-4.png?rlkey=myve0lk7x9zdn6xfen7mah640&st=d0j0b6nb&dl=1",
+                  "https://dl.dropboxusercontent.com/scl/fi/5h9lftt1bidmqijpmpxll/1-3.png?rlkey=501zjd9pkgf9w5yhrparmm5rd&st=uhhf8qul&dl=1"
+                  ],
+                sizes: ["One Size Fits All"],
+                colors: ["Red", "Black"],
+                availableColors: [
+                    { name: "Red", gradient: "from-red-600 to-red-800" , image: "https://dl.dropboxusercontent.com/scl/fi/16j1629tb9ces8c4vruvh/1-4.png?rlkey=myve0lk7x9zdn6xfen7mah640&st=d0j0b6nb&dl=1"},
+                    { name: "Black", gradient: "from-gray-800 to-black" , image: "https://dl.dropboxusercontent.com/scl/fi/5h9lftt1bidmqijpmpxll/1-3.png?rlkey=501zjd9pkgf9w5yhrparmm5rd&st=uhhf8qul&dl=1"}
+                ]
+            },
+            {
+                id: 5,
+                name: "Hood* of The Saints",
+                price: 400,
+                category: "tops",
+                description: "Premium oversized hoodie representing The Saints collective. Heavyweight cotton blend with dropped shoulders and kangaroo pocket.",
+                details: ["80% Cotton, 20% Polyester", "Heavyweight 400gsm fabric", "Oversized fit", "Kangaroo pocket"],
+                gradient: "from-gray-800 to-black",
+                images: [
+                 "https://dl.dropboxusercontent.com/scl/fi/tv6xmtknl5e93s4q2rxvr/1-7.png?rlkey=6y8szp285r72rby6k6jkw8038&st=n6gbin36&dl=1",
+                  "https://dl.dropboxusercontent.com/scl/fi/mtvek2orgliosk1e5w0zg/1-5.png?rlkey=akio0f1ps0tumeghs50q10blr&st=ktcib4de&dl=1"
+                  ],
+                sizes: ["XS", "S", "M", "L", "XL", "XXL"],
+                colors: ["Baby Blue", "Black"],
+                availableColors: [
+                   { name: "Baby Blue", gradient: "from-blue-300 to-blue-500" , image: "https://dl.dropboxusercontent.com/scl/fi/tv6xmtknl5e93s4q2rxvr/1-7.png?rlkey=6y8szp285r72rby6k6jkw8038&st=n6gbin36&dl=1" } ,
+                    { name: "Black", gradient: "from-gray-800 to-black" , image: "https://dl.dropboxusercontent.com/scl/fi/mtvek2orgliosk1e5w0zg/1-5.png?rlkey=akio0f1ps0tumeghs50q10blr&st=ktcib4de&dl=1"}
+                ]
+            },
+            {
+                id: 6,
+                name: "SV Utility Shirt",
+                price: 400,
+                category: "tops",
+                description: "Functional utility shirt with multiple pockets and durable construction. Perfect blend of style and practicality for the modern creator.",
+                details: ["100% Cotton Twill", "Multiple utility pockets", "Button-up closure", "Regular fit"],
+                gradient: "from-gray-700 to-black",
+                images: [
+                  "https://dl.dropboxusercontent.com/scl/fi/tg8jpo7hxksb5fmiyivo7/1-9.png?rlkey=wlaat82bhy29xpcyuyme0b1mi&st=p7wbg6k7&dl=1",
+                  "https://dl.dropboxusercontent.com/scl/fi/lkvuuntf1q627q7lq018n/1-8.png?rlkey=86rhveankf3zbagwb2hsqxze8&st=2jswyme5&dl=1"
+                  ],
+                sizes: ["XS", "S", "M", "L", "XL", "XXL"],
+                colors: ["Black"],
+                availableColors: [{ name: "Black", gradient: "from-gray-700 to-black" , image: "https://dl.dropboxusercontent.com/scl/fi/tg8jpo7hxksb5fmiyivo7/1-9.png?rlkey=wlaat82bhy29xpcyuyme0b1mi&st=p7wbg6k7&dl=1"}]
+            },
+            {
+                id: 7,
+                name: "SV Cargo Pants",
+                price: 300,
+                category: "bottoms",
+                description: "Premium cargo pants with multiple pockets and adjustable details. Essential streetwear piece combining functionality with Saint Ventura style.",
+                details: ["100% Cotton Twill", "Multiple cargo pockets", "Adjustable waist", "Tapered fit"],
+                gradient: "from-gray-800 to-black",
+                images: [
+                  "https://dl.dropboxusercontent.com/scl/fi/q82xmvf10v3bfth0yb9tb/1-17.png?rlkey=86y3k3tbqdqgs63h2gzs86d81&st=brqjs51u&dl=1",
+                  "https://dl.dropboxusercontent.com/scl/fi/xocwsz4bcod4rop8mscs9/1-19.png?rlkey=n1zrg171gixabaff9cxftlmg7&st=jiuthcov&dl=1"
+                  ],
+                sizes: ["XS", "S", "M", "L", "XL", "XXL"],
+                colors: ["Black"],
+                availableColors: [{ name: "Black", gradient: "from-gray-800 to-black", image: "https://dl.dropboxusercontent.com/scl/fi/q82xmvf10v3bfth0yb9tb/1-17.png?rlkey=86y3k3tbqdqgs63h2gzs86d81&st=brqjs51u&dl=1" }]
+            },
+            {
+                id: 8,
+                name: "Ventura Crop Tank",
+                price: 300,
+                category: "tops",
+                description: "Cropped tank top perfect for layering or standalone wear. Available in multiple colorways to match your personal style.",
+                details: ["100% Cotton", "Cropped fit", "Sleeveless design", "Soft hand feel"],
+                gradient: "from-gray-800 to-black",
+                images: [
+                  "https://dl.dropboxusercontent.com/scl/fi/j22zx7qt5efevtqmbki5a/1-10.png?rlkey=w1m9xosbjx5jiihn45l1o7hj7&st=9whfbavz&dl=1",
+                  "https://dl.dropboxusercontent.com/scl/fi/mud785w0gso758kjl8d0y/1-6.PNG?rlkey=wj0x9hpnflobqndsak1drzpxt&st=bvmxst4j&dl=1",
+                  "https://dl.dropboxusercontent.com/scl/fi/0izhvhpqgv7ym8o53dfk6/3-1.PNG?rlkey=34wr7bf7w9qr4aqcx8em9puv7&st=5xbyxbt1&dl=1",
+                  "https://dl.dropboxusercontent.com/scl/fi/z3oln893v1j2mkue7um1v/3-2.PNG?rlkey=88buym8r1h4e9m75y076te10w&st=dc7dor6q&dl=1"
+                  ],
+                sizes: ["XS", "S", "M", "L", "XL", "XXL"],
+                colors: ["Black", "Army Green", "White", "Red"],
+                availableColors: [
+                    { name: "Army Green", gradient: "from-army-green to army-green", image: "https://dl.dropboxusercontent.com/scl/fi/j22zx7qt5efevtqmbki5a/1-10.png?rlkey=w1m9xosbjx5jiihn45l1o7hj7&st=9whfbavz&dl=1" },
+                    { name: "Black", gradient: "from-gray-800 to-black", image: "https://dl.dropboxusercontent.com/scl/fi/mud785w0gso758kjl8d0y/1-6.PNG?rlkey=wj0x9hpnflobqndsak1drzpxt&st=bvmxst4j&dl=1"},
+                    { name: "White", gradient: "from-gray-100 to-white" , image: "https://dl.dropboxusercontent.com/scl/fi/0izhvhpqgv7ym8o53dfk6/3-1.PNG?rlkey=34wr7bf7w9qr4aqcx8em9puv7&st=5xbyxbt1&dl=1" },
+                    { name: "Red", gradient: "from-red-600 to-red-800", image: "https://dl.dropboxusercontent.com/scl/fi/z3oln893v1j2mkue7um1v/3-2.PNG?rlkey=88buym8r1h4e9m75y076te10w&st=dc7dor6q&dl=1"}
+                ]
+            },
+            {
+                id: 9,
+                name: "Essential Beanie",
+                price: 200,
+                category: "accessories",
+                description: "The ultimate essential for any streetwear wardrobe. This premium knit beanie features the iconic Saint Ventura logo and provides comfort and style for every season.",
+                details: ["100% Premium acrylic knit", "Embroidered SV logo", "Ribbed cuff construction", "Soft interior lining", "Stretchy comfortable fit", "Machine washable"],
+                gradient: "from-gray-800 to-black",
+                images: [
+                  "https://dl.dropboxusercontent.com/scl/fi/sw3imbzsqend0zigd3yww/1-13.png?rlkey=iolsj7x1ryqxxh2t4okvw46zp&st=nryoy8dl&dl=1"
+                  ],
+                sizes: ["One Size Fits All"],
+                colors: ["Black"],
+                availableColors: [{ name: "Black", gradient: "from-gray-800 to-black" , image: "https://dl.dropboxusercontent.com/scl/fi/sw3imbzsqend0zigd3yww/1-13.png?rlkey=iolsj7x1ryqxxh2t4okvw46zp&st=nryoy8dl&dl=1"}]
+            },
+            {
+                id: 10,
+                name: "Onyx Bracelet By SV",
+                price: 60,
+                category: "accessories",
+                description: "Premium onyx bracelet featuring natural black stones. Handcrafted with Saint Ventura branding for the discerning streetwear enthusiast.",
+                details: ["Natural onyx stones", "Elastic cord", "SV charm detail", "Handcrafted"],
+                gradient: "from-gray-900 to-black",
+                images: [
+                  "https://dl.dropboxusercontent.com/scl/fi/xevb4s1aeggk0fjcwk85e/1-18.png?rlkey=vs9rk6nu79b5nwtdxme114crx&st=6fn852el&dl=1"
+                  ],
+                sizes: ["13cm", "14cm", "15cm", "16cm", "17cm", "18cm"],
+                colors: ["Black"],
+                availableColors: [{ name: "Black", gradient: "from-gray-900 to-black", image: "https://dl.dropboxusercontent.com/scl/fi/xevb4s1aeggk0fjcwk85e/1-18.png?rlkey=vs9rk6nu79b5nwtdxme114crx&st=6fn852el&dl=1" }]
+            },
+
+        ];
+
+document.addEventListener('DOMContentLoaded', renderCart);
+
+const products = window.products || [];
+let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+let shippingFee = 0;
+
+function renderCart() {
+  const container = document.getElementById('cart-items');
+  container.innerHTML = '';
+  let subtotal = 0;
+
+  cart.forEach(item => {
+    const product = products.find(p => p.id === item.id);
+    if (!product) return;
+    const total = product.price * item.quantity;
+    subtotal += total;
+    container.innerHTML += `
+      <div class="flex items-center justify-between py-4">
+        <div class="flex items-center space-x-4">
+          <img src="${product.image}" alt="${product.name}" class="w-16 h-16 object-cover rounded-md">
+          <div>
+            <p class="font-medium">${product.name}</p>
+            <p class="text-gray-500 text-sm">Qty: ${item.quantity}</p>
+          </div>
+        </div>
+        <p class="font-semibold">R${total.toFixed(2)}</p>
+      </div>
+    `;
+  });
+
+  localStorage.setItem('cartTotal', subtotal.toFixed(2));
+  updateSummary();
+}
+
+function updateSummary() {
+  const subtotal = parseFloat(localStorage.getItem('cartTotal') || 0);
+  let total = subtotal + shippingFee;
+  document.getElementById('checkout-subtotal').textContent = 'R' + subtotal.toFixed(2);
+  document.getElementById('checkout-shipping').textContent = 'R' + shippingFee.toFixed(2);
+  document.getElementById('checkout-total').textContent = 'R' + total.toFixed(2);
+}
+
+function updateShipping() {
+  const location = document.getElementById('shipping-location').value;
+  const subtotal = parseFloat(localStorage.getItem('cartTotal') || 0);
+  const addressField = document.getElementById('address-field');
+
+  if (subtotal >= 1000) shippingFee = 0;
+  else if (location === 'door') shippingFee = 130;
+  else if (location === 'uj') shippingFee = 30;
+  else shippingFee = 0;
+
+  addressField.classList.toggle('hidden', location !== 'door');
+  updateSummary();
+}
+
+async function handleCheckout(event) {
+  event.preventDefault();
+  const subtotal = parseFloat(localStorage.getItem('cartTotal') || 0);
+  const location = document.getElementById('shipping-location').value;
+  const name = document.getElementById('customer-name').value;
+  const email = document.getElementById('customer-email').value;
+  const address = document.getElementById('customer-address').value;
+
+  const response = await fetch("https://yourdomain.com/createCheckout", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ subtotal, location, customerName: name, customerEmail: email, address, cart })
+  });
+
+  const result = await response.json();
+  if (result.redirectUrl) window.location.href = result.redirectUrl;
+  else alert("Something went wrong. Please try again.");
+}
+
+document.addEventListener('DOMContentLoaded', renderCart);
+</script>
+
+</body>
+</html>
