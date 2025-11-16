@@ -167,65 +167,7 @@ async function sendEmail({ to, subject, text, html, replyTo }) {
 // Email test endpoint - test email configuration
 app.post('/api/test-email', async (req, res) => {
   try {
-    const zohoEmail = (process.env.ZOHO_EMAIL || 'customersupport@saintventura.co.za').replace(/^"|"$/g, '');
-    const zohoPassword = (process.env.ZOHO_PASSWORD || process.env.ZOHO_APP_PASSWORD || '').replace(/^"|"$/g, '');
-    
-    if (!zohoPassword) {
-      return res.status(500).json({ 
-        success: false,
-        error: 'ZOHO_PASSWORD is not set in environment variables' 
-      });
-    }
-    
-    // Try multiple SMTP configurations for Zoho
-    const smtpConfigs = [
-      {
-        host: 'smtp.zoho.com',
-        port: 465,
-        secure: true, // SSL
-        auth: { user: zohoEmail, pass: zohoPassword },
-        connectionTimeout: 20000,
-        greetingTimeout: 20000,
-        socketTimeout: 20000,
-        tls: { rejectUnauthorized: false }
-      },
-      {
-        host: 'smtp.zoho.com',
-        port: 587,
-        secure: false, // STARTTLS
-        auth: { user: zohoEmail, pass: zohoPassword },
-        connectionTimeout: 20000,
-        greetingTimeout: 20000,
-        socketTimeout: 20000,
-        requireTLS: true,
-        tls: { rejectUnauthorized: false }
-      }
-    ];
-    
-    let transporter;
-    let lastError;
-    
-    // Try each configuration until one works
-    for (const config of smtpConfigs) {
-      try {
-        transporter = nodemailer.createTransport(config);
-        await transporter.verify();
-        console.log(`✅ Email server connection verified using port ${config.port}`);
-        break; // Success, exit loop
-      } catch (error) {
-        lastError = error;
-        console.log(`⚠️ Port ${config.port} failed, trying next...`);
-        continue;
-      }
-    }
-    
-    if (!transporter) {
-      throw new Error(`Failed to connect to Zoho SMTP: ${lastError?.message || 'All ports failed'}`);
-    }
-    
-    // Send test email
-    const testMailOptions = {
-      from: zohoEmail,
+    const result = await sendEmail({
       to: 'customersupport@saintventura.co.za',
       subject: 'Test Email - Saint Ventura Backend',
       text: `This is a test email from your Saint Ventura backend server.\n\nSent at: ${new Date().toISOString()}\nServer: ${process.env.NODE_ENV || 'development'}`,
@@ -235,20 +177,19 @@ app.post('/api/test-email', async (req, res) => {
         <p><strong>Sent at:</strong> ${new Date().toISOString()}</p>
         <p><strong>Server:</strong> ${process.env.NODE_ENV || 'development'}</p>
       `
-    };
-    
-    const result = await sendEmailWithRetry(transporter, testMailOptions);
+    });
     
     if (result.success) {
       res.json({ 
         success: true, 
         message: 'Test email sent successfully to customersupport@saintventura.co.za',
-        messageId: result.info?.messageId
+        messageId: result.id || result.info?.messageId,
+        method: result.method
       });
     } else {
       res.status(500).json({ 
         success: false,
-        error: 'Failed to send test email after retries',
+        error: 'Failed to send test email',
         details: result.error?.message || 'Unknown error'
       });
     }
@@ -723,9 +664,8 @@ app.post('/api/send-order-confirmation', async (req, res) => {
       minute: '2-digit'
     });
 
-    // Email content - SENT TO: customersupport@saintventura.co.za
-    const mailOptions = {
-      from: zohoEmail,
+    // Send email - SENT TO: customersupport@saintventura.co.za
+    const result = await sendEmail({
       to: 'customersupport@saintventura.co.za', // All order confirmations go here
       replyTo: customerEmail, // Allow replying directly to the customer
       subject: `New Order Received - ${customerName} - R${total.toFixed(2)}`,
@@ -801,17 +741,15 @@ ${deliveryAddress ? `Delivery Address: ${deliveryAddress}` : ''}
           </p>
         </div>
       `
-    };
-
-    // Send email with retry logic
-    const result = await sendEmailWithRetry(transporter, mailOptions, 3);
+    });
     
     if (result.success) {
       console.log('✅ Order confirmation email SENT successfully to customersupport@saintventura.co.za');
       console.log('Email details:', { 
-        messageId: result.info.messageId,
-        to: mailOptions.to,
-        subject: mailOptions.subject,
+        messageId: result.id || result.info?.messageId,
+        method: result.method,
+        to: 'customersupport@saintventura.co.za',
+        subject: `New Order Received - ${customerName} - R${total.toFixed(2)}`,
         customerName: customerName,
         customerEmail: customerEmail,
         total: total,
