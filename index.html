@@ -3396,6 +3396,23 @@ if (firstImage && firstImage.startsWith('http')) {
                     showCartPage();
                 }, 100);
             }
+            
+            // Check if we should navigate to a specific page (from checkout menu)
+            const navigateToPage = sessionStorage.getItem('navigateToPage');
+            if (navigateToPage) {
+                sessionStorage.removeItem('navigateToPage');
+                setTimeout(() => {
+                    showPage(navigateToPage);
+                }, 100);
+            } else {
+                // Check URL hash for navigation
+                const hash = window.location.hash.replace('#', '');
+                if (hash && document.getElementById(hash + '-page')) {
+                    setTimeout(() => {
+                        showPage(hash);
+                    }, 100);
+                }
+            }
         });
         
 let slideIndex = 0;
