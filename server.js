@@ -378,6 +378,216 @@ app.post('/api/newsletter-subscribe', async (req, res) => {
   }
 });
 
+// Order confirmation email endpoint
+app.post('/api/send-order-confirmation', async (req, res) => {
+  try {
+    const {
+      customerName,
+      customerEmail,
+      shippingMethod,
+      deliveryAddress,
+      deliveryDetails,
+      orderItems,
+      subtotal,
+      shipping,
+      total,
+      orderId
+    } = req.body;
+
+    // Validate required fields
+    if (!customerName || !customerEmail) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Customer name and email are required' 
+      });
+    }
+
+    if (!orderItems || !Array.isArray(orderItems) || orderItems.length === 0) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Order items are required' 
+      });
+    }
+
+    // Configure Zoho email transporter
+    const zohoEmail = (process.env.ZOHO_EMAIL || 'customersupport@saintventura.co.za').replace(/^"|"$/g, '');
+    const zohoPassword = (process.env.ZOHO_PASSWORD || process.env.ZOHO_APP_PASSWORD || '').replace(/^"|"$/g, '');
+    
+    if (!zohoPassword) {
+      console.error('ZOHO_PASSWORD is not set in .env file');
+      return res.status(500).json({ 
+        success: false,
+        error: 'Email service not configured. Please set ZOHO_PASSWORD in .env file.' 
+      });
+    }
+    
+    const transporter = nodemailer.createTransport({
+      host: 'smtp.zoho.com',
+      port: 587,
+      secure: false,
+      auth: {
+        user: zohoEmail,
+        pass: zohoPassword
+      }
+    });
+
+    // Format order items for email
+    const itemsHtml = orderItems.map(item => {
+      const size = item.size ? `Size: ${item.size}` : '';
+      const color = item.color ? `Color: ${item.color}` : '';
+      const details = [size, color].filter(d => d).join(', ');
+      return `
+        <tr>
+          <td style="padding: 10px; border-bottom: 1px solid #eee;">
+            <strong>${item.name}</strong><br>
+            ${details ? `<small style="color: #666;">${details}</small>` : ''}
+          </td>
+          <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
+          <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">R${(item.price * item.quantity).toFixed(2)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    // Format delivery information
+    let deliveryHtml = '';
+    if (shippingMethod === 'door' && deliveryDetails) {
+      deliveryHtml = `
+        <p><strong>Delivery Address:</strong></p>
+        <p style="margin-left: 20px;">
+          ${deliveryDetails.street || ''}<br>
+          ${deliveryDetails.suburb ? deliveryDetails.suburb + '<br>' : ''}
+          ${deliveryDetails.city || ''}, ${deliveryDetails.province || ''}<br>
+          ${deliveryDetails.postalCode || ''}
+          ${deliveryDetails.extra ? '<br>' + deliveryDetails.extra : ''}
+        </p>
+      `;
+    } else if (shippingMethod === 'uj' && deliveryDetails) {
+      deliveryHtml = `
+        <p><strong>Delivery Location:</strong> UJ ${deliveryDetails.campus || 'Campus'} Campus</p>
+      `;
+    }
+
+    // Email content
+    const orderDate = new Date().toLocaleDateString('en-ZA', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    const mailOptions = {
+      from: zohoEmail,
+      to: 'customersupport@saintventura.co.za',
+      subject: `New Order Received - ${customerName} - R${total.toFixed(2)}`,
+      text: `
+New Order Received
+
+Order ${orderId ? `ID: ${orderId}` : 'Details'}:
+Date: ${orderDate}
+
+Customer Information:
+Name: ${customerName}
+Email: ${customerEmail}
+
+Order Items:
+${orderItems.map(item => `- ${item.name} (Qty: ${item.quantity}) - R${(item.price * item.quantity).toFixed(2)}`).join('\n')}
+
+Order Summary:
+Subtotal: R${subtotal.toFixed(2)}
+Shipping: R${shipping.toFixed(2)}
+Total: R${total.toFixed(2)}
+
+Delivery Method: ${shippingMethod === 'door' ? 'Door-to-Door Courier' : 'UJ Campus Delivery'}
+${deliveryAddress ? `Delivery Address: ${deliveryAddress}` : ''}
+      `,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333; border-bottom: 2px solid #000; padding-bottom: 10px;">New Order Received</h2>
+          
+          <div style="background: #f5f5f5; padding: 15px; margin: 20px 0; border-radius: 5px;">
+            <p style="margin: 5px 0;"><strong>Order ${orderId ? `ID: ${orderId}` : 'Date'}:</strong> ${orderDate}</p>
+          </div>
+
+          <h3 style="color: #333; margin-top: 30px;">Customer Information</h3>
+          <p><strong>Name:</strong> ${customerName}</p>
+          <p><strong>Email:</strong> ${customerEmail}</p>
+
+          <h3 style="color: #333; margin-top: 30px;">Order Items</h3>
+          <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+            <thead>
+              <tr style="background: #f9f9f9;">
+                <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Item</th>
+                <th style="padding: 10px; text-align: center; border-bottom: 2px solid #ddd;">Qty</th>
+                <th style="padding: 10px; text-align: right; border-bottom: 2px solid #ddd;">Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsHtml}
+            </tbody>
+          </table>
+
+          <h3 style="color: #333; margin-top: 30px;">Order Summary</h3>
+          <table style="width: 100%; margin: 20px 0;">
+            <tr>
+              <td style="padding: 5px;"><strong>Subtotal:</strong></td>
+              <td style="padding: 5px; text-align: right;">R${subtotal.toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td style="padding: 5px;"><strong>Shipping:</strong></td>
+              <td style="padding: 5px; text-align: right;">R${shipping.toFixed(2)}</td>
+            </tr>
+            <tr style="font-size: 1.2em; font-weight: bold; border-top: 2px solid #000;">
+              <td style="padding: 10px 5px;"><strong>Total:</strong></td>
+              <td style="padding: 10px 5px; text-align: right;">R${total.toFixed(2)}</td>
+            </tr>
+          </table>
+
+          <h3 style="color: #333; margin-top: 30px;">Delivery Information</h3>
+          <p><strong>Delivery Method:</strong> ${shippingMethod === 'door' ? 'Door-to-Door Courier' : 'UJ Campus Delivery'}</p>
+          ${deliveryHtml}
+
+          <p style="margin-top: 30px; color: #666; font-size: 0.9em;">
+            This is an automated order confirmation email. Please process this order accordingly.
+          </p>
+        </div>
+      `
+    };
+
+    // Send email
+    await transporter.sendMail(mailOptions);
+    
+    console.log('Order confirmation email sent:', { customerName, customerEmail, total });
+    
+    res.json({ 
+      success: true, 
+      message: 'Order confirmation email sent successfully' 
+    });
+
+  } catch (error) {
+    console.error('Error sending order confirmation email:', error);
+    
+    // Provide more specific error messages
+    let errorMessage = 'Failed to send order confirmation email';
+    
+    if (error.code === 'EAUTH') {
+      errorMessage = 'Email authentication failed. Please check your Zoho email and password in .env file.';
+      console.error('Authentication error - Check ZOHO_EMAIL and ZOHO_PASSWORD in .env');
+    } else if (error.code === 'ECONNECTION' || error.code === 'ETIMEDOUT') {
+      errorMessage = 'Could not connect to Zoho email server. Please check your internet connection.';
+      console.error('Connection error - Check network and Zoho SMTP settings');
+    } else if (error.message) {
+      errorMessage = `Email error: ${error.message}`;
+    }
+    
+    res.status(500).json({ 
+      success: false,
+      error: errorMessage 
+    });
+  }
+});
+
 // Webhook endpoint for Yoco payment notifications
 app.post('/api/yoco-webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   try {

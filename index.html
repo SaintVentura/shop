@@ -3152,6 +3152,30 @@ if (firstImage && firstImage.startsWith('http')) {
             }
         });
 
+        // Auto-detect backend URL based on environment
+        function getBackendBaseUrl() {
+            const hostname = window.location.hostname;
+            
+            // Local development
+            if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '') {
+                return 'http://localhost:3000';
+            }
+            
+            // GitHub Pages (production)
+            // Update this with your actual deployed backend URL after deployment
+            // Example: 'https://saint-ventura-backend.railway.app'
+            // Or: 'https://saint-ventura-backend.onrender.com'
+            const PRODUCTION_BACKEND_URL = 'https://your-backend-url.railway.app';
+            
+            // If you're on GitHub Pages, use production backend
+            if (hostname.includes('github.io') || hostname.includes('github.com')) {
+                return PRODUCTION_BACKEND_URL;
+            }
+            
+            // Default to production for any other domain
+            return PRODUCTION_BACKEND_URL;
+        }
+
         // Newsletter subscription handling
         async function handleNewsletterSubscription(event) {
             event.preventDefault();
@@ -3173,7 +3197,7 @@ if (firstImage && firstImage.startsWith('http')) {
             
             try {
                 // Send subscription request to backend
-                const backendUrl = 'http://localhost:3000/api/newsletter-subscribe';
+                const backendUrl = `${getBackendBaseUrl()}/api/newsletter-subscribe`;
                 const response = await fetch(backendUrl, {
                     method: 'POST',
                     headers: {
@@ -3246,7 +3270,7 @@ if (firstImage && firstImage.startsWith('http')) {
                 
                 try {
                     // Send contact form to backend
-                    const backendUrl = 'http://localhost:3000/api/contact-form';
+                    const backendUrl = `${getBackendBaseUrl()}/api/contact-form`;
                     const response = await fetch(backendUrl, {
                         method: 'POST',
                         headers: {

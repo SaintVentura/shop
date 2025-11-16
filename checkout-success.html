@@ -51,17 +51,21 @@
 
 <script>
 // Load order details from URL parameters or localStorage
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
   const urlParams = new URLSearchParams(window.location.search);
   const orderDetails = document.getElementById('order-details');
   
   // Try to get order info from URL parameters (Yoco redirects with these)
   const amount = urlParams.get('amount') || localStorage.getItem('lastOrderAmount');
-  const orderId = urlParams.get('orderId') || urlParams.get('id') || 'Pending';
+  const orderId = urlParams.get('orderId') || urlParams.get('id') || urlParams.get('checkoutId') || 'Pending';
+  
+  // Get order details from localStorage (saved before payment redirect)
+  const pendingOrderData = localStorage.getItem('pendingOrderDetails');
+  const orderData = pendingOrderData ? JSON.parse(pendingOrderData) : null;
   
   // Get cart info from localStorage
   const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-  const total = parseFloat(localStorage.getItem('checkoutSubtotal') || 0) + parseFloat(localStorage.getItem('shippingFee') || 0);
+  const total = orderData ? orderData.total : (parseFloat(localStorage.getItem('checkoutSubtotal') || 0) + parseFloat(localStorage.getItem('shippingFee') || 0));
   
   let html = '';
   
@@ -81,6 +85,72 @@ document.addEventListener('DOMContentLoaded', function() {
     orderDetails.innerHTML = html;
   } else {
     orderDetails.innerHTML = '<p class="text-gray-500">Order details will be sent to your email.</p>';
+  }
+  
+  // Send order confirmation email if order data exists
+  if (orderData) {
+    try {
+      // Auto-detect backend URL based on environment
+      function getBackendBaseUrl() {
+        const hostname = window.location.hostname;
+        
+        // Local development
+        if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '') {
+          return 'http://localhost:3000';
+        }
+        
+        // GitHub Pages (production)
+        // Update this with your actual deployed backend URL after deployment
+        // Example: 'https://saint-ventura-backend.railway.app'
+        // Or: 'https://saint-ventura-backend.onrender.com'
+        const PRODUCTION_BACKEND_URL = 'https://your-backend-url.railway.app';
+        
+        // If you're on GitHub Pages, use production backend
+        if (hostname.includes('github.io') || hostname.includes('github.com')) {
+          return PRODUCTION_BACKEND_URL;
+        }
+        
+        // Default to production for any other domain
+        return PRODUCTION_BACKEND_URL;
+      }
+      
+      const backendBaseUrl = getBackendBaseUrl();
+      const backendUrl = `${backendBaseUrl}/api/send-order-confirmation`;
+      
+      const emailData = {
+        customerName: orderData.customerName,
+        customerEmail: orderData.customerEmail,
+        shippingMethod: orderData.shippingMethod,
+        deliveryAddress: orderData.deliveryAddress,
+        deliveryDetails: orderData.deliveryDetails,
+        orderItems: orderData.orderItems,
+        subtotal: orderData.subtotal,
+        shipping: orderData.shipping,
+        total: orderData.total,
+        orderId: orderId !== 'Pending' ? orderId : undefined
+      };
+      
+      const response = await fetch(backendUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(emailData)
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log('Order confirmation email sent successfully');
+        // Remove pending order data after successful email send
+        localStorage.removeItem('pendingOrderDetails');
+      } else {
+        console.error('Failed to send order confirmation email:', result.error);
+      }
+    } catch (error) {
+      console.error('Error sending order confirmation email:', error);
+      // Don't show error to user - email sending failure shouldn't block success page
+    }
   }
   
   // Clear cart after successful payment (optional - you may want to keep it for reference)
