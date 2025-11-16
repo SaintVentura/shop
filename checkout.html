@@ -98,7 +98,7 @@
   <!-- Mobile Search Overlay -->
   <div id="mobile-search-overlay" class="fixed inset-0 bg-black/50 hidden md:hidden" style="z-index: 10000 !important;">
     <div class="h-full" style="background-color: #ffffff !important;">
-      <div class="flex items-center justify-between p-4 border-b" style="background-color: #ffffff !important; position: sticky !important; top: 0 !important; z-index: 10001 !important;">
+      <div class="flex items-center justify-between p-4 border-b" style="background-color: #ffffff !important; position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; z-index: 10001 !important; width: 100% !important;">
         <h2 class="text-xl font-semibold">Search Products</h2>
         <button onclick="toggleMobileSearch()" class="p-2 hover:bg-gray-100 rounded-lg transition duration-200">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -107,7 +107,7 @@
           </svg>
         </button>
       </div>
-      <div class="p-4">
+      <div class="p-4" style="margin-top: 64px;">
         <input 
           type="text" 
           id="mobile-search-input"
@@ -116,7 +116,7 @@
           oninput="handleMobileSearch(this.value)"
         >
       </div>
-      <div id="mobile-search-results" class="px-4 pb-4 overflow-y-auto" style="height: calc(100vh - 140px);">
+      <div id="mobile-search-results" class="px-4 pb-4 overflow-y-auto" style="height: calc(100vh - 200px);">
         <!-- Mobile search results populated by JavaScript -->
       </div>
     </div>
@@ -125,7 +125,7 @@
   <!-- Menu Overlay -->
   <div id="menu-overlay" class="fixed inset-0 bg-black/50 hidden" style="z-index: 10000 !important;">
     <div class="h-full w-full max-w-md ml-auto" style="background-color: #ffffff !important;">
-      <div class="flex items-center justify-between p-6 border-b" style="background-color: #ffffff !important; position: sticky !important; top: 0 !important; z-index: 10001 !important;">
+      <div class="flex items-center justify-between p-6 border-b" style="background-color: #ffffff !important; position: fixed !important; top: 0 !important; right: 0 !important; z-index: 10001 !important; width: 100% !important; max-width: 28rem !important;">
         <div class="flex items-center space-x-3">
           <img src="https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1" alt="SV Logo" class="w-8 h-8 rounded-lg object-cover">
           <span class="text-lg font-black">Menu</span>
@@ -138,7 +138,7 @@
         </button>
       </div>
       
-      <div class="p-6 overflow-y-auto" style="height: calc(100vh - 88px);">
+      <div class="p-6 overflow-y-auto" style="height: calc(100vh - 88px); margin-top: 64px;">
         <!-- Quick Links Section -->
         <div class="mb-12">
           <h3 class="text-sm font-bold uppercase tracking-wider text-gray-500 mb-6">Quick Links</h3>
