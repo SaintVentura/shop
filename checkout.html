@@ -177,19 +177,19 @@
         <div class="mb-12">
           <h3 class="text-sm font-bold uppercase tracking-wider text-gray-500 mb-6">Quick Links</h3>
           <div class="space-y-1">
-            <a href="index.html" class="menu-link flex items-center justify-between py-4 px-2 text-xl font-medium text-black hover:bg-gray-50 rounded-lg transition duration-200">
+            <a href="#" onclick="menuNavigate('home')" class="menu-link flex items-center justify-between py-4 px-2 text-xl font-medium text-black hover:bg-gray-50 rounded-lg transition duration-200">
               <span>Home</span>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="9,18 15,12 9,6"></polyline>
               </svg>
             </a>
-            <a href="index.html#shop" class="menu-link flex items-center justify-between py-4 px-2 text-xl font-medium text-black hover:bg-gray-50 rounded-lg transition duration-200">
+            <a href="#" onclick="menuNavigate('shop')" class="menu-link flex items-center justify-between py-4 px-2 text-xl font-medium text-black hover:bg-gray-50 rounded-lg transition duration-200">
               <span>Shop</span>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="9,18 15,12 9,6"></polyline>
               </svg>
             </a>
-            <a href="index.html#about" class="menu-link flex items-center justify-between py-4 px-2 text-xl font-medium text-black hover:bg-gray-50 rounded-lg transition duration-200">
+            <a href="#" onclick="menuNavigate('about')" class="menu-link flex items-center justify-between py-4 px-2 text-xl font-medium text-black hover:bg-gray-50 rounded-lg transition duration-200">
               <span>About</span>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="9,18 15,12 9,6"></polyline>
@@ -202,25 +202,25 @@
         <div class="mb-12">
           <h3 class="text-sm font-bold uppercase tracking-wider text-gray-500 mb-6">Customer Care</h3>
           <div class="space-y-1">
-            <a href="index.html#contact" class="menu-link flex items-center justify-between py-4 px-2 text-xl font-medium text-black hover:bg-gray-50 rounded-lg transition duration-200">
+            <a href="#" onclick="menuNavigate('contact')" class="menu-link flex items-center justify-between py-4 px-2 text-xl font-medium text-black hover:bg-gray-50 rounded-lg transition duration-200">
               <span>Contact</span>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="9,18 15,12 9,6"></polyline>
               </svg>
             </a>
-            <a href="index.html#shipping" class="menu-link flex items-center justify-between py-4 px-2 text-xl font-medium text-black hover:bg-gray-50 rounded-lg transition duration-200">
+            <a href="#" onclick="menuNavigate('shipping')" class="menu-link flex items-center justify-between py-4 px-2 text-xl font-medium text-black hover:bg-gray-50 rounded-lg transition duration-200">
               <span>Shipping</span>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="9,18 15,12 9,6"></polyline>
               </svg>
             </a>
-            <a href="index.html#payments" class="menu-link flex items-center justify-between py-4 px-2 text-xl font-medium text-black hover:bg-gray-50 rounded-lg transition duration-200">
+            <a href="#" onclick="menuNavigate('payments')" class="menu-link flex items-center justify-between py-4 px-2 text-xl font-medium text-black hover:bg-gray-50 rounded-lg transition duration-200">
               <span>Payments</span>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="9,18 15,12 9,6"></polyline>
               </svg>
             </a>
-            <a href="index.html#returns" class="menu-link flex items-center justify-between py-4 px-2 text-xl font-medium text-black hover:bg-gray-50 rounded-lg transition duration-200">
+            <a href="#" onclick="menuNavigate('returns')" class="menu-link flex items-center justify-between py-4 px-2 text-xl font-medium text-black hover:bg-gray-50 rounded-lg transition duration-200">
               <span>Returns</span>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="9,18 15,12 9,6"></polyline>
@@ -1455,6 +1455,18 @@ function hideSearchResults() {
   const results = document.getElementById('search-results');
   if (results) {
     results.classList.add('hidden');
+  }
+}
+
+function menuNavigate(page) {
+  // Close menu
+  toggleMenu();
+  
+  // Navigate to index.html with the appropriate section
+  if (page === 'home') {
+    window.location.href = 'index.html';
+  } else {
+    window.location.href = `index.html#${page}`;
   }
 }
 
