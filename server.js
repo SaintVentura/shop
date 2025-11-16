@@ -102,22 +102,51 @@ app.post('/api/test-email', async (req, res) => {
       });
     }
     
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.zoho.com',
-      port: 587,
-      secure: false,
-      auth: {
-        user: zohoEmail,
-        pass: zohoPassword
+    // Try multiple SMTP configurations for Zoho
+    const smtpConfigs = [
+      {
+        host: 'smtp.zoho.com',
+        port: 465,
+        secure: true, // SSL
+        auth: { user: zohoEmail, pass: zohoPassword },
+        connectionTimeout: 20000,
+        greetingTimeout: 20000,
+        socketTimeout: 20000,
+        tls: { rejectUnauthorized: false }
       },
-      connectionTimeout: 15000,
-      greetingTimeout: 15000,
-      socketTimeout: 15000
-    });
+      {
+        host: 'smtp.zoho.com',
+        port: 587,
+        secure: false, // STARTTLS
+        auth: { user: zohoEmail, pass: zohoPassword },
+        connectionTimeout: 20000,
+        greetingTimeout: 20000,
+        socketTimeout: 20000,
+        requireTLS: true,
+        tls: { rejectUnauthorized: false }
+      }
+    ];
     
-    // Verify connection
-    await transporter.verify();
-    console.log('✅ Email server connection verified');
+    let transporter;
+    let lastError;
+    
+    // Try each configuration until one works
+    for (const config of smtpConfigs) {
+      try {
+        transporter = nodemailer.createTransport(config);
+        await transporter.verify();
+        console.log(`✅ Email server connection verified using port ${config.port}`);
+        break; // Success, exit loop
+      } catch (error) {
+        lastError = error;
+        console.log(`⚠️ Port ${config.port} failed, trying next...`);
+        continue;
+      }
+    }
+    
+    if (!transporter) {
+      throw new Error(`Failed to connect to Zoho SMTP: ${lastError?.message || 'All ports failed'}`);
+    }
     
     // Send test email
     const testMailOptions = {
@@ -375,29 +404,54 @@ app.post('/api/contact-form', async (req, res) => {
       });
     }
     
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.zoho.com',
-      port: 587,
-      secure: false,
-      auth: {
-        user: zohoEmail,
-        pass: zohoPassword
+    // Try multiple SMTP configurations for Zoho
+    const smtpConfigs = [
+      {
+        host: 'smtp.zoho.com',
+        port: 465,
+        secure: true, // SSL
+        auth: { user: zohoEmail, pass: zohoPassword },
+        connectionTimeout: 20000,
+        greetingTimeout: 20000,
+        socketTimeout: 20000,
+        tls: { rejectUnauthorized: false }
       },
-      connectionTimeout: 20000, // 20 seconds
-      greetingTimeout: 20000,
-      socketTimeout: 20000,
-      pool: false, // Disable pooling for better reliability
-      tls: {
-        rejectUnauthorized: false
+      {
+        host: 'smtp.zoho.com',
+        port: 587,
+        secure: false, // STARTTLS
+        auth: { user: zohoEmail, pass: zohoPassword },
+        connectionTimeout: 20000,
+        greetingTimeout: 20000,
+        socketTimeout: 20000,
+        requireTLS: true,
+        tls: { rejectUnauthorized: false }
       }
-    });
+    ];
     
-    // Verify connection before sending
-    try {
-      await transporter.verify();
-      console.log('✅ Email server connection verified for contact form');
-    } catch (verifyError) {
-      console.error('⚠️ Email server connection verification failed (continuing anyway):', verifyError.message);
+    let transporter;
+    let lastError;
+    
+    // Try each configuration until one works
+    for (const config of smtpConfigs) {
+      try {
+        transporter = nodemailer.createTransport(config);
+        await transporter.verify();
+        console.log(`✅ Email server connection verified for contact form using port ${config.port}`);
+        break; // Success, exit loop
+      } catch (error) {
+        lastError = error;
+        console.log(`⚠️ Port ${config.port} failed for contact form, trying next...`);
+        continue;
+      }
+    }
+    
+    if (!transporter) {
+      console.error('❌ All SMTP ports failed for contact form');
+      return res.status(500).json({ 
+        success: false,
+        error: 'Email service connection failed. Please check Zoho SMTP settings.' 
+      });
     }
 
     // Email content - SENT TO: customersupport@saintventura.co.za
@@ -668,29 +722,54 @@ app.post('/api/send-order-confirmation', async (req, res) => {
       });
     }
     
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.zoho.com',
-      port: 587,
-      secure: false,
-      auth: {
-        user: zohoEmail,
-        pass: zohoPassword
+    // Try multiple SMTP configurations for Zoho
+    const smtpConfigs = [
+      {
+        host: 'smtp.zoho.com',
+        port: 465,
+        secure: true, // SSL
+        auth: { user: zohoEmail, pass: zohoPassword },
+        connectionTimeout: 20000,
+        greetingTimeout: 20000,
+        socketTimeout: 20000,
+        tls: { rejectUnauthorized: false }
       },
-      connectionTimeout: 20000,
-      greetingTimeout: 20000,
-      socketTimeout: 20000,
-      pool: false,
-      tls: {
-        rejectUnauthorized: false
+      {
+        host: 'smtp.zoho.com',
+        port: 587,
+        secure: false, // STARTTLS
+        auth: { user: zohoEmail, pass: zohoPassword },
+        connectionTimeout: 20000,
+        greetingTimeout: 20000,
+        socketTimeout: 20000,
+        requireTLS: true,
+        tls: { rejectUnauthorized: false }
       }
-    });
+    ];
     
-    // Verify connection before sending
-    try {
-      await transporter.verify();
-      console.log('✅ Email server connection verified for order confirmation');
-    } catch (verifyError) {
-      console.error('⚠️ Email server connection verification failed (continuing anyway):', verifyError.message);
+    let transporter;
+    let lastError;
+    
+    // Try each configuration until one works
+    for (const config of smtpConfigs) {
+      try {
+        transporter = nodemailer.createTransport(config);
+        await transporter.verify();
+        console.log(`✅ Email server connection verified for order confirmation using port ${config.port}`);
+        break; // Success, exit loop
+      } catch (error) {
+        lastError = error;
+        console.log(`⚠️ Port ${config.port} failed for order confirmation, trying next...`);
+        continue;
+      }
+    }
+    
+    if (!transporter) {
+      console.error('❌ All SMTP ports failed for order confirmation');
+      return res.status(500).json({ 
+        success: false,
+        error: 'Email service connection failed. Please check Zoho SMTP settings.' 
+      });
     }
 
     // Format order items for email
