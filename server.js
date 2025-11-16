@@ -49,6 +49,32 @@ app.get('/api/test', (req, res) => {
   });
 });
 
+// Keep-alive endpoint - ping this to keep server active
+app.get('/keep-alive', (req, res) => {
+  console.log('Keep-alive ping received at:', new Date().toISOString());
+  res.json({ 
+    status: 'alive', 
+    message: 'Server is active',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
+// Internal keep-alive mechanism - ping ourselves every 10 minutes
+if (process.env.NODE_ENV === 'production') {
+  setInterval(() => {
+    const https = require('https');
+    const url = process.env.BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
+    https.get(`${url}/keep-alive`, (res) => {
+      console.log('Internal keep-alive ping sent, status:', res.statusCode);
+    }).on('error', (err) => {
+      console.log('Keep-alive ping failed (this is ok if server is starting):', err.message);
+    });
+  }, 10 * 60 * 1000); // Every 10 minutes
+  
+  console.log('Internal keep-alive mechanism started (pings every 10 minutes)');
+}
+
 // Create Yoco checkout session
 app.post('/api/create-yoco-checkout', async (req, res) => {
   try {
@@ -276,9 +302,14 @@ Submitted on: ${new Date().toLocaleString()}`,
       `
     };
 
-    // Send email in background (non-blocking)
-    // Return success immediately to user, send email asynchronously
-    transporter.sendMail(mailOptions).then((info) => {
+    // Send email with timeout (wait for it but don't wait too long)
+    const emailPromise = transporter.sendMail(mailOptions);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Email timeout after 15 seconds')), 15000)
+    );
+    
+    try {
+      const info = await Promise.race([emailPromise, timeoutPromise]);
       console.log('✅ Contact form email SENT successfully to customersupport@saintventura.co.za');
       console.log('Email details:', { 
         messageId: info.messageId,
@@ -287,7 +318,12 @@ Submitted on: ${new Date().toLocaleString()}`,
         name: name,
         email: email
       });
-    }).catch((emailError) => {
+      
+      res.json({ 
+        success: true, 
+        message: 'Contact form submitted successfully' 
+      });
+    } catch (emailError) {
       console.error('❌ FAILED to send contact form email to customersupport@saintventura.co.za');
       console.error('Error details:', {
         code: emailError.code,
@@ -297,14 +333,13 @@ Submitted on: ${new Date().toLocaleString()}`,
         message: emailError.message,
         stack: emailError.stack
       });
-      // Don't block user - email will be logged but user gets success
-    });
-    
-    // Return success immediately - don't wait for email
-    res.json({ 
-      success: true, 
-      message: 'Contact form submitted successfully' 
-    });
+      
+      // Still return success to user, but log the error
+      res.json({ 
+        success: true, 
+        message: 'Contact form submitted successfully (email may be delayed)' 
+      });
+    }
 
   } catch (error) {
     console.error('Error sending contact form email:', error);
@@ -388,9 +423,14 @@ app.post('/api/newsletter-subscribe', async (req, res) => {
       `
     };
 
-    // Send email in background (non-blocking)
-    // Return success immediately to user, send email asynchronously
-    transporter.sendMail(mailOptions).then((info) => {
+    // Send email with timeout (wait for it but don't wait too long)
+    const emailPromise = transporter.sendMail(mailOptions);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Email timeout after 15 seconds')), 15000)
+    );
+    
+    try {
+      const info = await Promise.race([emailPromise, timeoutPromise]);
       console.log('✅ Newsletter subscription email SENT successfully to customersupport@saintventura.co.za');
       console.log('Email details:', { 
         messageId: info.messageId,
@@ -398,7 +438,12 @@ app.post('/api/newsletter-subscribe', async (req, res) => {
         subject: mailOptions.subject,
         subscriberEmail: email
       });
-    }).catch((emailError) => {
+      
+      res.json({ 
+        success: true, 
+        message: 'Subscription request sent successfully' 
+      });
+    } catch (emailError) {
       console.error('❌ FAILED to send newsletter email to customersupport@saintventura.co.za');
       console.error('Error details:', {
         code: emailError.code,
@@ -408,14 +453,13 @@ app.post('/api/newsletter-subscribe', async (req, res) => {
         message: emailError.message,
         stack: emailError.stack
       });
-      // Don't block user - email will be logged but user gets success
-    });
-    
-    // Return success immediately - don't wait for email
-    res.json({ 
-      success: true, 
-      message: 'Subscription request sent successfully' 
-    });
+      
+      // Still return success to user, but log the error
+      res.json({ 
+        success: true, 
+        message: 'Subscription request sent successfully (email may be delayed)' 
+      });
+    }
 
   } catch (error) {
     console.error('Error sending newsletter subscription email:', error);
@@ -637,9 +681,14 @@ ${deliveryAddress ? `Delivery Address: ${deliveryAddress}` : ''}
       `
     };
 
-    // Send email in background (non-blocking)
-    // Return success immediately to user, send email asynchronously
-    transporter.sendMail(mailOptions).then((info) => {
+    // Send email with timeout (wait for it but don't wait too long)
+    const emailPromise = transporter.sendMail(mailOptions);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Email timeout after 15 seconds')), 15000)
+    );
+    
+    try {
+      const info = await Promise.race([emailPromise, timeoutPromise]);
       console.log('✅ Order confirmation email SENT successfully to customersupport@saintventura.co.za');
       console.log('Email details:', { 
         messageId: info.messageId,
@@ -650,7 +699,12 @@ ${deliveryAddress ? `Delivery Address: ${deliveryAddress}` : ''}
         total: total,
         orderId: orderId
       });
-    }).catch((emailError) => {
+      
+      res.json({ 
+        success: true, 
+        message: 'Order confirmation email sent successfully' 
+      });
+    } catch (emailError) {
       console.error('❌ FAILED to send order confirmation email to customersupport@saintventura.co.za');
       console.error('Error details:', {
         code: emailError.code,
@@ -662,14 +716,13 @@ ${deliveryAddress ? `Delivery Address: ${deliveryAddress}` : ''}
         customerName: customerName,
         orderId: orderId
       });
-      // Don't block user - email will be logged but user gets success
-    });
-    
-    // Return success immediately - don't wait for email
-    res.json({ 
-      success: true, 
-      message: 'Order confirmation email sent successfully' 
-    });
+      
+      // Still return success to user, but log the error
+      res.json({ 
+        success: true, 
+        message: 'Order confirmation email sent successfully (email may be delayed)' 
+      });
+    }
 
   } catch (error) {
     console.error('Error sending order confirmation email:', error);
