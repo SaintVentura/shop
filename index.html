@@ -3242,7 +3242,9 @@ if (firstImage && firstImage.startsWith('http')) {
                 
                 // More specific error messages
                 let errorMessage = 'Unable to process subscription. ';
-                if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError') || error.message.includes('CORS')) {
+                if (error.name === 'AbortError' || error.message.includes('timeout')) {
+                    errorMessage += 'Request timed out. Please try again.';
+                } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError') || error.message.includes('CORS')) {
                     errorMessage += 'Cannot connect to server. Please check your internet connection and try again.';
                 } else if (error.message) {
                     errorMessage += error.message;
@@ -3336,7 +3338,9 @@ if (firstImage && firstImage.startsWith('http')) {
                     
                     // More specific error messages
                     let errorMessage = 'Unable to send message. ';
-                    if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError') || error.message.includes('CORS')) {
+                    if (error.name === 'AbortError' || error.message.includes('timeout')) {
+                        errorMessage += 'Request timed out. Please try again.';
+                    } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError') || error.message.includes('CORS')) {
                         errorMessage += 'Cannot connect to server. Please check your internet connection and try again.';
                     } else if (error.message) {
                         errorMessage += error.message;
