@@ -29,7 +29,24 @@ if (!YOCO_SECRET_KEY) {
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Yoco Payment API is running' });
+  console.log('Health check requested from:', req.headers.origin || req.headers.referer || 'unknown');
+  res.json({ 
+    status: 'ok', 
+    message: 'Yoco Payment API is running',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// Test endpoint to verify CORS and connectivity
+app.get('/api/test', (req, res) => {
+  console.log('Test endpoint requested from:', req.headers.origin || req.headers.referer || 'unknown');
+  res.json({ 
+    success: true, 
+    message: 'Backend is reachable',
+    backendUrl: 'https://saint-ventura-backend.onrender.com',
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Create Yoco checkout session

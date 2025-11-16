@@ -3202,6 +3202,9 @@ if (firstImage && firstImage.startsWith('http')) {
             try {
                 // Send subscription request to backend
                 const backendUrl = `${getBackendBaseUrl()}/api/newsletter-subscribe`;
+                console.log('Newsletter subscription - Backend URL:', backendUrl);
+                console.log('Newsletter subscription - Email:', email);
+                
                 const response = await fetch(backendUrl, {
                     method: 'POST',
                     headers: {
@@ -3232,13 +3235,19 @@ if (firstImage && firstImage.startsWith('http')) {
                 
                 // More specific error messages
                 let errorMessage = 'Unable to process subscription. ';
-                if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-                    errorMessage += 'Please make sure the backend server is running on port 3000.';
+                if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError') || error.message.includes('CORS')) {
+                    errorMessage += 'Cannot connect to server. Please check your internet connection and try again.';
                 } else if (error.message) {
                     errorMessage += error.message;
                 } else {
                     errorMessage += 'Please try again later.';
                 }
+                
+                console.error('Newsletter subscription failed:', {
+                    error: error.message,
+                    backendUrl: backendUrl,
+                    stack: error.stack
+                });
                 
                 showNotification(errorMessage, 'error');
             } finally {
@@ -3275,6 +3284,9 @@ if (firstImage && firstImage.startsWith('http')) {
                 try {
                     // Send contact form to backend
                     const backendUrl = `${getBackendBaseUrl()}/api/contact-form`;
+                    console.log('Contact form - Backend URL:', backendUrl);
+                    console.log('Contact form - Data:', { name, email, subject });
+                    
                     const response = await fetch(backendUrl, {
                         method: 'POST',
                         headers: {
@@ -3308,14 +3320,21 @@ if (firstImage && firstImage.startsWith('http')) {
                 } catch (error) {
                     console.error('Contact form error:', error);
                     
+                    // More specific error messages
                     let errorMessage = 'Unable to send message. ';
-                    if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-                        errorMessage += 'Please make sure the backend server is running on port 3000.';
+                    if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError') || error.message.includes('CORS')) {
+                        errorMessage += 'Cannot connect to server. Please check your internet connection and try again.';
                     } else if (error.message) {
                         errorMessage += error.message;
                     } else {
                         errorMessage += 'Please try again later.';
                     }
+                    
+                    console.error('Contact form failed:', {
+                        error: error.message,
+                        backendUrl: backendUrl,
+                        stack: error.stack
+                    });
                     
                     showNotification(errorMessage, 'error');
                 } finally {
