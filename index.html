@@ -11,19 +11,6 @@
             box-sizing: border-box;
             font-family: 'Inter', sans-serif;
             overflow-x: hidden;
-            padding-top: 64px; /* Account for fixed header height */
-        }
-        
-        /* Ensure header stays fixed and doesn't shrink */
-        nav {
-            min-height: 64px !important;
-            height: 64px !important;
-            transition: none !important;
-        }
-        
-        nav > div > div {
-            min-height: 64px !important;
-            height: 64px !important;
         }
 
 .faq-section {
@@ -239,9 +226,9 @@
 </head>
 <body class="h-full bg-white text-black">
     <!-- Navigation -->
-    <nav class="fixed top-0 w-full bg-white/95 backdrop-blur-md z-50 border-b border-gray-200" style="min-height: 64px; height: 64px;">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" style="height: 100%;">
-            <div class="flex justify-between items-center h-full" style="min-height: 64px; height: 64px;">
+    <nav class="fixed top-0 w-full bg-white/95 backdrop-blur-md z-50 border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
                 <div class="flex items-center space-x-2 cursor-pointer" onclick="showPage('home')">
                     <img src="https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1" alt="SV Logo" class="w-10 h-10 rounded-lg object-cover">
                     <span class="text-m font-black">Saint Ventura</span>
