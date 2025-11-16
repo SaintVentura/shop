@@ -556,9 +556,6 @@ app.post('/api/newsletter-subscribe', async (req, res) => {
     }
 
     // Configure Zoho email transporter
-    // Note: You'll need to set these in your .env file:
-    // ZOHO_EMAIL=customersupport@saintventura.co.za
-    // ZOHO_PASSWORD=your-zoho-app-password
     const zohoEmail = (process.env.ZOHO_EMAIL || 'customersupport@saintventura.co.za').replace(/^"|"$/g, '');
     const zohoPassword = (process.env.ZOHO_PASSWORD || process.env.ZOHO_APP_PASSWORD || '').replace(/^"|"$/g, '');
     
@@ -570,29 +567,54 @@ app.post('/api/newsletter-subscribe', async (req, res) => {
       });
     }
     
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.zoho.com',
-      port: 587,
-      secure: false, // true for 465, false for other ports
-      auth: {
-        user: zohoEmail,
-        pass: zohoPassword
+    // Try multiple SMTP configurations for Zoho
+    const smtpConfigs = [
+      {
+        host: 'smtp.zoho.com',
+        port: 465,
+        secure: true, // SSL
+        auth: { user: zohoEmail, pass: zohoPassword },
+        connectionTimeout: 20000,
+        greetingTimeout: 20000,
+        socketTimeout: 20000,
+        tls: { rejectUnauthorized: false }
       },
-      connectionTimeout: 20000,
-      greetingTimeout: 20000,
-      socketTimeout: 20000,
-      pool: false,
-      tls: {
-        rejectUnauthorized: false
+      {
+        host: 'smtp.zoho.com',
+        port: 587,
+        secure: false, // STARTTLS
+        auth: { user: zohoEmail, pass: zohoPassword },
+        connectionTimeout: 20000,
+        greetingTimeout: 20000,
+        socketTimeout: 20000,
+        requireTLS: true,
+        tls: { rejectUnauthorized: false }
       }
-    });
+    ];
     
-    // Verify connection before sending
-    try {
-      await transporter.verify();
-      console.log('✅ Email server connection verified for newsletter');
-    } catch (verifyError) {
-      console.error('⚠️ Email server connection verification failed (continuing anyway):', verifyError.message);
+    let transporter;
+    let lastError;
+    
+    // Try each configuration until one works
+    for (const config of smtpConfigs) {
+      try {
+        transporter = nodemailer.createTransport(config);
+        await transporter.verify();
+        console.log(`✅ Email server connection verified for newsletter using port ${config.port}`);
+        break; // Success, exit loop
+      } catch (error) {
+        lastError = error;
+        console.log(`⚠️ Port ${config.port} failed for newsletter, trying next...`);
+        continue;
+      }
+    }
+    
+    if (!transporter) {
+      console.error('❌ All SMTP ports failed for newsletter');
+      return res.status(500).json({ 
+        success: false,
+        error: 'Email service connection failed. Please check Zoho SMTP settings.' 
+      });
     }
 
     // Email content - SENT TO: customersupport@saintventura.co.za
