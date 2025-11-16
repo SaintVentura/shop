@@ -60,6 +60,104 @@ app.get('/keep-alive', (req, res) => {
   });
 });
 
+// Helper function to send email with retry logic
+async function sendEmailWithRetry(transporter, mailOptions, maxRetries = 3) {
+  let lastError;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const emailPromise = transporter.sendMail(mailOptions);
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Email timeout after 20 seconds')), 20000)
+      );
+      
+      const info = await Promise.race([emailPromise, timeoutPromise]);
+      console.log(`✅ Email sent successfully on attempt ${attempt}`);
+      return { success: true, info };
+    } catch (error) {
+      lastError = error;
+      console.error(`❌ Email attempt ${attempt} failed:`, error.message);
+      
+      if (attempt < maxRetries) {
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000); // Exponential backoff, max 10s
+        console.log(`Retrying email in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  
+  return { success: false, error: lastError };
+}
+
+// Email test endpoint - test email configuration
+app.post('/api/test-email', async (req, res) => {
+  try {
+    const zohoEmail = (process.env.ZOHO_EMAIL || 'customersupport@saintventura.co.za').replace(/^"|"$/g, '');
+    const zohoPassword = (process.env.ZOHO_PASSWORD || process.env.ZOHO_APP_PASSWORD || '').replace(/^"|"$/g, '');
+    
+    if (!zohoPassword) {
+      return res.status(500).json({ 
+        success: false,
+        error: 'ZOHO_PASSWORD is not set in environment variables' 
+      });
+    }
+    
+    const transporter = nodemailer.createTransport({
+      host: 'smtp.zoho.com',
+      port: 587,
+      secure: false,
+      auth: {
+        user: zohoEmail,
+        pass: zohoPassword
+      },
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 15000
+    });
+    
+    // Verify connection
+    await transporter.verify();
+    console.log('✅ Email server connection verified');
+    
+    // Send test email
+    const testMailOptions = {
+      from: zohoEmail,
+      to: 'customersupport@saintventura.co.za',
+      subject: 'Test Email - Saint Ventura Backend',
+      text: `This is a test email from your Saint Ventura backend server.\n\nSent at: ${new Date().toISOString()}\nServer: ${process.env.NODE_ENV || 'development'}`,
+      html: `
+        <h2>Test Email</h2>
+        <p>This is a test email from your Saint Ventura backend server.</p>
+        <p><strong>Sent at:</strong> ${new Date().toISOString()}</p>
+        <p><strong>Server:</strong> ${process.env.NODE_ENV || 'development'}</p>
+      `
+    };
+    
+    const result = await sendEmailWithRetry(transporter, testMailOptions);
+    
+    if (result.success) {
+      res.json({ 
+        success: true, 
+        message: 'Test email sent successfully to customersupport@saintventura.co.za',
+        messageId: result.info?.messageId
+      });
+    } else {
+      res.status(500).json({ 
+        success: false,
+        error: 'Failed to send test email after retries',
+        details: result.error?.message || 'Unknown error'
+      });
+    }
+  } catch (error) {
+    console.error('Email test error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message || 'Email test failed',
+      code: error.code
+    });
+  }
+});
+
 // Internal keep-alive mechanism - ping ourselves every 10 minutes
 if (process.env.NODE_ENV === 'production') {
   setInterval(() => {
@@ -143,21 +241,42 @@ app.post('/api/create-yoco-checkout', async (req, res) => {
       apiUrl: `${YOCO_API_URL}/api/checkouts`
     });
     
-    const response = await axios.post(
-      `${YOCO_API_URL}/api/checkouts`,
-      checkoutData,
-      {
-        headers: {
-          // Yoco API uses secret key directly in Authorization header
-          // Format: Authorization: Bearer <secret_key>
-          'Authorization': `Bearer ${YOCO_SECRET_KEY}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        // Add timeout
-        timeout: 30000
+    // Retry logic for Yoco API calls
+    let response;
+    let lastError;
+    const maxRetries = 3;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`Yoco API attempt ${attempt}/${maxRetries}`);
+        response = await axios.post(
+          `${YOCO_API_URL}/api/checkouts`,
+          checkoutData,
+          {
+            headers: {
+              'Authorization': `Bearer ${YOCO_SECRET_KEY}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            timeout: 30000
+          }
+        );
+        break; // Success, exit retry loop
+      } catch (error) {
+        lastError = error;
+        console.error(`Yoco API attempt ${attempt} failed:`, error.response?.status || error.message);
+        
+        if (attempt < maxRetries) {
+          const delay = Math.min(1000 * attempt, 5000); // Linear backoff, max 5s
+          console.log(`Retrying Yoco API call in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
       }
-    );
+    }
+    
+    if (!response) {
+      throw lastError || new Error('Yoco API call failed after retries');
+    }
 
     if (response.data && response.data.id) {
       console.log('Checkout session created:', response.data.id);
@@ -264,13 +383,22 @@ app.post('/api/contact-form', async (req, res) => {
         user: zohoEmail,
         pass: zohoPassword
       },
-      connectionTimeout: 10000, // 10 seconds
-      greetingTimeout: 10000,
-      socketTimeout: 10000,
-      pool: true,
-      maxConnections: 1,
-      maxMessages: 3
+      connectionTimeout: 20000, // 20 seconds
+      greetingTimeout: 20000,
+      socketTimeout: 20000,
+      pool: false, // Disable pooling for better reliability
+      tls: {
+        rejectUnauthorized: false
+      }
     });
+    
+    // Verify connection before sending
+    try {
+      await transporter.verify();
+      console.log('✅ Email server connection verified for contact form');
+    } catch (verifyError) {
+      console.error('⚠️ Email server connection verification failed (continuing anyway):', verifyError.message);
+    }
 
     // Email content - SENT TO: customersupport@saintventura.co.za
     const mailOptions = {
@@ -302,17 +430,13 @@ Submitted on: ${new Date().toLocaleString()}`,
       `
     };
 
-    // Send email with timeout (wait for it but don't wait too long)
-    const emailPromise = transporter.sendMail(mailOptions);
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Email timeout after 15 seconds')), 15000)
-    );
+    // Send email with retry logic
+    const result = await sendEmailWithRetry(transporter, mailOptions, 3);
     
-    try {
-      const info = await Promise.race([emailPromise, timeoutPromise]);
+    if (result.success) {
       console.log('✅ Contact form email SENT successfully to customersupport@saintventura.co.za');
       console.log('Email details:', { 
-        messageId: info.messageId,
+        messageId: result.info.messageId,
         to: mailOptions.to,
         subject: mailOptions.subject,
         name: name,
@@ -323,15 +447,15 @@ Submitted on: ${new Date().toLocaleString()}`,
         success: true, 
         message: 'Contact form submitted successfully' 
       });
-    } catch (emailError) {
-      console.error('❌ FAILED to send contact form email to customersupport@saintventura.co.za');
+    } else {
+      console.error('❌ FAILED to send contact form email to customersupport@saintventura.co.za after retries');
       console.error('Error details:', {
-        code: emailError.code,
-        command: emailError.command,
-        response: emailError.response,
-        responseCode: emailError.responseCode,
-        message: emailError.message,
-        stack: emailError.stack
+        code: result.error?.code,
+        command: result.error?.command,
+        response: result.error?.response,
+        responseCode: result.error?.responseCode,
+        message: result.error?.message,
+        stack: result.error?.stack
       });
       
       // Still return success to user, but log the error
@@ -423,17 +547,13 @@ app.post('/api/newsletter-subscribe', async (req, res) => {
       `
     };
 
-    // Send email with timeout (wait for it but don't wait too long)
-    const emailPromise = transporter.sendMail(mailOptions);
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Email timeout after 15 seconds')), 15000)
-    );
+    // Send email with retry logic
+    const result = await sendEmailWithRetry(transporter, mailOptions, 3);
     
-    try {
-      const info = await Promise.race([emailPromise, timeoutPromise]);
+    if (result.success) {
       console.log('✅ Newsletter subscription email SENT successfully to customersupport@saintventura.co.za');
       console.log('Email details:', { 
-        messageId: info.messageId,
+        messageId: result.info.messageId,
         to: mailOptions.to,
         subject: mailOptions.subject,
         subscriberEmail: email
@@ -443,15 +563,15 @@ app.post('/api/newsletter-subscribe', async (req, res) => {
         success: true, 
         message: 'Subscription request sent successfully' 
       });
-    } catch (emailError) {
-      console.error('❌ FAILED to send newsletter email to customersupport@saintventura.co.za');
+    } else {
+      console.error('❌ FAILED to send newsletter email to customersupport@saintventura.co.za after retries');
       console.error('Error details:', {
-        code: emailError.code,
-        command: emailError.command,
-        response: emailError.response,
-        responseCode: emailError.responseCode,
-        message: emailError.message,
-        stack: emailError.stack
+        code: result.error?.code,
+        command: result.error?.command,
+        response: result.error?.response,
+        responseCode: result.error?.responseCode,
+        message: result.error?.message,
+        stack: result.error?.stack
       });
       
       // Still return success to user, but log the error
@@ -547,13 +667,22 @@ app.post('/api/send-order-confirmation', async (req, res) => {
         user: zohoEmail,
         pass: zohoPassword
       },
-      connectionTimeout: 10000, // 10 seconds
-      greetingTimeout: 10000,
-      socketTimeout: 10000,
-      pool: true,
-      maxConnections: 1,
-      maxMessages: 3
+      connectionTimeout: 20000,
+      greetingTimeout: 20000,
+      socketTimeout: 20000,
+      pool: false,
+      tls: {
+        rejectUnauthorized: false
+      }
     });
+    
+    // Verify connection before sending
+    try {
+      await transporter.verify();
+      console.log('✅ Email server connection verified for order confirmation');
+    } catch (verifyError) {
+      console.error('⚠️ Email server connection verification failed (continuing anyway):', verifyError.message);
+    }
 
     // Format order items for email
     const itemsHtml = orderItems.map(item => {
@@ -681,17 +810,13 @@ ${deliveryAddress ? `Delivery Address: ${deliveryAddress}` : ''}
       `
     };
 
-    // Send email with timeout (wait for it but don't wait too long)
-    const emailPromise = transporter.sendMail(mailOptions);
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Email timeout after 15 seconds')), 15000)
-    );
+    // Send email with retry logic
+    const result = await sendEmailWithRetry(transporter, mailOptions, 3);
     
-    try {
-      const info = await Promise.race([emailPromise, timeoutPromise]);
+    if (result.success) {
       console.log('✅ Order confirmation email SENT successfully to customersupport@saintventura.co.za');
       console.log('Email details:', { 
-        messageId: info.messageId,
+        messageId: result.info.messageId,
         to: mailOptions.to,
         subject: mailOptions.subject,
         customerName: customerName,
@@ -704,15 +829,15 @@ ${deliveryAddress ? `Delivery Address: ${deliveryAddress}` : ''}
         success: true, 
         message: 'Order confirmation email sent successfully' 
       });
-    } catch (emailError) {
-      console.error('❌ FAILED to send order confirmation email to customersupport@saintventura.co.za');
+    } else {
+      console.error('❌ FAILED to send order confirmation email to customersupport@saintventura.co.za after retries');
       console.error('Error details:', {
-        code: emailError.code,
-        command: emailError.command,
-        response: emailError.response,
-        responseCode: emailError.responseCode,
-        message: emailError.message,
-        stack: emailError.stack,
+        code: result.error?.code,
+        command: result.error?.command,
+        response: result.error?.response,
+        responseCode: result.error?.responseCode,
+        message: result.error?.message,
+        stack: result.error?.stack,
         customerName: customerName,
         orderId: orderId
       });
