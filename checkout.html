@@ -84,29 +84,76 @@
 <body class="bg-gray-50 text-gray-900" style="font-family: 'Inter', sans-serif;">
 
   <!-- Navigation -->
-  <nav class="fixed top-0 left-0 right-0 w-full bg-white/95 z-50 border-b border-gray-200" style="position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; backdrop-filter: blur(40px) !important; -webkit-backdrop-filter: blur(40px) !important;">
+  <nav class="fixed top-0 left-0 right-0 w-full bg-white/95 backdrop-blur-md z-50 border-b border-gray-200" style="position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important;">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center h-16">
         <div class="flex items-center space-x-2 cursor-pointer" onclick="window.location.href='index.html'">
           <img src="https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1" alt="SV Logo" class="w-10 h-10 rounded-lg object-cover">
-          <span class="text-m font-black" id="nav-brand-name">Saint Ventura</span>
-    </div>
+          <span class="text-m font-black">Saint Ventura</span>
+        </div>
+        
+        
+        <div class="flex items-center space-x-4">
+          <!-- Search -->
+          <div class="relative hidden md:block">
+            <input 
+              type="text" 
+              id="search-input"
+              placeholder="Search products..." 
+              class="w-80 px-4 py-2 pl-12 border border-gray-300 rounded-lg focus:outline-none focus:border-black transition duration-200"
+              oninput="handleSearch(this.value)"
+              onfocus="showSearchResults()"
+              onblur="hideSearchResults()"
+            >
+            <div class="absolute left-4 top-1/2 transform -translate-y-1/2 text-black">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.35-4.35"></path>
+              </svg>
+            </div>
+            <!-- Search Results Dropdown -->
+            <div id="search-results" class="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-96 overflow-y-auto z-50 hidden">
+              <div id="search-content">
+                <!-- Search results populated by JavaScript -->
+              </div>
+            </div>
+          </div>
+          
+          <!-- Mobile Search Button -->
+          <button class="md:hidden p-2 text-black hover:text-gray-700 transition duration-200" onclick="toggleMobileSearch()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <path d="m21 21-4.35-4.35"></path>
+            </svg>
+          </button>
+          
+          <!-- Cart Button -->
+          <button class="relative bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-all duration-300 transform hover:scale-105 flex items-center space-x-2 shadow-lg" onclick="window.location.href='index.html'; sessionStorage.setItem('openCart', 'true');">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <path d="M16 10a4 4 0 0 1-8 0"></path>
+            </svg>
+            <span class="hidden sm:inline font-medium">Cart</span>
+            <span id="cart-badge" class="bg-white text-black text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold hidden ml-1">0</span>
+          </button>
+          
+          <!-- Menu Button -->
+          <button class="p-2 text-black hover:text-gray-700 transition duration-200" onclick="toggleMenu()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
   </nav>
 
   <!-- Mobile Search Overlay -->
-  <div id="mobile-search-overlay" class="fixed inset-0 bg-black/50 hidden md:hidden" style="z-index: 10000 !important;">
-    <div class="h-full" style="background-color: #ffffff !important;">
-      <div class="flex items-center justify-between p-4 border-b" style="background-color: #ffffff !important; position: sticky !important; top: 0 !important; z-index: 10001 !important; display: flex !important;">
-        <h2 class="text-xl font-semibold" style="display: block !important; visibility: visible !important;">Search Products</h2>
-        <button onclick="toggleMobileSearch()" class="p-2 hover:bg-gray-100 rounded-lg transition duration-200">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
+  <div id="mobile-search-overlay" class="fixed z-50 hidden md:hidden" style="top: 4rem !important; left: 0 !important; right: 0 !important; bottom: 0 !important; background-color: rgba(0, 0, 0, 0.5) !important;">
+    <div class="bg-white h-full w-full">
       <div class="p-4">
         <input 
           type="text" 
@@ -123,22 +170,9 @@
   </div>
 
   <!-- Menu Overlay -->
-  <div id="menu-overlay" class="fixed inset-0 bg-black/50 hidden" style="z-index: 10000 !important;">
-    <div class="h-full w-full max-w-md ml-auto" style="background-color: #ffffff !important;">
-      <div class="flex items-center justify-between p-6 border-b" style="background-color: #ffffff !important; position: sticky !important; top: 0 !important; z-index: 10001 !important; display: flex !important;">
-        <div class="flex items-center space-x-3" style="display: flex !important; visibility: visible !important;">
-          <img src="https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1" alt="SV Logo" class="w-8 h-8 rounded-lg object-cover">
-          <span class="text-lg font-black" style="display: block !important; visibility: visible !important;">Menu</span>
-        </div>
-        <button onclick="toggleMenu()" class="p-2 hover:bg-gray-100 rounded-lg transition duration-200">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
-      
-      <div class="p-6 overflow-y-auto" style="height: calc(100vh - 88px);">
+  <div id="menu-overlay" class="fixed z-50 hidden" style="top: 4rem !important; left: 0 !important; right: 0 !important; bottom: 0 !important; background-color: rgba(0, 0, 0, 0.5) !important;">
+    <div class="bg-white h-full w-full" style="width: 100% !important;">
+      <div class="p-6 overflow-y-auto" style="height: calc(100vh - 64px);">
         <!-- Quick Links Section -->
         <div class="mb-12">
           <h3 class="text-sm font-bold uppercase tracking-wider text-gray-500 mb-6">Quick Links</h3>
