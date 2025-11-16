@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Saint Ventura Checkout</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <!-- Google Maps API for South African Address Autocomplete -->
   <!-- To enable: Get your API key from https://console.cloud.google.com/ -->
   <!-- Then uncomment the line below and replace YOUR_API_KEY with your actual key -->
@@ -54,20 +55,40 @@
       margin-top: 20px;
       text-align: center;
     }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+    }
   </style>
 </head>
-<body class="bg-gray-50 font-sans text-gray-900">
+<body class="bg-gray-50 text-gray-900" style="font-family: 'Inter', sans-serif;">
 
-  <!-- Header -->
-  <header class="bg-white shadow-sm">
-    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-      <img src="https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1" alt="Saint Ventura Logo" class="w-10 h-10 rounded-lg object-cover">
-      <h1 class="text-2xl font-bold tracking-wide">Checkout</h1>
+  <!-- Navigation -->
+  <nav class="fixed top-0 w-full bg-white/95 backdrop-blur-md z-50 border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
+        <div class="flex items-center space-x-2 cursor-pointer" onclick="window.location.href='index.html'">
+          <img src="https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1" alt="SV Logo" class="w-10 h-10 rounded-lg object-cover">
+          <span class="text-m font-black">Saint Ventura</span>
+        </div>
+        
+        <div class="flex items-center space-x-4">
+          <!-- Cart Button -->
+          <button class="relative bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-all duration-300 transform hover:scale-105 flex items-center space-x-2 shadow-lg" onclick="window.location.href='index.html#cart'">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <path d="M16 10a4 4 0 0 1-8 0"></path>
+            </svg>
+            <span class="hidden sm:inline font-medium">Cart</span>
+          </button>
+        </div>
+      </div>
     </div>
-  </header>
+  </nav>
 
   <!-- Main Section -->
-  <section class="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 lg:grid-cols-2 gap-10">
+  <section class="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 lg:grid-cols-2 gap-10 mt-16">
     
     <!-- Order Summary - First on mobile, left on desktop -->
     <div class="bg-white p-8 rounded-xl shadow-md order-1 lg:order-1">
@@ -166,7 +187,7 @@
           </div>
         </div>
 
-        <button type="submit" class="w-full bg-black text-white py-4 rounded-lg font-semibold hover:bg-gray-800 transition-all duration-300">
+        <button type="submit" class="w-full bg-black text-white py-4 rounded-lg font-semibold hover:bg-gray-800 transition-all duration-300 transform hover:scale-[1.02] text-lg">
           Proceed to Payment
         </button>
       </form>
