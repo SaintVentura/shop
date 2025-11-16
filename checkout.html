@@ -137,9 +137,13 @@
 // Auto-detect backend URL based on environment
 function getBackendUrl() {
   const hostname = window.location.hostname;
+  const origin = window.location.origin;
+  
+  console.log('Detecting backend URL for hostname:', hostname, 'origin:', origin);
   
   // Local development
-  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '') {
+  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '' || hostname === '0.0.0.0') {
+    console.log('Using localhost backend');
     return 'http://localhost:3000/api/create-yoco-checkout';
   }
   
@@ -148,11 +152,13 @@ function getBackendUrl() {
   const PRODUCTION_BACKEND_URL = 'https://saint-ventura-backend.onrender.com/api/create-yoco-checkout';
   
   // If you're on GitHub Pages, use production backend
-  if (hostname.includes('github.io') || hostname.includes('github.com')) {
+  if (hostname.includes('github.io') || hostname.includes('github.com') || origin.includes('github.io') || origin.includes('github.com')) {
+    console.log('Detected GitHub Pages, using production backend:', PRODUCTION_BACKEND_URL);
     return PRODUCTION_BACKEND_URL;
   }
   
   // Default to production for any other domain
+  console.log('Using production backend:', PRODUCTION_BACKEND_URL);
   return PRODUCTION_BACKEND_URL;
 }
 
@@ -999,6 +1005,9 @@ async function handleCheckout(event) {
       throw new Error('Backend URL not configured. Please set backendUrl in YOCO_CONFIG.');
     }
 
+    console.log('Sending request to backend:', YOCO_CONFIG.backendUrl);
+    console.log('Order data:', orderData);
+
     const response = await fetch(YOCO_CONFIG.backendUrl, {
       method: "POST",
       headers: { 
@@ -1007,9 +1016,18 @@ async function handleCheckout(event) {
       body: JSON.stringify(orderData)
     });
 
+    console.log('Backend response status:', response.status, response.statusText);
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Server error' }));
-      throw new Error(errorData.error || `Server error: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('Backend error response:', errorText);
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        errorData = { error: errorText || `Server error: ${response.status} ${response.statusText}` };
+      }
+      throw new Error(errorData.error || `Server error: ${response.status} ${response.statusText}`);
     }
 
     const result = await response.json();
@@ -1039,10 +1057,22 @@ async function handleCheckout(event) {
     console.error('Full error details:', {
       message: error.message,
       stack: error.stack,
-      response: error.response
+      response: error.response,
+      backendUrl: YOCO_CONFIG.backendUrl,
+      currentUrl: window.location.href
     });
     
-    // Show user-friendly error message
+    // More user-friendly error messages
+    let errorMessage = 'Failed to process payment. ';
+    if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+      errorMessage += 'Cannot connect to server. Please check your internet connection and try again.';
+    } else if (error.message.includes('CORS')) {
+      errorMessage += 'Server connection issue. Please contact support.';
+    } else {
+      errorMessage += error.message;
+    }
+    
+    alert(errorMessage);
     let errorMessage = 'Failed to process payment. ';
     if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
       errorMessage += 'Please make sure the backend server is running on port 3000.';

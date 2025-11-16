@@ -93,9 +93,13 @@ document.addEventListener('DOMContentLoaded', async function() {
       // Auto-detect backend URL based on environment
       function getBackendBaseUrl() {
         const hostname = window.location.hostname;
+        const origin = window.location.origin;
+        
+        console.log('Detecting backend URL for hostname:', hostname, 'origin:', origin);
         
         // Local development
-        if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '') {
+        if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '' || hostname === '0.0.0.0') {
+          console.log('Using localhost backend');
           return 'http://localhost:3000';
         }
         
@@ -104,11 +108,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         const PRODUCTION_BACKEND_URL = 'https://saint-ventura-backend.onrender.com';
         
         // If you're on GitHub Pages, use production backend
-        if (hostname.includes('github.io') || hostname.includes('github.com')) {
+        if (hostname.includes('github.io') || hostname.includes('github.com') || origin.includes('github.io') || origin.includes('github.com')) {
+          console.log('Detected GitHub Pages, using production backend:', PRODUCTION_BACKEND_URL);
           return PRODUCTION_BACKEND_URL;
         }
         
         // Default to production for any other domain
+        console.log('Using production backend:', PRODUCTION_BACKEND_URL);
         return PRODUCTION_BACKEND_URL;
       }
       
