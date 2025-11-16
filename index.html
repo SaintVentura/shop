@@ -235,7 +235,7 @@
 </head>
 <body class="h-full bg-white text-black">
     <!-- Navigation -->
-    <nav class="fixed top-0 left-0 right-0 w-full bg-white/95 backdrop-blur-md z-50 border-b border-gray-200" style="position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; z-index: 9999 !important;">
+    <nav class="fixed top-0 left-0 right-0 w-full bg-white/95 backdrop-blur-md z-50 border-b border-gray-200" style="position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important;">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center space-x-2 cursor-pointer" onclick="showPage('home')">
@@ -303,10 +303,10 @@
     </nav>
 
     <!-- Mobile Search Overlay -->
-    <div id="mobile-search-overlay" class="fixed inset-0 bg-black/50 hidden md:hidden" style="z-index: 10000 !important;">
-        <div class="bg-white h-full" style="background-color: #ffffff !important;">
-            <div class="flex items-center justify-between p-4 border-b" style="background-color: #ffffff !important; position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; z-index: 10001 !important; display: flex !important; padding-top: 1rem !important; padding-bottom: 1rem !important;">
-                <h2 class="text-xl font-semibold" style="display: block !important; visibility: visible !important;">Search Products</h2>
+    <div id="mobile-search-overlay" class="fixed inset-0 bg-black/50 z-50 hidden md:hidden">
+        <div class="bg-white h-full">
+            <div class="flex items-center justify-between p-4">
+                <h2 class="text-xl font-semibold">Search Products</h2>
                 <button onclick="toggleMobileSearch()" class="p-2 hover:bg-gray-100 rounded-lg transition duration-200">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -314,7 +314,7 @@
                     </svg>
                 </button>
             </div>
-            <div class="p-4" style="margin-top: 4rem !important;">
+            <div class="p-4">
                 <input 
                     type="text" 
                     id="mobile-search-input"
@@ -323,19 +323,19 @@
                     oninput="handleMobileSearch(this.value)"
                 >
             </div>
-            <div id="mobile-search-results" class="px-4 pb-4 overflow-y-auto" style="height: calc(100vh - 200px);">
+            <div id="mobile-search-results" class="px-4 pb-4 overflow-y-auto" style="height: calc(100vh - 140px);">
                 <!-- Mobile search results populated by JavaScript -->
             </div>
         </div>
     </div>
 
     <!-- Menu Overlay -->
-    <div id="menu-overlay" class="fixed inset-0 bg-black/50 hidden" style="z-index: 10000 !important;">
-        <div class="bg-white h-full w-full max-w-md ml-auto" style="background-color: #ffffff !important;">
-            <div class="flex items-center justify-between p-6 border-b" style="background-color: #ffffff !important; position: fixed !important; top: 0 !important; right: 0 !important; max-width: 28rem !important; z-index: 10001 !important; display: flex !important; padding-top: 1.5rem !important; padding-bottom: 1.5rem !important;">
-                <div class="flex items-center space-x-3" style="display: flex !important; visibility: visible !important;">
+    <div id="menu-overlay" class="fixed inset-0 bg-black/50 z-50 hidden">
+        <div class="bg-white h-full w-full max-w-md ml-auto">
+            <div class="flex items-center justify-between p-6">
+                <div class="flex items-center space-x-3">
                     <img src="https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1" alt="SV Logo" class="w-8 h-8 rounded-lg object-cover">
-                    <span class="text-lg font-black" style="display: block !important; visibility: visible !important;">Menu</span>
+                    <span class="text-lg font-black">Menu</span>
                 </div>
                 <button onclick="toggleMenu()" class="p-2 hover:bg-gray-100 rounded-lg transition duration-200">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -345,7 +345,7 @@
                 </button>
             </div>
             
-            <div class="p-6 overflow-y-auto" style="height: calc(100vh - 88px); margin-top: 5rem !important;">
+            <div class="p-6 overflow-y-auto" style="height: calc(100vh - 88px);">
                 <!-- Quick Links Section -->
                 <div class="mb-12">
                     <h3 class="text-sm font-bold uppercase tracking-wider text-gray-500 mb-6">Quick Links</h3>
