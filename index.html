@@ -3410,6 +3410,14 @@ if (firstImage && firstImage.startsWith('http')) {
             if (newsletterForm) {
                 newsletterForm.addEventListener('submit', handleNewsletterSubscription);
             }
+            
+            // Check if cart should be opened (from checkout page)
+            if (sessionStorage.getItem('openCart') === 'true') {
+                sessionStorage.removeItem('openCart');
+                setTimeout(() => {
+                    showCartPage();
+                }, 100);
+            }
         });
         
 let slideIndex = 0;

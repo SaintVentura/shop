@@ -84,12 +84,12 @@
 <body class="bg-gray-50 text-gray-900" style="font-family: 'Inter', sans-serif;">
 
   <!-- Navigation -->
-  <nav class="fixed top-0 left-0 right-0 w-full bg-white/95 backdrop-blur-md z-50 border-b border-gray-200" style="position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important;">
+  <nav class="fixed top-0 left-0 right-0 w-full bg-white/95 z-50 border-b border-gray-200" style="position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important;">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center h-16">
         <div class="flex items-center space-x-2 cursor-pointer" onclick="window.location.href='index.html'">
           <img src="https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1" alt="SV Logo" class="w-10 h-10 rounded-lg object-cover">
-          <span class="text-m font-black" id="nav-brand-name">SV Checkout</span>
+          <span class="text-m font-black" id="nav-brand-name">Saint Ventura</span>
         </div>
         
         
@@ -112,7 +112,7 @@
               </svg>
             </div>
             <!-- Search Results Dropdown -->
-            <div id="search-results" class="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-96 overflow-y-auto z-50 hidden">
+            <div id="search-results" class="absolute top-full left-0 right-0 border border-gray-200 rounded-lg shadow-lg mt-1 max-h-96 overflow-y-auto z-50 hidden" style="background-color: #ffffff !important;">
               <div id="search-content">
                 <!-- Search results populated by JavaScript -->
               </div>
@@ -128,7 +128,7 @@
           </button>
           
           <!-- Cart Button -->
-          <button class="relative bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-all duration-300 transform hover:scale-105 flex items-center space-x-2 shadow-lg" onclick="window.location.href='index.html'; setTimeout(() => { if (typeof showCartPage === 'function') showCartPage(); }, 100);">
+          <button class="relative bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-all duration-300 transform hover:scale-105 flex items-center space-x-2 shadow-lg" onclick="window.location.href='index.html'; sessionStorage.setItem('openCart', 'true');">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
               <line x1="3" y1="6" x2="21" y2="6"></line>
@@ -153,7 +153,7 @@
 
   <!-- Mobile Search Overlay -->
   <div id="mobile-search-overlay" class="fixed inset-0 bg-black/50 z-50 hidden md:hidden">
-    <div class="bg-white h-full">
+    <div class="h-full" style="background-color: #ffffff !important;">
       <div class="flex items-center justify-between p-4 border-b">
         <h2 class="text-xl font-semibold">Search Products</h2>
         <button onclick="toggleMobileSearch()" class="p-2 hover:bg-gray-100 rounded-lg transition duration-200">
@@ -180,7 +180,7 @@
 
   <!-- Menu Overlay -->
   <div id="menu-overlay" class="fixed inset-0 bg-black/50 z-50 hidden">
-    <div class="bg-white h-full w-full max-w-md ml-auto">
+    <div class="h-full w-full max-w-md ml-auto" style="background-color: #ffffff !important;">
       <div class="flex items-center justify-between p-6 border-b">
         <div class="flex items-center space-x-3">
           <img src="https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1" alt="SV Logo" class="w-8 h-8 rounded-lg object-cover">
@@ -621,12 +621,12 @@ document.addEventListener('DOMContentLoaded', function() {
   // Ensure navigation brand name is set correctly
   const brandName = document.getElementById('nav-brand-name');
   if (brandName) {
-    brandName.textContent = 'SV Checkout';
+    brandName.textContent = 'Saint Ventura';
   } else {
     // Fallback: find by class if ID doesn't exist
     const brandSpan = document.querySelector('nav .text-m.font-black');
     if (brandSpan) {
-      brandSpan.textContent = 'SV Checkout';
+      brandSpan.textContent = 'Saint Ventura';
       brandSpan.id = 'nav-brand-name';
     }
   }
