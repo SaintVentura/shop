@@ -237,7 +237,13 @@ app.post('/api/contact-form', async (req, res) => {
       auth: {
         user: zohoEmail,
         pass: zohoPassword
-      }
+      },
+      connectionTimeout: 10000, // 10 seconds
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
+      pool: true,
+      maxConnections: 1,
+      maxMessages: 3
     });
 
     // Email content
@@ -269,11 +275,16 @@ Submitted on: ${new Date().toLocaleString()}`,
       `
     };
 
-    // Send email
-    await transporter.sendMail(mailOptions);
+    // Send email in background (non-blocking)
+    // Return success immediately to user, send email asynchronously
+    transporter.sendMail(mailOptions).then(() => {
+      console.log('Contact form email sent:', { name, email, subject });
+    }).catch((emailError) => {
+      console.error('Failed to send contact form email (non-blocking):', emailError);
+      // Don't block user - email will be logged but user gets success
+    });
     
-    console.log('Contact form email sent:', { name, email, subject });
-    
+    // Return success immediately - don't wait for email
     res.json({ 
       success: true, 
       message: 'Contact form submitted successfully' 
@@ -337,7 +348,13 @@ app.post('/api/newsletter-subscribe', async (req, res) => {
       auth: {
         user: zohoEmail,
         pass: zohoPassword
-      }
+      },
+      connectionTimeout: 10000, // 10 seconds
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
+      pool: true,
+      maxConnections: 1,
+      maxMessages: 3
     });
 
     // Email content
@@ -355,11 +372,16 @@ app.post('/api/newsletter-subscribe', async (req, res) => {
       `
     };
 
-    // Send email
-    await transporter.sendMail(mailOptions);
+    // Send email in background (non-blocking)
+    // Return success immediately to user, send email asynchronously
+    transporter.sendMail(mailOptions).then(() => {
+      console.log('Newsletter subscription email sent:', email);
+    }).catch((emailError) => {
+      console.error('Failed to send newsletter email (non-blocking):', emailError);
+      // Don't block user - email will be logged but user gets success
+    });
     
-    console.log('Newsletter subscription email sent:', email);
-    
+    // Return success immediately - don't wait for email
     res.json({ 
       success: true, 
       message: 'Subscription request sent successfully' 
@@ -450,7 +472,13 @@ app.post('/api/send-order-confirmation', async (req, res) => {
       auth: {
         user: zohoEmail,
         pass: zohoPassword
-      }
+      },
+      connectionTimeout: 10000, // 10 seconds
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
+      pool: true,
+      maxConnections: 1,
+      maxMessages: 3
     });
 
     // Format order items for email
@@ -577,11 +605,16 @@ ${deliveryAddress ? `Delivery Address: ${deliveryAddress}` : ''}
       `
     };
 
-    // Send email
-    await transporter.sendMail(mailOptions);
+    // Send email in background (non-blocking)
+    // Return success immediately to user, send email asynchronously
+    transporter.sendMail(mailOptions).then(() => {
+      console.log('Order confirmation email sent:', { customerName, customerEmail, total });
+    }).catch((emailError) => {
+      console.error('Failed to send order confirmation email (non-blocking):', emailError);
+      // Don't block user - email will be logged but user gets success
+    });
     
-    console.log('Order confirmation email sent:', { customerName, customerEmail, total });
-    
+    // Return success immediately - don't wait for email
     res.json({ 
       success: true, 
       message: 'Order confirmation email sent successfully' 

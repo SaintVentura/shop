@@ -3205,13 +3205,20 @@ if (firstImage && firstImage.startsWith('http')) {
                 console.log('Newsletter subscription - Backend URL:', backendUrl);
                 console.log('Newsletter subscription - Email:', email);
                 
+                // Add timeout to fetch request (15 seconds)
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000);
+                
                 const response = await fetch(backendUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ email: email })
+                    body: JSON.stringify({ email: email }),
+                    signal: controller.signal
                 });
+                
+                clearTimeout(timeoutId);
                 
                 // Check if response is ok
                 if (!response.ok) {
@@ -3287,6 +3294,10 @@ if (firstImage && firstImage.startsWith('http')) {
                     console.log('Contact form - Backend URL:', backendUrl);
                     console.log('Contact form - Data:', { name, email, subject });
                     
+                    // Add timeout to fetch request (15 seconds)
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 15000);
+                    
                     const response = await fetch(backendUrl, {
                         method: 'POST',
                         headers: {
@@ -3298,8 +3309,11 @@ if (firstImage && firstImage.startsWith('http')) {
                             phone: phone || '',
                             subject: subject,
                             message: message
-                        })
+                        }),
+                        signal: controller.signal
                     });
+                    
+                    clearTimeout(timeoutId);
                     
                     if (!response.ok) {
                         const errorData = await response.json().catch(() => ({ error: 'Server error' }));
