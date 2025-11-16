@@ -62,12 +62,35 @@ app.get('/keep-alive', (req, res) => {
   });
 });
 
-// Helper function to send email using Resend API (preferred) or SMTP fallback
+// Helper function to send email using multiple services (SendGrid > Resend > SMTP)
 async function sendEmail({ to, subject, text, html, replyTo }) {
+  const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
   const RESEND_API_KEY = process.env.RESEND_API_KEY;
   const zohoEmail = (process.env.ZOHO_EMAIL || 'customersupport@saintventura.co.za').replace(/^"|"$/g, '');
   
-  // Try Resend first (API-based, works on all platforms including Render)
+  // Try SendGrid first (most reliable, works on all platforms)
+  if (SENDGRID_API_KEY) {
+    try {
+      sgMail.setApiKey(SENDGRID_API_KEY);
+      const msg = {
+        to: to,
+        from: 'customersupport@saintventura.co.za', // Must be verified in SendGrid
+        replyTo: replyTo || zohoEmail,
+        subject: subject,
+        text: text,
+        html: html || text.replace(/\n/g, '<br>')
+      };
+      
+      await sgMail.send(msg);
+      console.log('✅ Email sent via SendGrid API');
+      return { success: true, method: 'sendgrid' };
+    } catch (error) {
+      console.log('⚠️ SendGrid failed, trying next...', error.message);
+      // Fall through to Resend
+    }
+  }
+  
+  // Try Resend second (API-based, works on all platforms including Render)
   if (RESEND_API_KEY) {
     try {
       const resend = new Resend(RESEND_API_KEY);
@@ -88,7 +111,7 @@ async function sendEmail({ to, subject, text, html, replyTo }) {
       console.log('✅ Email sent via Resend API:', data?.id);
       return { success: true, method: 'resend', id: data?.id };
     } catch (error) {
-      console.log('⚠️ Resend failed, trying SMTP fallback:', error.message);
+      console.log('⚠️ Resend failed, trying SMTP fallback...', error.message);
       // Fall through to SMTP
     }
   }
@@ -97,7 +120,9 @@ async function sendEmail({ to, subject, text, html, replyTo }) {
   const zohoPassword = (process.env.ZOHO_PASSWORD || process.env.ZOHO_APP_PASSWORD || '').replace(/^"|"$/g, '');
   
   if (!zohoPassword) {
-    throw new Error('No email service configured. Set RESEND_API_KEY or ZOHO_PASSWORD in environment variables.');
+    const errorMsg = 'No email service configured. Please set one of: SENDGRID_API_KEY, RESEND_API_KEY, or ZOHO_PASSWORD in environment variables.';
+    console.error('❌', errorMsg);
+    throw new Error(errorMsg);
   }
   
   // Try multiple SMTP configurations
