@@ -1073,16 +1073,6 @@ async function handleCheckout(event) {
     }
     
     alert(errorMessage);
-    let errorMessage = 'Failed to process payment. ';
-    if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-      errorMessage += 'Please make sure the backend server is running on port 3000.';
-    } else if (error.message) {
-      errorMessage += error.message;
-    } else {
-      errorMessage += 'Please try again or contact support.';
-    }
-    
-    alert(errorMessage);
   }
 }
 
