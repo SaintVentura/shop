@@ -69,8 +69,8 @@
   <!-- Main Section -->
   <section class="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 lg:grid-cols-2 gap-10">
     
-    <!-- Left: Order Summary -->
-    <div class="bg-white p-8 rounded-xl shadow-md">
+    <!-- Order Summary - First on mobile, left on desktop -->
+    <div class="bg-white p-8 rounded-xl shadow-md order-1 lg:order-1">
       <h2 class="text-2xl font-semibold mb-6">Your Order</h2>
       <div id="cart-items" class="divide-y divide-gray-200 mb-6"></div>
 
@@ -82,8 +82,8 @@
       </div>
     </div>
 
-    <!-- Right: Form -->
-    <div class="bg-white p-8 rounded-xl shadow-md">
+    <!-- Shipping Information - Second on mobile, right on desktop -->
+    <div class="bg-white p-8 rounded-xl shadow-md order-2 lg:order-2">
       <h2 class="text-2xl font-semibold mb-6">Shipping Information</h2>
 
       <form id="checkout-form" class="space-y-6" onsubmit="handleCheckout(event)">
