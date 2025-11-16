@@ -607,6 +607,19 @@ let shippingFee = 0;
 document.addEventListener('DOMContentLoaded', function() {
   console.log('Checkout page loaded');
   
+  // Ensure navigation brand name is set correctly
+  const brandName = document.getElementById('nav-brand-name');
+  if (brandName) {
+    brandName.textContent = 'SV Checkout';
+  } else {
+    // Fallback: find by class if ID doesn't exist
+    const brandSpan = document.querySelector('nav .text-m.font-black');
+    if (brandSpan) {
+      brandSpan.textContent = 'SV Checkout';
+      brandSpan.id = 'nav-brand-name';
+    }
+  }
+  
   // Load cart from localStorage
   const savedCart = localStorage.getItem('cart');
   if (savedCart) {
