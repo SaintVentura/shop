@@ -69,7 +69,20 @@
   <!-- Main Section -->
   <section class="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 lg:grid-cols-2 gap-10">
     
-    <!-- Left: Form -->
+    <!-- Left: Order Summary -->
+    <div class="bg-white p-8 rounded-xl shadow-md">
+      <h2 class="text-2xl font-semibold mb-6">Your Order</h2>
+      <div id="cart-items" class="divide-y divide-gray-200 mb-6"></div>
+
+      <div class="border-t border-gray-200 pt-4 space-y-2 text-lg">
+        <div class="flex justify-between"><span>Subtotal:</span><span id="checkout-subtotal">R0</span></div>
+        <div id="checkout-discount-row" class="flex justify-between text-green-600 hidden"><span>Discount:</span><span id="checkout-discount">-R0</span></div>
+        <div class="flex justify-between"><span>Shipping:</span><span id="checkout-shipping">R0</span></div>
+        <div class="flex justify-between font-bold text-xl"><span>Total:</span><span id="checkout-total">R0</span></div>
+      </div>
+    </div>
+
+    <!-- Right: Form -->
     <div class="bg-white p-8 rounded-xl shadow-md">
       <h2 class="text-2xl font-semibold mb-6">Shipping Information</h2>
 
@@ -157,19 +170,6 @@
           Proceed to Payment
         </button>
       </form>
-    </div>
-
-    <!-- Right: Summary -->
-    <div class="bg-white p-8 rounded-xl shadow-md">
-      <h2 class="text-2xl font-semibold mb-6">Your Order</h2>
-      <div id="cart-items" class="divide-y divide-gray-200 mb-6"></div>
-
-      <div class="border-t border-gray-200 pt-4 space-y-2 text-lg">
-        <div class="flex justify-between"><span>Subtotal:</span><span id="checkout-subtotal">R0</span></div>
-        <div id="checkout-discount-row" class="flex justify-between text-green-600 hidden"><span>Discount:</span><span id="checkout-discount">-R0</span></div>
-        <div class="flex justify-between"><span>Shipping:</span><span id="checkout-shipping">R0</span></div>
-        <div class="flex justify-between font-bold text-xl"><span>Total:</span><span id="checkout-total">R0</span></div>
-      </div>
     </div>
   </section>
 
