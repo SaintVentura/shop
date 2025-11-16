@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Saint Ventura Checkout</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <!-- Google Maps API for South African Address Autocomplete -->
+  <!-- To enable: Get your API key from https://console.cloud.google.com/ -->
+  <!-- Then uncomment the line below and replace YOUR_API_KEY with your actual key -->
+  <!-- <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places&components=country:za" async defer></script> -->
+  <!-- Note: The fallback autocomplete will work even without Google Maps API -->
+</head>
+<body class="bg-gray-50 font-sans text-gray-900">
+
+  <!-- Header -->
+  <header class="bg-white shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+      <img src="https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1" alt="Saint Ventura Logo" class="w-10 h-10 rounded-lg object-cover">
+      <h1 class="text-2xl font-bold tracking-wide">Checkout</h1>
+    </div>
+  </header>
+
+  <!-- Main Section -->
+  <section class="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 lg:grid-cols-2 gap-10">
+    
+    <!-- Left: Form -->
+    <div class="bg-white p-8 rounded-xl shadow-md">
+      <h2 class="text-2xl font-semibold mb-6">Shipping Information</h2>
+
+      <form id="checkout-form" class="space-y-6" onsubmit="handleCheckout(event)">
+        <div>
+          <label class="block mb-2 font-medium">Full Name</label>
+          <input id="customer-name" type="text" required class="w-full border border-gray-300 rounded-lg px-4 py-3">
+        </div>
+
+        <div>
+          <label class="block mb-2 font-medium">Email</label>
+          <input id="customer-email" type="email" required class="w-full border border-gray-300 rounded-lg px-4 py-3">
+        </div>
+
+        <div>
+          <label class="block mb-2 font-medium">Delivery Method</label>
+          <select id="shipping-location" onchange="updateShipping()" required class="w-full border border-gray-300 rounded-lg px-4 py-3">
+            <option value="">Select your location</option>
+            <option id="door-option" value="door">Door-to-Door Courier (R130)</option>
+            <option value="uj">UJ Campus Delivery (R30)</option>
+          </select>
+          
+          <!-- Address Fields - Shows for Door-to-Door Courier -->
+          <div id="address-section" class="hidden mt-4 space-y-4">
+            <div>
+              <label class="block mb-2 font-medium">Street Address</label>
+              <input id="address-autocomplete" type="text" placeholder="Start typing your South African address..." class="w-full border border-gray-300 rounded-lg px-4 py-3" autocomplete="street-address">
+              <div id="address-suggestions" class="hidden mt-2 border border-gray-200 rounded-lg bg-white shadow-lg max-h-60 overflow-y-auto"></div>
+              <p class="text-xs text-gray-500 mt-1">Powered by Google Maps - Start typing to see suggestions</p>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block mb-2 font-medium">City</label>
+                <input id="address-city" type="text" class="w-full border border-gray-300 rounded-lg px-4 py-3" autocomplete="address-level2">
+              </div>
+              <div>
+                <label class="block mb-2 font-medium">Province</label>
+                <select id="address-province" class="w-full border border-gray-300 rounded-lg px-4 py-3" autocomplete="address-level1">
+                  <option value="">Select Province</option>
+                  <option value="Eastern Cape">Eastern Cape</option>
+                  <option value="Free State">Free State</option>
+                  <option value="Gauteng">Gauteng</option>
+                  <option value="KwaZulu-Natal">KwaZulu-Natal</option>
+                  <option value="Limpopo">Limpopo</option>
+                  <option value="Mpumalanga">Mpumalanga</option>
+                  <option value="Northern Cape">Northern Cape</option>
+                  <option value="North West">North West</option>
+                  <option value="Western Cape">Western Cape</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block mb-2 font-medium">Postal Code</label>
+                <input id="address-postal" type="text" pattern="[0-9]{4}" maxlength="4" class="w-full border border-gray-300 rounded-lg px-4 py-3" autocomplete="postal-code" placeholder="0000">
+              </div>
+              <div>
+                <label class="block mb-2 font-medium">Suburb</label>
+                <input id="address-suburb" type="text" class="w-full border border-gray-300 rounded-lg px-4 py-3" autocomplete="address-level3">
+              </div>
+            </div>
+            
+            <div>
+              <label class="block mb-2 font-medium">Additional Details (Optional)</label>
+              <textarea id="address-extra" rows="2" placeholder="Apartment number, building name, etc." class="w-full border border-gray-300 rounded-lg px-4 py-3"></textarea>
+            </div>
+          </div>
+
+          <!-- Campus Selection - Shows for UJ Campus Delivery -->
+          <div id="campus-section" class="hidden mt-4">
+            <label class="block mb-2 font-medium">Select Campus</label>
+            <select id="campus-selection" class="w-full border border-gray-300 rounded-lg px-4 py-3">
+              <option value="">Select your campus</option>
+              <option value="DFC">DFC (Doornfontein Campus)</option>
+              <option value="APK">APK (Auckland Park Kingsway Campus)</option>
+              <option value="SWC">SWC (Soweto Campus)</option>
+              <option value="APB">APB (Auckland Park Bunting Road Campus)</option>
+            </select>
+          </div>
+        </div>
+
+        <button type="submit" class="w-full bg-black text-white py-4 rounded-lg font-semibold hover:bg-gray-800 transition-all duration-300">
+          Proceed to Payment
+        </button>
+      </form>
+    </div>
+
+    <!-- Right: Summary -->
+    <div class="bg-white p-8 rounded-xl shadow-md">
+      <h2 class="text-2xl font-semibold mb-6">Your Order</h2>
+      <div id="cart-items" class="divide-y divide-gray-200 mb-6"></div>
+
+      <div class="border-t border-gray-200 pt-4 space-y-2 text-lg">
+        <div class="flex justify-between"><span>Subtotal:</span><span id="checkout-subtotal">R0</span></div>
+        <div id="checkout-discount-row" class="flex justify-between text-green-600 hidden"><span>Discount:</span><span id="checkout-discount">-R0</span></div>
+        <div class="flex justify-between"><span>Shipping:</span><span id="checkout-shipping">R0</span></div>
+        <div class="flex justify-between font-bold text-xl"><span>Total:</span><span id="checkout-total">R0</span></div>
+      </div>
+    </div>
+  </section>
+
+<script>
+// ============================================
+// YOCO PAYMENT CONFIGURATION
+// ============================================
+// NOTE: Secret keys are stored securely on the backend only
+// The frontend only needs the backend URL - all payment processing happens server-side
+const YOCO_CONFIG = {
+  // Your backend endpoint to create checkout
+  // Update this with your deployed backend URL
+  // For local development: 'http://localhost:3000/api/create-yoco-checkout'
+  // For production: 'https://your-backend-domain.com/api/create-yoco-checkout'
+  backendUrl: 'http://localhost:3000/api/create-yoco-checkout'
+};
+
+// ============================================
+// Product data
+// ============================================
+        var products = [
+            {
+                id: 1,
+                name: "The Saints Club Tee",
+                price: 550,
+                category: "tops",
+                description: "Exclusive Saints Club tee featuring premium cotton construction and iconic Saint Ventura branding. A must-have for true streetwear enthusiasts.",
+                details: ["100% Premium Cotton", "Screen-printed graphics", "Oversized fit", "Dropped shoulders"],
+                gradient: "from-gray-100 to-white",
+                // Replace these with your actual image URLs
+                images: [
+                    "https://dl.dropboxusercontent.com/scl/fi/j0pgw2egryb9f0470f3p3/1-2.png?rlkey=xaw4k5w0yhwswfae3pi1n0g2r&st=vnlwftci&dl=1",
+                    "https://dl.dropboxusercontent.com/scl/fi/zz0b97q19mm561t44ksj2/1-1.png?rlkey=kinak1p66dy82z8qgah2av2jd&st=vt0bzo6m&dl=1"
+                ],
+                sizes: ["XS", "S", "M", "L", "XL", "XXL"],
+                colors: ["White"],
+                availableColors: [{ name: "White", gradient: "from-gray-100 to-white", image: "https://dl.dropboxusercontent.com/scl/fi/j0pgw2egryb9f0470f3p3/1-2.png?rlkey=xaw4k5w0yhwswfae3pi1n0g2r&st=vnlwftci&dl=1", }]
+            },
+            {
+                id: 2,
+                name: "SV Till I R.I.P Tee",
+                price: 500,
+                category: "tops",
+                description: "Bold statement tee with the iconic 'SV Till I R.I.P' graphic. Made from premium cotton with a comfortable fit and striking design.",
+                details: ["100% Premium Cotton", "Bold graphic print", "Oversized fit", "Dropped shoulders"],
+                gradient: "from-gray-800 to-black",
+                images: [
+                  "https://dl.dropboxusercontent.com/scl/fi/6ribhwbytdqfqva6jgf3s/1-16.png?rlkey=s61uev3dxmsmo4coifrqtozge&st=z3y4nuri&dl=1",
+                  "https://dl.dropboxusercontent.com/scl/fi/2ma5ldkyiam6dm947eg8f/1-14.png?rlkey=0xb8p0qyps0st9t4z3ez47fm9&st=y2q4jni7&dl=1"
+                  ],
+                sizes: ["XS", "S", "M", "L", "XL", "XXL"],
+                colors: ["Black"],
+                availableColors: [{ name: "Black", gradient: "from-gray-800 to-black" , image: "https://dl.dropboxusercontent.com/scl/fi/6ribhwbytdqfqva6jgf3s/1-16.png?rlkey=s61uev3dxmsmo4coifrqtozge&st=z3y4nuri&dl=1", }]
+            },
+            {
+                id: 3,
+                name: "Visionaries by SV",
+                price: 200,
+                category: "accessories",
+                description: "Premium sunglasses designed for the visionaries and trendsetters. Features sleek black frames with UV protection and the signature SV branding for those who see the world differently.",
+                details: ["Premium acetate frame", "100% UV400 protection", "Polarized lenses", "SV logo on temples", "Scratch-resistant coating", "Includes protective case"],
+                gradient: "from-gray-900 to-black",
+                images: [
+                  "https://dl.dropboxusercontent.com/scl/fi/qs6id9xzrvfp8dctj2lqf/1-15.png?rlkey=shaa8t54va6ap95kulvvk1jee&st=tpwythhm&dl=1"
+                  ],
+                sizes: ["One Size Fits All"],
+                colors: ["Black"],
+                availableColors: [{ name: "Black", gradient: "from-gray-900 to-black" , image: "https://dl.dropboxusercontent.com/scl/fi/qs6id9xzrvfp8dctj2lqf/1-15.png?rlkey=shaa8t54va6ap95kulvvk1jee&st=tpwythhm&dl=1",}]
+            },
+            {
+                id: 4,
+                name: "SV Creators Hat",
+                price: 200,
+                category: "accessories",
+                description: "Premium snapback designed for the creative minds and innovators. Features bold embroidered SV logo with adjustable snapback closure for the perfect fit on any creator's journey.",
+                details: ["Premium cotton twill construction", "3D embroidered SV logo", "Adjustable snapback closure", "Structured 6-panel crown", "Interior moisture-wicking sweatband"],
+                gradient: "from-red-600 to-red-800",
+                images: [
+                  "https://dl.dropboxusercontent.com/scl/fi/16j1629tb9ces8c4vruvh/1-4.png?rlkey=myve0lk7x9zdn6xfen7mah640&st=d0j0b6nb&dl=1",
+                  "https://dl.dropboxusercontent.com/scl/fi/5h9lftt1bidmqijpmpxll/1-3.png?rlkey=501zjd9pkgf9w5yhrparmm5rd&st=uhhf8qul&dl=1"
+                  ],
+                sizes: ["One Size Fits All"],
+                colors: ["Red", "Black"],
+                availableColors: [
+                    { name: "Red", gradient: "from-red-600 to-red-800" , image: "https://dl.dropboxusercontent.com/scl/fi/16j1629tb9ces8c4vruvh/1-4.png?rlkey=myve0lk7x9zdn6xfen7mah640&st=d0j0b6nb&dl=1"},
+                    { name: "Black", gradient: "from-gray-800 to-black" , image: "https://dl.dropboxusercontent.com/scl/fi/5h9lftt1bidmqijpmpxll/1-3.png?rlkey=501zjd9pkgf9w5yhrparmm5rd&st=uhhf8qul&dl=1"}
+                ]
+            },
+            {
+                id: 5,
+                name: "Hood* of The Saints",
+                price: 400,
+                category: "tops",
+                description: "Premium oversized hoodie representing The Saints collective. Heavyweight cotton blend with dropped shoulders and kangaroo pocket.",
+                details: ["80% Cotton, 20% Polyester", "Heavyweight 400gsm fabric", "Oversized fit", "Kangaroo pocket"],
+                gradient: "from-gray-800 to-black",
+                images: [
+                 "https://dl.dropboxusercontent.com/scl/fi/tv6xmtknl5e93s4q2rxvr/1-7.png?rlkey=6y8szp285r72rby6k6jkw8038&st=n6gbin36&dl=1",
+                  "https://dl.dropboxusercontent.com/scl/fi/mtvek2orgliosk1e5w0zg/1-5.png?rlkey=akio0f1ps0tumeghs50q10blr&st=ktcib4de&dl=1"
+                  ],
+                sizes: ["XS", "S", "M", "L", "XL", "XXL"],
+                colors: ["Baby Blue", "Black"],
+                availableColors: [
+                   { name: "Baby Blue", gradient: "from-blue-300 to-blue-500" , image: "https://dl.dropboxusercontent.com/scl/fi/tv6xmtknl5e93s4q2rxvr/1-7.png?rlkey=6y8szp285r72rby6k6jkw8038&st=n6gbin36&dl=1" } ,
+                    { name: "Black", gradient: "from-gray-800 to-black" , image: "https://dl.dropboxusercontent.com/scl/fi/mtvek2orgliosk1e5w0zg/1-5.png?rlkey=akio0f1ps0tumeghs50q10blr&st=ktcib4de&dl=1"}
+                ]
+            },
+            {
+                id: 6,
+                name: "SV Utility Shirt",
+                price: 400,
+                category: "tops",
+                description: "Functional utility shirt with multiple pockets and durable construction. Perfect blend of style and practicality for the modern creator.",
+                details: ["100% Cotton Twill", "Multiple utility pockets", "Button-up closure", "Regular fit"],
+                gradient: "from-gray-700 to-black",
+                images: [
+                  "https://dl.dropboxusercontent.com/scl/fi/tg8jpo7hxksb5fmiyivo7/1-9.png?rlkey=wlaat82bhy29xpcyuyme0b1mi&st=p7wbg6k7&dl=1",
+                  "https://dl.dropboxusercontent.com/scl/fi/lkvuuntf1q627q7lq018n/1-8.png?rlkey=86rhveankf3zbagwb2hsqxze8&st=2jswyme5&dl=1"
+                  ],
+                sizes: ["XS", "S", "M", "L", "XL", "XXL"],
+                colors: ["Black"],
+                availableColors: [{ name: "Black", gradient: "from-gray-700 to-black" , image: "https://dl.dropboxusercontent.com/scl/fi/tg8jpo7hxksb5fmiyivo7/1-9.png?rlkey=wlaat82bhy29xpcyuyme0b1mi&st=p7wbg6k7&dl=1"}]
+            },
+            {
+                id: 7,
+                name: "SV Cargo Pants",
+                price: 300,
+                category: "bottoms",
+                description: "Premium cargo pants with multiple pockets and adjustable details. Essential streetwear piece combining functionality with Saint Ventura style.",
+                details: ["100% Cotton Twill", "Multiple cargo pockets", "Adjustable waist", "Tapered fit"],
+                gradient: "from-gray-800 to-black",
+                images: [
+                  "https://dl.dropboxusercontent.com/scl/fi/q82xmvf10v3bfth0yb9tb/1-17.png?rlkey=86y3k3tbqdqgs63h2gzs86d81&st=brqjs51u&dl=1",
+                  "https://dl.dropboxusercontent.com/scl/fi/xocwsz4bcod4rop8mscs9/1-19.png?rlkey=n1zrg171gixabaff9cxftlmg7&st=jiuthcov&dl=1"
+                  ],
+                sizes: ["XS", "S", "M", "L", "XL", "XXL"],
+                colors: ["Black"],
+                availableColors: [{ name: "Black", gradient: "from-gray-800 to-black", image: "https://dl.dropboxusercontent.com/scl/fi/q82xmvf10v3bfth0yb9tb/1-17.png?rlkey=86y3k3tbqdqgs63h2gzs86d81&st=brqjs51u&dl=1" }]
+            },
+            {
+                id: 8,
+                name: "Ventura Crop Tank",
+                price: 300,
+                category: "tops",
+                description: "Cropped tank top perfect for layering or standalone wear. Available in multiple colorways to match your personal style.",
+                details: ["100% Cotton", "Cropped fit", "Sleeveless design", "Soft hand feel"],
+                gradient: "from-gray-800 to-black",
+                images: [
+                  "https://dl.dropboxusercontent.com/scl/fi/j22zx7qt5efevtqmbki5a/1-10.png?rlkey=w1m9xosbjx5jiihn45l1o7hj7&st=9whfbavz&dl=1",
+                  "https://dl.dropboxusercontent.com/scl/fi/mud785w0gso758kjl8d0y/1-6.PNG?rlkey=wj0x9hpnflobqndsak1drzpxt&st=bvmxst4j&dl=1",
+                  "https://dl.dropboxusercontent.com/scl/fi/0izhvhpqgv7ym8o53dfk6/3-1.PNG?rlkey=34wr7bf7w9qr4aqcx8em9puv7&st=5xbyxbt1&dl=1",
+                  "https://dl.dropboxusercontent.com/scl/fi/z3oln893v1j2mkue7um1v/3-2.PNG?rlkey=88buym8r1h4e9m75y076te10w&st=dc7dor6q&dl=1"
+                  ],
+                sizes: ["XS", "S", "M", "L", "XL", "XXL"],
+                colors: ["Black", "Army Green", "White", "Red"],
+                availableColors: [
+                    { name: "Army Green", gradient: "from-army-green to army-green", image: "https://dl.dropboxusercontent.com/scl/fi/j22zx7qt5efevtqmbki5a/1-10.png?rlkey=w1m9xosbjx5jiihn45l1o7hj7&st=9whfbavz&dl=1" },
+                    { name: "Black", gradient: "from-gray-800 to-black", image: "https://dl.dropboxusercontent.com/scl/fi/mud785w0gso758kjl8d0y/1-6.PNG?rlkey=wj0x9hpnflobqndsak1drzpxt&st=bvmxst4j&dl=1"},
+                    { name: "White", gradient: "from-gray-100 to-white" , image: "https://dl.dropboxusercontent.com/scl/fi/0izhvhpqgv7ym8o53dfk6/3-1.PNG?rlkey=34wr7bf7w9qr4aqcx8em9puv7&st=5xbyxbt1&dl=1" },
+                    { name: "Red", gradient: "from-red-600 to-red-800", image: "https://dl.dropboxusercontent.com/scl/fi/z3oln893v1j2mkue7um1v/3-2.PNG?rlkey=88buym8r1h4e9m75y076te10w&st=dc7dor6q&dl=1"}
+                ]
+            },
+            {
+                id: 9,
+                name: "Essential Beanie",
+                price: 200,
+                category: "accessories",
+                description: "The ultimate essential for any streetwear wardrobe. This premium knit beanie features the iconic Saint Ventura logo and provides comfort and style for every season.",
+                details: ["100% Premium acrylic knit", "Embroidered SV logo", "Ribbed cuff construction", "Soft interior lining", "Stretchy comfortable fit", "Machine washable"],
+                gradient: "from-gray-800 to-black",
+                images: [
+                  "https://dl.dropboxusercontent.com/scl/fi/sw3imbzsqend0zigd3yww/1-13.png?rlkey=iolsj7x1ryqxxh2t4okvw46zp&st=nryoy8dl&dl=1"
+                  ],
+                sizes: ["One Size Fits All"],
+                colors: ["Black"],
+                availableColors: [{ name: "Black", gradient: "from-gray-800 to-black" , image: "https://dl.dropboxusercontent.com/scl/fi/sw3imbzsqend0zigd3yww/1-13.png?rlkey=iolsj7x1ryqxxh2t4okvw46zp&st=nryoy8dl&dl=1"}]
+            },
+            {
+                id: 10,
+                name: "Onyx Bracelet By SV",
+                price: 60,
+                category: "accessories",
+                description: "Premium onyx bracelet featuring natural black stones. Handcrafted with Saint Ventura branding for the discerning streetwear enthusiast.",
+                details: ["Natural onyx stones", "Elastic cord", "SV charm detail", "Handcrafted"],
+                gradient: "from-gray-900 to-black",
+                images: [
+                  "https://dl.dropboxusercontent.com/scl/fi/xevb4s1aeggk0fjcwk85e/1-18.png?rlkey=vs9rk6nu79b5nwtdxme114crx&st=6fn852el&dl=1"
+                  ],
+                sizes: ["13cm", "14cm", "15cm", "16cm", "17cm", "18cm"],
+                colors: ["Black"],
+                availableColors: [{ name: "Black", gradient: "from-gray-900 to-black", image: "https://dl.dropboxusercontent.com/scl/fi/xevb4s1aeggk0fjcwk85e/1-18.png?rlkey=vs9rk6nu79b5nwtdxme114crx&st=6fn852el&dl=1" }]
+            },
+
+        ];
+
+// Use the products array defined above, or fallback to window.products if available
+if (typeof window !== 'undefined' && window.products && Array.isArray(window.products)) {
+  // Use window products if they exist (for shared product data)
+  products = window.products;
+}
+
+let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+let shippingFee = 0;
+
+// Load cart from localStorage on page load
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('Checkout page loaded');
+  
+  // Load cart from localStorage
+  const savedCart = localStorage.getItem('cart');
+  if (savedCart) {
+    try {
+      cart = JSON.parse(savedCart);
+      console.log('Cart loaded:', cart);
+    } catch (e) {
+      console.error('Error loading cart from storage:', e);
+      cart = [];
+    }
+  }
+  
+  // Calculate totals - always recalculate from cart to ensure accuracy
+  let subtotalBeforeDiscount = 0;
+  let discountAmount = 0;
+  
+  if (cart.length > 0) {
+    subtotalBeforeDiscount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    discountAmount = parseFloat(localStorage.getItem('cartDiscount') || 0);
+  }
+  
+  // Get or calculate checkout subtotal (cart page total after discount)
+  let checkoutSubtotal = parseFloat(localStorage.getItem('checkoutSubtotal') || 0);
+  
+  // Always recalculate from current cart state to ensure accuracy
+  // This handles cases where cart is emptied or items are changed
+  if (cart.length === 0) {
+    // Cart is empty, reset totals to 0
+    checkoutSubtotal = 0;
+    subtotalBeforeDiscount = 0;
+    discountAmount = 0;
+    localStorage.setItem('checkoutSubtotal', '0');
+    localStorage.setItem('cartSubtotalBeforeDiscount', '0');
+    localStorage.setItem('cartDiscount', '0');
+  } else {
+    // Cart has items, recalculate totals
+    checkoutSubtotal = subtotalBeforeDiscount - discountAmount;
+    localStorage.setItem('checkoutSubtotal', checkoutSubtotal.toFixed(2));
+    localStorage.setItem('cartSubtotalBeforeDiscount', subtotalBeforeDiscount.toFixed(2));
+    if (!localStorage.getItem('cartDiscount')) {
+      localStorage.setItem('cartDiscount', discountAmount.toFixed(2));
+    }
+  }
+  
+  console.log('Totals:', { checkoutSubtotal, subtotalBeforeDiscount, discountAmount });
+  
+  // Render cart and update summary
+  renderCart();
+  updateSummary();
+  updateDeliveryMethodText();
+  
+  // Initialize sections based on current selection (if any)
+  const currentLocation = document.getElementById('shipping-location');
+  if (currentLocation && currentLocation.value) {
+    console.log('Initial location selected:', currentLocation.value);
+    updateShipping();
+  } else {
+    // Ensure both sections are hidden on initial load
+    const addressSection = document.getElementById('address-section');
+    const campusSection = document.getElementById('campus-section');
+    if (addressSection) {
+      addressSection.classList.add('hidden');
+      addressSection.style.setProperty('display', 'none', 'important'); // Force hide
+    }
+    if (campusSection) {
+      campusSection.classList.add('hidden');
+      campusSection.style.setProperty('display', 'none', 'important'); // Force hide
+    }
+    console.log('Initialized - both sections hidden');
+  }
+});
+
+// Initialize address autocomplete with Google Maps
+// This function is called when the address section becomes visible
+function initializeAddressAutocomplete() {
+  const addressInput = document.getElementById('address-autocomplete');
+  if (!addressInput) {
+    console.log('Address input not found');
+    return;
+  }
+  
+  // Prevent multiple initializations
+  if (addressInput.dataset.autocompleteInitialized === 'true') {
+    return;
+  }
+  
+  // Check if Google Maps API is loaded
+  if (typeof google !== 'undefined' && google.maps && google.maps.places) {
+    try {
+      // Create Google Maps Places Autocomplete restricted to South Africa
+      const autocomplete = new google.maps.places.Autocomplete(addressInput, {
+        componentRestrictions: { country: 'za' }, // South Africa only
+        fields: ['address_components', 'formatted_address', 'geometry'],
+        types: ['address'] // Only show full addresses
+      });
+      
+      // When user selects an address from autocomplete
+      autocomplete.addListener('place_changed', function() {
+        const place = autocomplete.getPlace();
+        if (!place.geometry) {
+          console.log('No geometry found for selected place');
+          return;
+        }
+        
+        // Parse address components from Google Maps
+        let streetNumber = '';
+        let route = '';
+        let city = '';
+        let province = '';
+        let postalCode = '';
+        let suburb = '';
+        
+        place.address_components.forEach(component => {
+          const types = component.types;
+          
+          if (types.includes('street_number')) {
+            streetNumber = component.long_name;
+          } else if (types.includes('route')) {
+            route = component.long_name;
+          } else if (types.includes('locality')) {
+            city = component.long_name;
+          } else if (types.includes('sublocality') || types.includes('sublocality_level_1')) {
+            suburb = component.long_name;
+          } else if (types.includes('administrative_area_level_1')) {
+            province = component.long_name;
+          } else if (types.includes('postal_code')) {
+            postalCode = component.long_name;
+          } else if (types.includes('neighborhood') && !suburb) {
+            suburb = component.long_name;
+          }
+        });
+        
+        // Fill in the street address field
+        if (streetNumber && route) {
+          addressInput.value = streetNumber + ' ' + route;
+        } else if (route) {
+          addressInput.value = route;
+        } else {
+          addressInput.value = place.formatted_address.split(',')[0];
+        }
+        
+        // Auto-fill all address fields
+        const cityEl = document.getElementById('address-city');
+        const provinceEl = document.getElementById('address-province');
+        const postalEl = document.getElementById('address-postal');
+        const suburbEl = document.getElementById('address-suburb');
+        
+        if (city && cityEl) {
+          cityEl.value = city;
+        }
+        
+        if (province && provinceEl) {
+          // Match province name to dropdown options
+          const options = Array.from(provinceEl.options);
+          const matchingOption = options.find(opt => {
+            const optText = opt.text.toLowerCase();
+            const provinceLower = province.toLowerCase();
+            return optText.includes(provinceLower) || provinceLower.includes(optText) || 
+                   optText === provinceLower || opt.value === province;
+          });
+          if (matchingOption) {
+            provinceEl.value = matchingOption.value;
+          }
+        }
+        
+        if (postalCode && postalEl) {
+          postalEl.value = postalCode;
+        }
+        
+        if (suburb && suburbEl) {
+          suburbEl.value = suburb;
+        }
+        
+        console.log('Address auto-filled from Google Maps');
+      });
+      
+      // Mark as initialized
+      addressInput.dataset.autocompleteInitialized = 'true';
+      console.log('Google Maps autocomplete initialized for South African addresses');
+      return;
+      
+    } catch (e) {
+      console.log('Google Maps API error, using fallback:', e);
+    }
+  }
+  
+  // Fallback: Use built-in South African address autocomplete
+  // This works even without Google Maps API
+  setupFallbackAutocomplete();
+  if (addressInput) {
+    addressInput.dataset.autocompleteInitialized = 'true';
+  }
+}
+
+// Fallback autocomplete for South African addresses
+function setupFallbackAutocomplete() {
+  const addressInput = document.getElementById('address-autocomplete');
+  const suggestionsDiv = document.getElementById('address-suggestions');
+  
+  // Common South African cities and major suburbs
+  const saLocations = [
+    'Johannesburg, Gauteng', 'Cape Town, Western Cape', 'Durban, KwaZulu-Natal',
+    'Pretoria, Gauteng', 'Port Elizabeth, Eastern Cape', 'Bloemfontein, Free State',
+    'East London, Eastern Cape', 'Polokwane, Limpopo', 'Nelspruit, Mpumalanga',
+    'Kimberley, Northern Cape', 'Rustenburg, North West', 'Soweto, Gauteng',
+    'Sandton, Gauteng', 'Rosebank, Gauteng', 'Parktown, Gauteng',
+    'Bryanston, Gauteng', 'Fourways, Gauteng', 'Midrand, Gauteng',
+    'Centurion, Gauteng', 'Randburg, Gauteng', 'Roodepoort, Gauteng',
+    'Benoni, Gauteng', 'Boksburg, Gauteng', 'Germiston, Gauteng',
+    'Alberton, Gauteng', 'Kempton Park, Gauteng', 'Edenvale, Gauteng',
+    'Bedfordview, Gauteng', 'Sandhurst, Gauteng', 'Illovo, Gauteng',
+    'Melrose, Gauteng', 'Houghton, Gauteng', 'Killarney, Gauteng',
+    'Sea Point, Western Cape', 'Green Point, Western Cape', 'Clifton, Western Cape',
+    'Camps Bay, Western Cape', 'Hout Bay, Western Cape', 'Constantia, Western Cape',
+    'Newlands, Western Cape', 'Rondebosch, Western Cape', 'Observatory, Western Cape',
+    'Woodstock, Western Cape', 'V&A Waterfront, Western Cape', 'City Bowl, Western Cape',
+    'Umhlanga, KwaZulu-Natal', 'Ballito, KwaZulu-Natal', 'Westville, KwaZulu-Natal',
+    'Pinetown, KwaZulu-Natal', 'Hillcrest, KwaZulu-Natal', 'Amanzimtoti, KwaZulu-Natal'
+  ];
+  
+  addressInput.addEventListener('input', function() {
+    const query = this.value.toLowerCase();
+    if (query.length < 2) {
+      suggestionsDiv.classList.add('hidden');
+      return;
+    }
+    
+    const matches = saLocations.filter(loc => 
+      loc.toLowerCase().includes(query)
+    ).slice(0, 5);
+    
+    if (matches.length > 0) {
+      suggestionsDiv.innerHTML = matches.map(loc => 
+        `<div class="p-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0" onclick="selectAddress('${loc}')">${loc}</div>`
+      ).join('');
+      suggestionsDiv.classList.remove('hidden');
+    } else {
+      suggestionsDiv.classList.add('hidden');
+    }
+  });
+  
+  // Hide suggestions when clicking outside
+  document.addEventListener('click', function(e) {
+    if (!addressInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+      suggestionsDiv.classList.add('hidden');
+    }
+  });
+}
+
+function selectAddress(address) {
+  document.getElementById('address-autocomplete').value = address;
+  document.getElementById('address-suggestions').classList.add('hidden');
+  
+  // Try to extract city and province
+  const parts = address.split(',');
+  if (parts.length === 2) {
+    document.getElementById('address-city').value = parts[0].trim();
+    const provinceSelect = document.getElementById('address-province');
+    const province = parts[1].trim();
+    const options = Array.from(provinceSelect.options);
+    const matchingOption = options.find(opt => opt.text === province);
+    if (matchingOption) provinceSelect.value = matchingOption.value;
+  }
+}
+
+function renderCart() {
+  const container = document.getElementById('cart-items');
+  if (!container) {
+    console.error('Cart items container not found!');
+    return;
+  }
+  
+  container.innerHTML = '';
+  console.log('Rendering cart with', cart.length, 'items');
+
+  if (cart.length === 0) {
+    container.innerHTML = '<p class="text-gray-500 py-4">Your cart is empty</p>';
+    updateSummary();
+    return;
+  }
+
+  cart.forEach(item => {
+    const total = item.price * item.quantity;
+    
+    // Use item.image if available, otherwise try to get from products
+    let itemImage = item.image;
+    if (!itemImage) {
+      const product = products.find(p => p.id === item.id);
+      if (product && product.images && product.images.length > 0) {
+        itemImage = product.images[0];
+      }
+    }
+    
+    // Fallback image if none available
+    if (!itemImage) {
+      itemImage = 'https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1';
+    }
+    
+    const sizeText = item.size ? ` • Size: ${item.size}` : '';
+    const colorText = item.color ? ` • Color: ${item.color}` : '';
+    
+    container.innerHTML += `
+      <div class="flex items-center justify-between py-4">
+        <div class="flex items-center space-x-4">
+          <img src="${itemImage}" alt="${item.name}" class="w-16 h-16 object-cover rounded-md" onerror="this.src='https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1'">
+          <div>
+            <p class="font-medium">${item.name}</p>
+            <p class="text-gray-500 text-sm">Qty: ${item.quantity}${sizeText}${colorText}</p>
+          </div>
+        </div>
+        <p class="font-semibold">R${total.toFixed(2)}</p>
+      </div>
+    `;
+  });
+
+  console.log('Cart rendered, updating summary');
+  updateSummary();
+}
+
+function updateDeliveryMethodText() {
+  // Update the door-to-door option text based on free shipping eligibility
+  const doorOption = document.getElementById('door-option');
+  if (!doorOption) return;
+  
+  let subtotalBeforeDiscount = parseFloat(localStorage.getItem('cartSubtotalBeforeDiscount') || 0);
+  
+  // If not in localStorage, calculate from cart
+  if (subtotalBeforeDiscount === 0 && cart.length > 0) {
+    subtotalBeforeDiscount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  }
+  
+  // Update text: remove (R130) if order is R1000 or more (free shipping)
+  if (subtotalBeforeDiscount >= 1000) {
+    doorOption.textContent = 'Door-to-Door Courier';
+  } else {
+    doorOption.textContent = 'Door-to-Door Courier (R130)';
+  }
+}
+
+function updateSummary() {
+  // Get the checkout subtotal (this is the "Total" from cart page)
+  let checkoutSubtotal = parseFloat(localStorage.getItem('checkoutSubtotal') || 0);
+  
+  // If not set, calculate from cart items (fallback for direct navigation)
+  if (checkoutSubtotal === 0 && cart.length > 0) {
+    const subtotalBeforeDiscount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const discount = parseFloat(localStorage.getItem('cartDiscount') || 0);
+    checkoutSubtotal = subtotalBeforeDiscount - discount;
+    
+    // Save it for next time
+    if (checkoutSubtotal > 0) {
+      localStorage.setItem('checkoutSubtotal', checkoutSubtotal.toFixed(2));
+      localStorage.setItem('cartSubtotalBeforeDiscount', subtotalBeforeDiscount.toFixed(2));
+    }
+  }
+  
+  // Calculate final total (checkout subtotal + shipping)
+  const finalTotal = checkoutSubtotal + shippingFee;
+  
+  console.log('Updating summary:', { checkoutSubtotal, shippingFee, finalTotal });
+  
+  // Update display - show the cart page total as subtotal
+  const subtotalElement = document.getElementById('checkout-subtotal');
+  if (subtotalElement) {
+    subtotalElement.textContent = 'R' + checkoutSubtotal.toFixed(2);
+    console.log('Updated subtotal element');
+  } else {
+    console.error('Subtotal element not found!');
+  }
+  
+  // Hide discount row on checkout (discount already applied in subtotal)
+  const discountRow = document.getElementById('checkout-discount-row');
+  if (discountRow) {
+    discountRow.classList.add('hidden');
+  }
+  
+  const shippingElement = document.getElementById('checkout-shipping');
+  const totalElement = document.getElementById('checkout-total');
+  if (shippingElement) {
+    // Always show shipping price, even if it's R0 (free shipping)
+    shippingElement.textContent = 'R' + shippingFee.toFixed(2);
+    console.log('Updated shipping element:', shippingFee);
+  } else {
+    console.error('Shipping element not found!');
+  }
+  if (totalElement) {
+    totalElement.textContent = 'R' + finalTotal.toFixed(2);
+    console.log('Updated total element:', finalTotal);
+  } else {
+    console.error('Total element not found!');
+  }
+}
+
+function updateShipping() {
+  const locationSelect = document.getElementById('shipping-location');
+  if (!locationSelect) {
+    console.error('Shipping location select not found!');
+    return;
+  }
+  
+  const location = locationSelect.value;
+  console.log('Shipping location changed:', location);
+  console.log('updateShipping function called');
+  
+  // Use subtotal BEFORE discount for free shipping calculation
+  let subtotalBeforeDiscount = parseFloat(localStorage.getItem('cartSubtotalBeforeDiscount') || 0);
+  
+  // If not in localStorage, calculate from cart
+  if (subtotalBeforeDiscount === 0 && cart.length > 0) {
+    subtotalBeforeDiscount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    localStorage.setItem('cartSubtotalBeforeDiscount', subtotalBeforeDiscount.toFixed(2));
+  }
+
+  // Calculate shipping fee
+  if (subtotalBeforeDiscount >= 1000) {
+    shippingFee = 0;
+  } else if (location === 'door') {
+    shippingFee = 130;
+  } else if (location === 'uj') {
+    shippingFee = 30;
+  } else {
+    shippingFee = 0;
+  }
+
+  console.log('Shipping fee:', shippingFee);
+
+  // Update delivery method text
+  updateDeliveryMethodText();
+
+  // Show/hide sections based on delivery method
+  const addressSection = document.getElementById('address-section');
+  const campusSection = document.getElementById('campus-section');
+  
+  console.log('Address section found:', !!addressSection);
+  console.log('Campus section found:', !!campusSection);
+  
+  // Hide both sections first
+  if (addressSection) {
+    addressSection.classList.add('hidden');
+    addressSection.style.setProperty('display', 'none', 'important'); // Force hide with !important
+    console.log('Hiding address section');
+  } else {
+    console.error('Address section element not found!');
+  }
+  
+  if (campusSection) {
+    campusSection.classList.add('hidden');
+    campusSection.style.setProperty('display', 'none', 'important'); // Force hide with !important
+    console.log('Hiding campus section');
+  } else {
+    console.error('Campus section element not found!');
+  }
+  
+  // Show appropriate section based on selection
+  if (location === 'door') {
+    console.log('Showing address section for door-to-door');
+    // Show address section for Door-to-Door Courier
+    if (addressSection) {
+      addressSection.classList.remove('hidden');
+      addressSection.style.setProperty('display', 'block', 'important'); // Force show with !important
+      console.log('Address section should now be visible');
+      // Make address fields required
+      const addressInput = document.getElementById('address-autocomplete');
+      const cityInput = document.getElementById('address-city');
+      const provinceSelect = document.getElementById('address-province');
+      const postalInput = document.getElementById('address-postal');
+      if (addressInput) {
+        addressInput.setAttribute('required', 'required');
+        console.log('Address input made required');
+      }
+      if (cityInput) cityInput.setAttribute('required', 'required');
+      if (provinceSelect) provinceSelect.setAttribute('required', 'required');
+      if (postalInput) postalInput.setAttribute('required', 'required');
+      
+      // Initialize Google Maps autocomplete when section becomes visible
+      setTimeout(function() {
+        initializeAddressAutocomplete();
+      }, 300);
+    } else {
+      console.error('Cannot show address section - element not found!');
+    }
+  } else if (location === 'uj') {
+    console.log('Showing campus section for UJ delivery');
+    // Show campus selection for UJ Campus Delivery
+    if (campusSection) {
+      campusSection.classList.remove('hidden');
+      campusSection.style.setProperty('display', 'block', 'important'); // Force show with !important
+      console.log('Campus section should now be visible');
+      // Make campus selection required
+      const campusSelect = document.getElementById('campus-selection');
+      if (campusSelect) {
+        campusSelect.setAttribute('required', 'required');
+        console.log('Campus select made required');
+      }
+    } else {
+      console.error('Cannot show campus section - element not found!');
+    }
+  } else {
+    console.log('No delivery method selected, hiding both sections');
+    // Remove required attributes when no method is selected
+    const addressInput = document.getElementById('address-autocomplete');
+    const cityInput = document.getElementById('address-city');
+    const provinceSelect = document.getElementById('address-province');
+    const postalInput = document.getElementById('address-postal');
+    const campusSelect = document.getElementById('campus-selection');
+    if (addressInput) addressInput.removeAttribute('required');
+    if (cityInput) cityInput.removeAttribute('required');
+    if (provinceSelect) provinceSelect.removeAttribute('required');
+    if (postalInput) postalInput.removeAttribute('required');
+    if (campusSelect) campusSelect.removeAttribute('required');
+  }
+  
+  updateSummary();
+}
+
+async function handleCheckout(event) {
+  event.preventDefault();
+  
+  // Validate backend configuration
+  if (!YOCO_CONFIG.backendUrl) {
+    alert('Payment backend not configured. Please contact support.');
+    return;
+  }
+  
+  const checkoutSubtotal = parseFloat(localStorage.getItem('checkoutSubtotal') || 0);
+  const finalTotal = checkoutSubtotal + shippingFee;
+  const location = document.getElementById('shipping-location').value;
+  const name = document.getElementById('customer-name').value;
+  const email = document.getElementById('customer-email').value;
+  
+  // Validate delivery method is selected
+  if (!location) {
+    alert('Please select a delivery method.');
+    return;
+  }
+  
+  // Build delivery information based on selected method
+  let deliveryInfo = '';
+  let deliveryDetails = {};
+  
+  if (location === 'door') {
+    // Validate and get address information for Door-to-Door Courier
+    const streetAddress = document.getElementById('address-autocomplete').value || '';
+    const city = document.getElementById('address-city').value || '';
+    const province = document.getElementById('address-province').value || '';
+    const postalCode = document.getElementById('address-postal').value || '';
+    const suburb = document.getElementById('address-suburb').value || '';
+    const extra = document.getElementById('address-extra').value || '';
+    
+    // Validate required address fields
+    if (!streetAddress || !city || !province || !postalCode) {
+      alert('Please fill in all required address fields for door-to-door delivery.');
+      return;
+    }
+    
+    const addressParts = [streetAddress, suburb, city, province, postalCode].filter(p => p);
+    deliveryInfo = addressParts.join(', ') + (extra ? `\n${extra}` : '');
+    
+    deliveryDetails = {
+      type: 'address',
+      street: streetAddress,
+      suburb: suburb,
+      city: city,
+      province: province,
+      postalCode: postalCode,
+      extra: extra
+    };
+  } else if (location === 'uj') {
+    // Validate and get campus selection for UJ Campus Delivery
+    const campus = document.getElementById('campus-selection').value || '';
+    if (!campus) {
+      alert('Please select a UJ campus for delivery.');
+      return;
+    }
+    deliveryInfo = `UJ ${campus} Campus`;
+    
+    deliveryDetails = {
+      type: 'campus',
+      campus: campus
+    };
+  }
+
+  // Prepare order data
+  // IMPORTANT: Live Yoco API requires HTTPS URLs (not HTTP)
+  // For local development, you need to either:
+  // 1. Use your production domain (recommended)
+  // 2. Set up local HTTPS
+  // 3. Use test keys for local development
+  
+  // Replace with your actual production domain
+  const PRODUCTION_DOMAIN = 'https://saintventura.co.za'; // Update this with your actual domain
+  
+  let baseUrl = window.location.origin;
+  
+  // For local development with live keys, use production domain
+  if (baseUrl.startsWith('http://') || baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')) {
+    console.warn('Local development detected. Using production domain for Yoco URLs.');
+    baseUrl = PRODUCTION_DOMAIN;
+  } else if (baseUrl.startsWith('http://')) {
+    // Convert HTTP to HTTPS
+    baseUrl = baseUrl.replace('http://', 'https://');
+  }
+  
+  const orderData = {
+    amountInCents: Math.round(finalTotal * 100), // Yoco requires amount in cents (R10.00 = 1000)
+    currency: 'ZAR', // South African Rand
+    successUrl: baseUrl + '/checkout-success.html',
+    cancelUrl: baseUrl + '/checkout.html',
+    metadata: {
+      customerName: name,
+      customerEmail: email,
+      shippingMethod: location,
+      deliveryAddress: deliveryInfo,
+      deliveryDetails: deliveryDetails,
+      orderItems: JSON.stringify(cart),
+      subtotal: checkoutSubtotal,
+      shipping: shippingFee,
+      total: finalTotal
+    }
+  };
+
+  try {
+    // All payment processing happens securely on the backend
+    // The backend uses the secret key - never exposed to frontend
+    if (!YOCO_CONFIG.backendUrl) {
+      throw new Error('Backend URL not configured. Please set backendUrl in YOCO_CONFIG.');
+    }
+
+    const response = await fetch(YOCO_CONFIG.backendUrl, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(orderData)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Server error' }));
+      throw new Error(errorData.error || `Server error: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    
+    console.log('Backend response:', result);
+    
+    if (result.success && result.redirectUrl) {
+      // Redirect to Yoco checkout page
+      console.log('Redirecting to:', result.redirectUrl);
+      window.location.href = result.redirectUrl;
+    } else if (result.checkoutId) {
+      // Alternative: redirect using checkout ID
+      // Try different Yoco checkout URL formats
+      const checkoutUrls = [
+        `https://checkout.yoco.com/${result.checkoutId}`,
+        `https://payments.yoco.com/checkout/${result.checkoutId}`,
+        `https://online.yoco.com/checkout/${result.checkoutId}`
+      ];
+      console.log('Trying redirect URLs:', checkoutUrls);
+      // Try first URL format
+      window.location.href = checkoutUrls[0];
+    } else {
+      throw new Error(result.error || 'Failed to create checkout session');
+    }
+  } catch (error) {
+    console.error('Checkout error:', error);
+    console.error('Full error details:', {
+      message: error.message,
+      stack: error.stack,
+      response: error.response
+    });
+    
+    // Show user-friendly error message
+    let errorMessage = 'Failed to process payment. ';
+    if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+      errorMessage += 'Please make sure the backend server is running on port 3000.';
+    } else if (error.message) {
+      errorMessage += error.message;
+    } else {
+      errorMessage += 'Please try again or contact support.';
+    }
+    
+    alert(errorMessage);
+  }
+}
+
+</script>
+
+</body>
+</html>
