@@ -1462,12 +1462,12 @@ function menuNavigate(page) {
   // Close menu
   toggleMenu();
   
-  // Navigate to index.html with the appropriate section
-  if (page === 'home') {
-    window.location.href = 'index.html';
-  } else {
-    window.location.href = `index.html#${page}`;
-  }
+  // Navigate to index.html and trigger the correct page
+  // Use sessionStorage to pass the page info, then redirect
+  sessionStorage.setItem('navigateToPage', page);
+  
+  // Redirect to index.html
+  window.location.href = 'index.html';
 }
 
 </script>
