@@ -144,10 +144,8 @@ function getBackendUrl() {
   }
   
   // GitHub Pages (production)
-  // Update this with your actual deployed backend URL after deployment
-  // Example: 'https://saint-ventura-backend.railway.app/api/create-yoco-checkout'
-  // Or: 'https://saint-ventura-backend.onrender.com/api/create-yoco-checkout'
-  const PRODUCTION_BACKEND_URL = 'https://your-backend-url.railway.app/api/create-yoco-checkout';
+  // Backend deployed on Render
+  const PRODUCTION_BACKEND_URL = 'https://saint-ventura-backend.onrender.com/api/create-yoco-checkout';
   
   // If you're on GitHub Pages, use production backend
   if (hostname.includes('github.io') || hostname.includes('github.com')) {
