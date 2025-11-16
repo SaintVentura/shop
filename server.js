@@ -246,10 +246,11 @@ app.post('/api/contact-form', async (req, res) => {
       maxMessages: 3
     });
 
-    // Email content
+    // Email content - SENT TO: customersupport@saintventura.co.za
     const mailOptions = {
       from: zohoEmail,
-      to: 'customersupport@saintventura.co.za',
+      to: 'customersupport@saintventura.co.za', // All contact form emails go here
+      replyTo: email, // Allow replying directly to the customer
       subject: `Contact Form: ${subject}`,
       text: `New contact form submission from Saint Ventura website:
 
@@ -277,10 +278,25 @@ Submitted on: ${new Date().toLocaleString()}`,
 
     // Send email in background (non-blocking)
     // Return success immediately to user, send email asynchronously
-    transporter.sendMail(mailOptions).then(() => {
-      console.log('Contact form email sent:', { name, email, subject });
+    transporter.sendMail(mailOptions).then((info) => {
+      console.log('✅ Contact form email SENT successfully to customersupport@saintventura.co.za');
+      console.log('Email details:', { 
+        messageId: info.messageId,
+        to: mailOptions.to,
+        subject: mailOptions.subject,
+        name: name,
+        email: email
+      });
     }).catch((emailError) => {
-      console.error('Failed to send contact form email (non-blocking):', emailError);
+      console.error('❌ FAILED to send contact form email to customersupport@saintventura.co.za');
+      console.error('Error details:', {
+        code: emailError.code,
+        command: emailError.command,
+        response: emailError.response,
+        responseCode: emailError.responseCode,
+        message: emailError.message,
+        stack: emailError.stack
+      });
       // Don't block user - email will be logged but user gets success
     });
     
@@ -357,10 +373,10 @@ app.post('/api/newsletter-subscribe', async (req, res) => {
       maxMessages: 3
     });
 
-    // Email content
+    // Email content - SENT TO: customersupport@saintventura.co.za
     const mailOptions = {
       from: zohoEmail,
-      to: 'customersupport@saintventura.co.za',
+      to: 'customersupport@saintventura.co.za', // All newsletter subscriptions go here
       subject: 'Newsletter Subscription Request',
       text: `New newsletter subscription:\n\nEmail: ${email}\nSubscription Date: ${new Date().toLocaleDateString()}\nTime: ${new Date().toLocaleTimeString()}`,
       html: `
@@ -374,10 +390,24 @@ app.post('/api/newsletter-subscribe', async (req, res) => {
 
     // Send email in background (non-blocking)
     // Return success immediately to user, send email asynchronously
-    transporter.sendMail(mailOptions).then(() => {
-      console.log('Newsletter subscription email sent:', email);
+    transporter.sendMail(mailOptions).then((info) => {
+      console.log('✅ Newsletter subscription email SENT successfully to customersupport@saintventura.co.za');
+      console.log('Email details:', { 
+        messageId: info.messageId,
+        to: mailOptions.to,
+        subject: mailOptions.subject,
+        subscriberEmail: email
+      });
     }).catch((emailError) => {
-      console.error('Failed to send newsletter email (non-blocking):', emailError);
+      console.error('❌ FAILED to send newsletter email to customersupport@saintventura.co.za');
+      console.error('Error details:', {
+        code: emailError.code,
+        command: emailError.command,
+        response: emailError.response,
+        responseCode: emailError.responseCode,
+        message: emailError.message,
+        stack: emailError.stack
+      });
       // Don't block user - email will be logged but user gets success
     });
     
@@ -527,9 +557,11 @@ app.post('/api/send-order-confirmation', async (req, res) => {
       minute: '2-digit'
     });
 
+    // Email content - SENT TO: customersupport@saintventura.co.za
     const mailOptions = {
       from: zohoEmail,
-      to: 'customersupport@saintventura.co.za',
+      to: 'customersupport@saintventura.co.za', // All order confirmations go here
+      replyTo: customerEmail, // Allow replying directly to the customer
       subject: `New Order Received - ${customerName} - R${total.toFixed(2)}`,
       text: `
 New Order Received
@@ -607,10 +639,29 @@ ${deliveryAddress ? `Delivery Address: ${deliveryAddress}` : ''}
 
     // Send email in background (non-blocking)
     // Return success immediately to user, send email asynchronously
-    transporter.sendMail(mailOptions).then(() => {
-      console.log('Order confirmation email sent:', { customerName, customerEmail, total });
+    transporter.sendMail(mailOptions).then((info) => {
+      console.log('✅ Order confirmation email SENT successfully to customersupport@saintventura.co.za');
+      console.log('Email details:', { 
+        messageId: info.messageId,
+        to: mailOptions.to,
+        subject: mailOptions.subject,
+        customerName: customerName,
+        customerEmail: customerEmail,
+        total: total,
+        orderId: orderId
+      });
     }).catch((emailError) => {
-      console.error('Failed to send order confirmation email (non-blocking):', emailError);
+      console.error('❌ FAILED to send order confirmation email to customersupport@saintventura.co.za');
+      console.error('Error details:', {
+        code: emailError.code,
+        command: emailError.command,
+        response: emailError.response,
+        responseCode: emailError.responseCode,
+        message: emailError.message,
+        stack: emailError.stack,
+        customerName: customerName,
+        orderId: orderId
+      });
       // Don't block user - email will be logged but user gets success
     });
     
