@@ -84,68 +84,12 @@
 <body class="bg-gray-50 text-gray-900" style="font-family: 'Inter', sans-serif;">
 
   <!-- Navigation -->
-  <nav class="fixed top-0 left-0 right-0 w-full bg-white/95 z-50 border-b border-gray-200" style="position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important;">
+  <nav class="fixed top-0 left-0 right-0 w-full bg-white/95 z-50 border-b border-gray-200" style="position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; backdrop-filter: blur(40px) !important; -webkit-backdrop-filter: blur(40px) !important;">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center h-16">
         <div class="flex items-center space-x-2 cursor-pointer" onclick="window.location.href='index.html'">
           <img src="https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1" alt="SV Logo" class="w-10 h-10 rounded-lg object-cover">
           <span class="text-m font-black" id="nav-brand-name">Saint Ventura</span>
-        </div>
-        
-        
-        <div class="flex items-center space-x-4">
-          <!-- Search -->
-          <div class="relative hidden md:block">
-            <input 
-              type="text" 
-              id="search-input"
-              placeholder="Search products..." 
-              class="w-80 px-4 py-2 pl-12 border border-gray-300 rounded-lg focus:outline-none focus:border-black transition duration-200"
-              oninput="handleSearch(this.value)"
-              onfocus="showSearchResults()"
-              onblur="hideSearchResults()"
-            >
-            <div class="absolute left-4 top-1/2 transform -translate-y-1/2 text-black">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8"></circle>
-                <path d="m21 21-4.35-4.35"></path>
-              </svg>
-            </div>
-            <!-- Search Results Dropdown -->
-            <div id="search-results" class="absolute top-full left-0 right-0 border border-gray-200 rounded-lg shadow-lg mt-1 max-h-96 overflow-y-auto z-50 hidden" style="background-color: #ffffff !important;">
-              <div id="search-content">
-                <!-- Search results populated by JavaScript -->
-              </div>
-            </div>
-          </div>
-          
-          <!-- Mobile Search Button -->
-          <button class="md:hidden p-2 text-black hover:text-gray-700 transition duration-200" onclick="toggleMobileSearch()">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="8"></circle>
-              <path d="m21 21-4.35-4.35"></path>
-            </svg>
-          </button>
-          
-          <!-- Cart Button -->
-          <button class="relative bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-all duration-300 transform hover:scale-105 flex items-center space-x-2 shadow-lg" onclick="window.location.href='index.html'; sessionStorage.setItem('openCart', 'true');">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
-              <line x1="3" y1="6" x2="21" y2="6"></line>
-              <path d="M16 10a4 4 0 0 1-8 0"></path>
-            </svg>
-            <span class="hidden sm:inline font-medium">Cart</span>
-            <span id="cart-badge" class="bg-white text-black text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold hidden ml-1">0</span>
-          </button>
-          
-          <!-- Menu Button -->
-          <button class="p-2 text-black hover:text-gray-700 transition duration-200" onclick="toggleMenu()">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="3" y1="6" x2="21" y2="6"></line>
-              <line x1="3" y1="12" x2="21" y2="12"></line>
-              <line x1="3" y1="18" x2="21" y2="18"></line>
-            </svg>
-          </button>
         </div>
       </div>
     </div>
@@ -319,8 +263,8 @@
               <input id="address-autocomplete" type="text" placeholder="Start typing your South African address..." class="w-full border border-gray-300 rounded-lg px-4 py-3" autocomplete="street-address">
               <div id="address-suggestions" class="hidden mt-2 border border-gray-200 rounded-lg bg-white shadow-lg max-h-60 overflow-y-auto"></div>
               <p class="text-xs text-gray-500 mt-1">Powered by Google Maps - Start typing to see suggestions</p>
-            </div>
-            
+        </div>
+
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="block mb-2 font-medium">City</label>
@@ -341,8 +285,8 @@
                   <option value="Western Cape">Western Cape</option>
                 </select>
               </div>
-            </div>
-            
+        </div>
+
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="block mb-2 font-medium">Postal Code</label>
@@ -352,8 +296,8 @@
                 <label class="block mb-2 font-medium">Suburb</label>
                 <input id="address-suburb" type="text" class="w-full border border-gray-300 rounded-lg px-4 py-3" autocomplete="address-level3">
               </div>
-            </div>
-            
+    </div>
+
             <div>
               <label class="block mb-2 font-medium">Additional Details (Optional)</label>
               <textarea id="address-extra" rows="2" placeholder="Apartment number, building name, etc." class="w-full border border-gray-300 rounded-lg px-4 py-3"></textarea>
@@ -370,7 +314,7 @@
               <option value="SWC">SWC (Soweto Campus)</option>
               <option value="APB">APB (Auckland Park Bunting Road Campus)</option>
             </select>
-          </div>
+      </div>
         </div>
 
         <button type="submit" class="w-full bg-black text-white py-4 rounded-lg font-semibold hover:bg-gray-800 transition-all duration-300 transform hover:scale-[1.02] text-lg">
@@ -387,7 +331,7 @@
     <div class="loading-text" style="font-size: 14px; font-weight: 400; margin-top: 10px; color: #666666;">Please wait, do not close this page</div>
   </div>
 
-  <script>
+<script>
 // ============================================
 // YOCO PAYMENT CONFIGURATION
 // ============================================
@@ -428,7 +372,7 @@ const YOCO_CONFIG = {
 };
 
 // ============================================
-// Product data
+ // Product data
 // ============================================
         var products = [
             {
@@ -921,7 +865,7 @@ function renderCart() {
     // Use item.image if available, otherwise try to get from products
     let itemImage = item.image;
     if (!itemImage) {
-      const product = products.find(p => p.id === item.id);
+    const product = products.find(p => p.id === item.id);
       if (product && product.images && product.images.length > 0) {
         itemImage = product.images[0];
       }
@@ -1321,7 +1265,7 @@ async function handleCheckout(event) {
     console.log('Order data:', orderData);
 
     const response = await fetch(YOCO_CONFIG.backendUrl, {
-      method: "POST",
+    method: "POST",
       headers: { 
         "Content-Type": "application/json"
       },
@@ -1342,7 +1286,7 @@ async function handleCheckout(event) {
       throw new Error(errorData.error || `Server error: ${response.status} ${response.statusText}`);
     }
 
-    const result = await response.json();
+  const result = await response.json();
     
     console.log('Backend response:', result);
     
