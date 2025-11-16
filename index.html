@@ -21,6 +21,50 @@
             right: 0 !important;
             z-index: 9999 !important;
         }
+        
+        /* Loading Overlay Styles */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 99999;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        
+        #loading-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-top-color: #000000;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            color: #000000;
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 20px;
+            text-align: center;
+        }
 
 .faq-section {
   margin-top: 40px;
@@ -1667,6 +1711,131 @@
         </div>
     </div>
 
+    <!-- Checkout Page -->
+    <div id="checkout-page" class="page">
+        <div class="pt-16">
+            <!-- Main Section -->
+            <section class="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 lg:grid-cols-2 gap-10">
+                
+                <!-- Order Summary - First on mobile, left on desktop -->
+                <div class="bg-white p-8 rounded-xl shadow-md order-1 lg:order-1">
+                    <h2 class="text-2xl font-semibold mb-6">Your Order</h2>
+                    <div id="checkout-cart-items" class="divide-y divide-gray-200 mb-6"></div>
+
+                    <div class="border-t border-gray-200 pt-4 space-y-2 text-lg">
+                        <div class="flex justify-between"><span>Subtotal:</span><span id="checkout-subtotal">R0</span></div>
+                        <div id="checkout-discount-row" class="flex justify-between text-green-600 hidden"><span>Discount:</span><span id="checkout-discount">-R0</span></div>
+                        <div class="flex justify-between"><span>Shipping:</span><span id="checkout-shipping">R0</span></div>
+                        <div class="flex justify-between font-bold text-xl"><span>Total:</span><span id="checkout-total">R0</span></div>
+                    </div>
+                </div>
+
+                <!-- Shipping Information - Second on mobile, right on desktop -->
+                <div class="bg-white p-8 rounded-xl shadow-md order-2 lg:order-2">
+                    <h2 class="text-2xl font-semibold mb-6">Shipping Information</h2>
+
+                    <form id="checkout-form" class="space-y-6" onsubmit="handleCheckout(event)">
+                        <div>
+                            <label class="block mb-2 font-medium">Full Name <span class="text-red-500">*</span></label>
+                            <input id="customer-name" type="text" required class="w-full border border-gray-300 rounded-lg px-4 py-3">
+                        </div>
+
+                        <div>
+                            <label class="block mb-2 font-medium">Email <span class="text-red-500">*</span></label>
+                            <input id="customer-email" type="email" required class="w-full border border-gray-300 rounded-lg px-4 py-3">
+                            <p class="text-xs text-gray-500 mt-1">Order tracking link will be sent to your email</p>
+                        </div>
+
+                        <div>
+                            <label class="block mb-2 font-medium">Phone Number <span class="text-red-500">*</span></label>
+                            <input id="customer-phone" type="tel" required class="w-full border border-gray-300 rounded-lg px-4 py-3" placeholder="+27 12 345 6789">
+                            <p class="text-xs text-gray-500 mt-1">Courier will contact this number for delivery</p>
+                        </div>
+
+                        <div>
+                            <label class="block mb-2 font-medium">Delivery Method <span class="text-red-500">*</span></label>
+                            <select id="shipping-location" onchange="updateCheckoutShipping()" required class="w-full border border-gray-300 rounded-lg px-4 py-3">
+                                <option value="">Select your location</option>
+                                <option id="door-option" value="door">Door-to-Door Courier (R130)</option>
+                                <option id="uj-option" value="uj">UJ Campus Delivery (R30)</option>
+                            </select>
+                            
+                            <!-- Address Fields - Shows for Door-to-Door Courier -->
+                            <div id="address-section" class="hidden mt-4 space-y-4">
+                                <div>
+                                    <label class="block mb-2 font-medium">Street Address <span class="text-red-500">*</span></label>
+                                    <input id="address-autocomplete" type="text" placeholder="Start typing your South African address..." required class="w-full border border-gray-300 rounded-lg px-4 py-3" autocomplete="street-address">
+                                    <div id="address-suggestions" class="hidden mt-2 border border-gray-200 rounded-lg bg-white shadow-lg max-h-60 overflow-y-auto"></div>
+                                    <p class="text-xs text-gray-500 mt-1">Powered by Google Maps - Start typing to see suggestions</p>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block mb-2 font-medium">City <span class="text-red-500">*</span></label>
+                                        <input id="address-city" type="text" required class="w-full border border-gray-300 rounded-lg px-4 py-3" autocomplete="address-level2">
+                                    </div>
+                                    <div>
+                                        <label class="block mb-2 font-medium">Province <span class="text-red-500">*</span></label>
+                                        <select id="address-province" required class="w-full border border-gray-300 rounded-lg px-4 py-3" autocomplete="address-level1">
+                                            <option value="">Select Province</option>
+                                            <option value="Eastern Cape">Eastern Cape</option>
+                                            <option value="Free State">Free State</option>
+                                            <option value="Gauteng">Gauteng</option>
+                                            <option value="KwaZulu-Natal">KwaZulu-Natal</option>
+                                            <option value="Limpopo">Limpopo</option>
+                                            <option value="Mpumalanga">Mpumalanga</option>
+                                            <option value="Northern Cape">Northern Cape</option>
+                                            <option value="North West">North West</option>
+                                            <option value="Western Cape">Western Cape</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block mb-2 font-medium">Postal Code <span class="text-red-500">*</span></label>
+                                        <input id="address-postal" type="text" pattern="[0-9]{4}" maxlength="4" required class="w-full border border-gray-300 rounded-lg px-4 py-3" autocomplete="postal-code" placeholder="0000">
+                                    </div>
+                                    <div>
+                                        <label class="block mb-2 font-medium">Suburb</label>
+                                        <input id="address-suburb" type="text" class="w-full border border-gray-300 rounded-lg px-4 py-3" autocomplete="address-level3">
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block mb-2 font-medium">Additional Details (Optional)</label>
+                                    <textarea id="address-extra" rows="2" placeholder="Apartment number, building name, etc." class="w-full border border-gray-300 rounded-lg px-4 py-3"></textarea>
+                                </div>
+                            </div>
+
+                            <!-- Campus Selection - Shows for UJ Campus Delivery -->
+                            <div id="campus-section" class="hidden mt-4">
+                                <label class="block mb-2 font-medium">Select Campus <span class="text-red-500">*</span></label>
+                                <select id="campus-selection" required class="w-full border border-gray-300 rounded-lg px-4 py-3">
+                                    <option value="">Select your campus</option>
+                                    <option value="DFC">DFC (Doornfontein Campus)</option>
+                                    <option value="APK">APK (Auckland Park Kingsway Campus)</option>
+                                    <option value="SWC">SWC (Soweto Campus)</option>
+                                    <option value="APB">APB (Auckland Park Bunting Road Campus)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full bg-black text-white py-4 rounded-lg font-semibold hover:bg-gray-800 transition-all duration-300 transform hover:scale-[1.02] text-lg">
+                            Proceed to Payment
+                        </button>
+                    </form>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Processing your payment...</div>
+    </div>
+
     <!-- Cookie Policy Page -->
     <div id="cookies-page" class="page">
         <div class="pt-16">
@@ -2797,8 +2966,12 @@ if (firstImage && firstImage.startsWith('http')) {
             localStorage.setItem('cartSubtotalBeforeDiscount', subtotalBeforeDiscount.toFixed(2));
             localStorage.setItem('cartDiscount', discountAmount.toFixed(2));
             
-            // Redirect to checkout page
-            window.location.href = 'checkout.html';
+            // Navigate to checkout page
+            showPage('checkout');
+            // Initialize checkout page after showing it
+            setTimeout(() => {
+                initializeCheckoutPage();
+            }, 100);
         }
 
 
@@ -3429,6 +3602,481 @@ function showSlides() {
   setTimeout(showSlides, 5000); // Change image every 5 seconds
 }
 
+// ============================================
+// Checkout Page Functions
+// ============================================
+
+// Auto-detect backend URL for Yoco payments
+function getBackendUrl() {
+    const hostname = window.location.hostname;
+    const origin = window.location.origin;
+    
+    // Local development
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '' || hostname === '0.0.0.0') {
+        return 'http://localhost:3000/api/create-yoco-checkout';
+    }
+    
+    // Production backend on Render
+    const PRODUCTION_BACKEND_URL = 'https://saint-ventura-backend.onrender.com/api/create-yoco-checkout';
+    
+    // If on GitHub Pages, use production backend
+    if (hostname.includes('github.io') || hostname.includes('github.com') || origin.includes('github.io') || origin.includes('github.com')) {
+        return PRODUCTION_BACKEND_URL;
+    }
+    
+    // Default to production
+    return PRODUCTION_BACKEND_URL;
+}
+
+const YOCO_CONFIG = {
+    backendUrl: getBackendUrl()
+};
+
+let checkoutShippingFee = 0;
+let checkoutCart = [];
+
+// Initialize checkout page
+function initializeCheckoutPage() {
+    console.log('Initializing checkout page');
+    
+    // Load cart from localStorage
+    const savedCart = localStorage.getItem('cart');
+    if (savedCart) {
+        try {
+            checkoutCart = JSON.parse(savedCart);
+            console.log('Checkout cart loaded:', checkoutCart);
+        } catch (e) {
+            console.error('Error loading cart from storage:', e);
+            checkoutCart = [];
+        }
+    }
+    
+    // Calculate totals
+    let subtotalBeforeDiscount = 0;
+    let discountAmount = 0;
+    
+    if (checkoutCart.length > 0) {
+        subtotalBeforeDiscount = checkoutCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        discountAmount = parseFloat(localStorage.getItem('cartDiscount') || 0);
+    }
+    
+    let checkoutSubtotal = parseFloat(localStorage.getItem('checkoutSubtotal') || 0);
+    
+    if (checkoutCart.length === 0) {
+        checkoutSubtotal = 0;
+        subtotalBeforeDiscount = 0;
+        discountAmount = 0;
+        localStorage.setItem('checkoutSubtotal', '0');
+        localStorage.setItem('cartSubtotalBeforeDiscount', '0');
+        localStorage.setItem('cartDiscount', '0');
+    } else {
+        checkoutSubtotal = subtotalBeforeDiscount - discountAmount;
+        localStorage.setItem('checkoutSubtotal', checkoutSubtotal.toFixed(2));
+        localStorage.setItem('cartSubtotalBeforeDiscount', subtotalBeforeDiscount.toFixed(2));
+        if (!localStorage.getItem('cartDiscount')) {
+            localStorage.setItem('cartDiscount', discountAmount.toFixed(2));
+        }
+    }
+    
+    // Render cart and update summary
+    renderCheckoutCart();
+    updateCheckoutSummary();
+    updateCheckoutDeliveryMethodText();
+    
+    // Initialize sections
+    const currentLocation = document.getElementById('shipping-location');
+    if (currentLocation && currentLocation.value) {
+        updateCheckoutShipping();
+    } else {
+        const addressSection = document.getElementById('address-section');
+        const campusSection = document.getElementById('campus-section');
+        if (addressSection) {
+            addressSection.classList.add('hidden');
+            addressSection.style.setProperty('display', 'none', 'important');
+        }
+        if (campusSection) {
+            campusSection.classList.add('hidden');
+            campusSection.style.setProperty('display', 'none', 'important');
+        }
+    }
+}
+
+function renderCheckoutCart() {
+    const container = document.getElementById('checkout-cart-items');
+    if (!container) {
+        console.error('Checkout cart items container not found!');
+        return;
+    }
+    
+    container.innerHTML = '';
+    
+    if (checkoutCart.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 py-4">Your cart is empty</p>';
+        updateCheckoutSummary();
+        return;
+    }
+
+    checkoutCart.forEach(item => {
+        const total = item.price * item.quantity;
+        
+        let itemImage = item.image;
+        if (!itemImage) {
+            const product = products.find(p => p.id === item.id);
+            if (product && product.images && product.images.length > 0) {
+                itemImage = product.images[0];
+            }
+        }
+        
+        if (!itemImage) {
+            itemImage = 'https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1';
+        }
+        
+        const sizeText = item.size ? ` • Size: ${item.size}` : '';
+        const colorText = item.color ? ` • Color: ${item.color}` : '';
+        
+        container.innerHTML += `
+            <div class="flex items-center justify-between py-4">
+                <div class="flex items-center space-x-4">
+                    <img src="${itemImage}" alt="${item.name}" class="w-16 h-16 object-cover rounded-md" onerror="this.src='https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1'">
+                    <div>
+                        <p class="font-medium">${item.name}</p>
+                        <p class="text-gray-500 text-sm">Qty: ${item.quantity}${sizeText}${colorText}</p>
+                    </div>
+                </div>
+                <p class="font-semibold">R${total.toFixed(2)}</p>
+            </div>
+        `;
+    });
+    
+    updateCheckoutSummary();
+}
+
+function updateCheckoutDeliveryMethodText() {
+    const doorOption = document.getElementById('door-option');
+    const ujOption = document.getElementById('uj-option');
+    if (!doorOption || !ujOption) return;
+    
+    let subtotalBeforeDiscount = parseFloat(localStorage.getItem('cartSubtotalBeforeDiscount') || 0);
+    
+    if (subtotalBeforeDiscount === 0 && checkoutCart.length > 0) {
+        subtotalBeforeDiscount = checkoutCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    }
+    
+    if (subtotalBeforeDiscount >= 1000) {
+        doorOption.textContent = 'Door-to-Door Courier';
+        ujOption.textContent = 'UJ Campus Delivery';
+    } else {
+        doorOption.textContent = 'Door-to-Door Courier (R130)';
+        ujOption.textContent = 'UJ Campus Delivery (R30)';
+    }
+}
+
+function updateCheckoutSummary() {
+    let checkoutSubtotal = parseFloat(localStorage.getItem('checkoutSubtotal') || 0);
+    
+    if (checkoutSubtotal === 0 && checkoutCart.length > 0) {
+        const subtotalBeforeDiscount = checkoutCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const discount = parseFloat(localStorage.getItem('cartDiscount') || 0);
+        checkoutSubtotal = subtotalBeforeDiscount - discount;
+        
+        if (checkoutSubtotal > 0) {
+            localStorage.setItem('checkoutSubtotal', checkoutSubtotal.toFixed(2));
+            localStorage.setItem('cartSubtotalBeforeDiscount', subtotalBeforeDiscount.toFixed(2));
+        }
+    }
+    
+    const finalTotal = checkoutSubtotal + checkoutShippingFee;
+    
+    const subtotalElement = document.getElementById('checkout-subtotal');
+    if (subtotalElement) {
+        subtotalElement.textContent = 'R' + checkoutSubtotal.toFixed(2);
+    }
+    
+    const discountRow = document.getElementById('checkout-discount-row');
+    if (discountRow) {
+        discountRow.classList.add('hidden');
+    }
+    
+    const shippingElement = document.getElementById('checkout-shipping');
+    const totalElement = document.getElementById('checkout-total');
+    if (shippingElement) {
+        shippingElement.textContent = 'R' + checkoutShippingFee.toFixed(2);
+    }
+    if (totalElement) {
+        totalElement.textContent = 'R' + finalTotal.toFixed(2);
+    }
+}
+
+function updateCheckoutShipping() {
+    const locationSelect = document.getElementById('shipping-location');
+    if (!locationSelect) return;
+    
+    const location = locationSelect.value;
+    
+    let subtotalBeforeDiscount = parseFloat(localStorage.getItem('cartSubtotalBeforeDiscount') || 0);
+    
+    if (subtotalBeforeDiscount === 0 && checkoutCart.length > 0) {
+        subtotalBeforeDiscount = checkoutCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        localStorage.setItem('cartSubtotalBeforeDiscount', subtotalBeforeDiscount.toFixed(2));
+    }
+
+    if (subtotalBeforeDiscount >= 1000) {
+        checkoutShippingFee = 0;
+    } else if (location === 'door') {
+        checkoutShippingFee = 130;
+    } else if (location === 'uj') {
+        checkoutShippingFee = 30;
+    } else {
+        checkoutShippingFee = 0;
+    }
+
+    updateCheckoutDeliveryMethodText();
+
+    const addressSection = document.getElementById('address-section');
+    const campusSection = document.getElementById('campus-section');
+    
+    if (addressSection) {
+        addressSection.classList.add('hidden');
+        addressSection.style.setProperty('display', 'none', 'important');
+    }
+    
+    if (campusSection) {
+        campusSection.classList.add('hidden');
+        campusSection.style.setProperty('display', 'none', 'important');
+    }
+    
+    if (location === 'door') {
+        if (addressSection) {
+            addressSection.classList.remove('hidden');
+            addressSection.style.setProperty('display', 'block', 'important');
+            const addressInput = document.getElementById('address-autocomplete');
+            const cityInput = document.getElementById('address-city');
+            const provinceSelect = document.getElementById('address-province');
+            const postalInput = document.getElementById('address-postal');
+            if (addressInput) addressInput.setAttribute('required', 'required');
+            if (cityInput) cityInput.setAttribute('required', 'required');
+            if (provinceSelect) provinceSelect.setAttribute('required', 'required');
+            if (postalInput) postalInput.setAttribute('required', 'required');
+        }
+    } else if (location === 'uj') {
+        if (campusSection) {
+            campusSection.classList.remove('hidden');
+            campusSection.style.setProperty('display', 'block', 'important');
+            const campusSelect = document.getElementById('campus-selection');
+            if (campusSelect) {
+                campusSelect.setAttribute('required', 'required');
+            }
+        }
+    } else {
+        const addressInput = document.getElementById('address-autocomplete');
+        const cityInput = document.getElementById('address-city');
+        const provinceSelect = document.getElementById('address-province');
+        const postalInput = document.getElementById('address-postal');
+        const campusSelect = document.getElementById('campus-selection');
+        if (addressInput) addressInput.removeAttribute('required');
+        if (cityInput) cityInput.removeAttribute('required');
+        if (provinceSelect) provinceSelect.removeAttribute('required');
+        if (postalInput) postalInput.removeAttribute('required');
+        if (campusSelect) campusSelect.removeAttribute('required');
+    }
+    
+    updateCheckoutSummary();
+}
+
+function showCheckoutLoadingScreen() {
+    const overlay = document.getElementById('loading-overlay');
+    if (overlay) {
+        overlay.classList.add('show');
+        const submitButton = document.querySelector('#checkout-form button[type="submit"]');
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.style.opacity = '0.6';
+            submitButton.style.cursor = 'not-allowed';
+        }
+    }
+}
+
+function hideCheckoutLoadingScreen() {
+    const overlay = document.getElementById('loading-overlay');
+    if (overlay) {
+        overlay.classList.remove('show');
+        const submitButton = document.querySelector('#checkout-form button[type="submit"]');
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.style.opacity = '1';
+            submitButton.style.cursor = 'pointer';
+        }
+    }
+}
+
+async function handleCheckout(event) {
+    event.preventDefault();
+    
+    showCheckoutLoadingScreen();
+    
+    if (!YOCO_CONFIG.backendUrl) {
+        hideCheckoutLoadingScreen();
+        alert('Payment backend not configured. Please contact support.');
+        return;
+    }
+    
+    const checkoutSubtotal = parseFloat(localStorage.getItem('checkoutSubtotal') || 0);
+    const finalTotal = checkoutSubtotal + checkoutShippingFee;
+    const location = document.getElementById('shipping-location').value;
+    const name = document.getElementById('customer-name').value;
+    const email = document.getElementById('customer-email').value;
+    const phone = document.getElementById('customer-phone').value;
+    
+    if (!location) {
+        hideCheckoutLoadingScreen();
+        alert('Please select a delivery method.');
+        return;
+    }
+    
+    let deliveryInfo = '';
+    let deliveryDetails = {};
+    
+    if (location === 'door') {
+        const streetAddress = document.getElementById('address-autocomplete').value || '';
+        const city = document.getElementById('address-city').value || '';
+        const province = document.getElementById('address-province').value || '';
+        const postalCode = document.getElementById('address-postal').value || '';
+        const suburb = document.getElementById('address-suburb').value || '';
+        const extra = document.getElementById('address-extra').value || '';
+        
+        if (!streetAddress || !city || !province || !postalCode) {
+            hideCheckoutLoadingScreen();
+            alert('Please fill in all required address fields for door-to-door delivery.');
+            return;
+        }
+        
+        const addressParts = [streetAddress, suburb, city, province, postalCode].filter(p => p);
+        deliveryInfo = addressParts.join(', ') + (extra ? `\n${extra}` : '');
+        
+        deliveryDetails = {
+            type: 'address',
+            street: streetAddress,
+            suburb: suburb,
+            city: city,
+            province: province,
+            postalCode: postalCode,
+            extra: extra
+        };
+    } else if (location === 'uj') {
+        const campus = document.getElementById('campus-selection').value || '';
+        if (!campus) {
+            hideCheckoutLoadingScreen();
+            alert('Please select a UJ campus for delivery.');
+            return;
+        }
+        deliveryInfo = `UJ ${campus} Campus`;
+        
+        deliveryDetails = {
+            type: 'campus',
+            campus: campus
+        };
+    }
+
+    const PRODUCTION_DOMAIN = 'https://saintventura.co.za';
+    
+    let baseUrl = window.location.origin;
+    
+    if (baseUrl.startsWith('http://') || baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')) {
+        baseUrl = PRODUCTION_DOMAIN;
+    } else if (baseUrl.startsWith('http://')) {
+        baseUrl = baseUrl.replace('http://', 'https://');
+    }
+    
+    const orderDetails = {
+        customerName: name,
+        customerEmail: email,
+        customerPhone: phone,
+        shippingMethod: location,
+        deliveryAddress: deliveryInfo,
+        deliveryDetails: deliveryDetails,
+        orderItems: checkoutCart,
+        subtotal: checkoutSubtotal,
+        shipping: checkoutShippingFee,
+        total: finalTotal,
+        timestamp: new Date().toISOString()
+    };
+    localStorage.setItem('pendingOrderDetails', JSON.stringify(orderDetails));
+
+    const orderData = {
+        amountInCents: Math.round(finalTotal * 100),
+        currency: 'ZAR',
+        successUrl: baseUrl + '/checkout-success.html',
+        cancelUrl: baseUrl + '/index.html#checkout',
+        metadata: {
+            customerName: name,
+            customerEmail: email,
+            customerPhone: phone,
+            shippingMethod: location,
+            deliveryAddress: deliveryInfo,
+            deliveryDetails: deliveryDetails,
+            orderItems: JSON.stringify(checkoutCart),
+            subtotal: checkoutSubtotal,
+            shipping: checkoutShippingFee,
+            total: finalTotal
+        }
+    };
+
+    try {
+        if (!YOCO_CONFIG.backendUrl) {
+            throw new Error('Backend URL not configured. Please set backendUrl in YOCO_CONFIG.');
+        }
+
+        const response = await fetch(YOCO_CONFIG.backendUrl, {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(orderData)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            let errorData;
+            try {
+                errorData = JSON.parse(errorText);
+            } catch (e) {
+                errorData = { error: errorText || `Server error: ${response.status} ${response.statusText}` };
+            }
+            throw new Error(errorData.error || `Server error: ${response.status} ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        
+        if (result.success && result.redirectUrl) {
+            window.location.href = result.redirectUrl;
+        } else if (result.checkoutId) {
+            const checkoutUrls = [
+                `https://checkout.yoco.com/${result.checkoutId}`,
+                `https://payments.yoco.com/checkout/${result.checkoutId}`,
+                `https://online.yoco.com/checkout/${result.checkoutId}`
+            ];
+            window.location.href = checkoutUrls[0];
+        } else {
+            hideCheckoutLoadingScreen();
+            throw new Error(result.error || 'Failed to create checkout session');
+        }
+    } catch (error) {
+        console.error('Checkout error:', error);
+        
+        hideCheckoutLoadingScreen();
+        
+        let errorMessage = 'Failed to process payment. ';
+        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+            errorMessage += 'Cannot connect to server. Please check your internet connection and try again.';
+        } else if (error.message.includes('CORS')) {
+            errorMessage += 'Server connection issue. Please contact support.';
+        } else {
+            errorMessage += error.message;
+        }
+        
+        alert(errorMessage);
+    }
+}
 
     </script>
 <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'99107784162973b4',t:'MTc2MDg3ODkxNS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
