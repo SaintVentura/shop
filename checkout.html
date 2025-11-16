@@ -60,6 +60,17 @@
       font-family: 'Inter', sans-serif;
     }
     
+    /* Cart badge bounce animation */
+    .cart-badge-bounce {
+      animation: badgeBounce 0.6s ease-out;
+    }
+    
+    @keyframes badgeBounce {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.3); }
+      100% { transform: scale(1); }
+    }
+    
     /* Ensure navigation bar is always fixed */
     nav {
       position: fixed !important;
@@ -619,6 +630,9 @@ document.addEventListener('DOMContentLoaded', function() {
       brandSpan.id = 'nav-brand-name';
     }
   }
+  
+  // Update cart badge on page load
+  updateCartBadge();
   
   // Load cart from localStorage
   const savedCart = localStorage.getItem('cart');
@@ -1376,6 +1390,35 @@ async function handleCheckout(event) {
     }
     
     alert(errorMessage);
+  }
+}
+
+// Cart badge update function (same as index.html)
+function updateCartBadge() {
+  const badge = document.getElementById('cart-badge');
+  if (!badge) return;
+  
+  // Load cart from localStorage to get current count
+  const savedCart = localStorage.getItem('cart');
+  let cartItems = [];
+  if (savedCart) {
+    try {
+      cartItems = JSON.parse(savedCart);
+    } catch (e) {
+      console.error('Error loading cart for badge:', e);
+      cartItems = [];
+    }
+  }
+  
+  const totalItems = cartItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
+  
+  if (totalItems > 0) {
+    badge.textContent = totalItems;
+    badge.classList.remove('hidden');
+    badge.classList.add('cart-badge-bounce');
+    setTimeout(() => badge.classList.remove('cart-badge-bounce'), 600);
+  } else {
+    badge.classList.add('hidden');
   }
 }
 
