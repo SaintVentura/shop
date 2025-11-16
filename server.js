@@ -524,13 +524,22 @@ app.post('/api/newsletter-subscribe', async (req, res) => {
         user: zohoEmail,
         pass: zohoPassword
       },
-      connectionTimeout: 10000, // 10 seconds
-      greetingTimeout: 10000,
-      socketTimeout: 10000,
-      pool: true,
-      maxConnections: 1,
-      maxMessages: 3
+      connectionTimeout: 20000,
+      greetingTimeout: 20000,
+      socketTimeout: 20000,
+      pool: false,
+      tls: {
+        rejectUnauthorized: false
+      }
     });
+    
+    // Verify connection before sending
+    try {
+      await transporter.verify();
+      console.log('✅ Email server connection verified for newsletter');
+    } catch (verifyError) {
+      console.error('⚠️ Email server connection verification failed (continuing anyway):', verifyError.message);
+    }
 
     // Email content - SENT TO: customersupport@saintventura.co.za
     const mailOptions = {
