@@ -1232,6 +1232,7 @@ async function handleCheckout(event) {
   const orderDetails = {
     customerName: name,
     customerEmail: email,
+    customerPhone: phone,
     shippingMethod: location,
     deliveryAddress: deliveryInfo,
     deliveryDetails: deliveryDetails,
@@ -1251,6 +1252,7 @@ async function handleCheckout(event) {
     metadata: {
       customerName: name,
       customerEmail: email,
+      customerPhone: phone,
       shippingMethod: location,
       deliveryAddress: deliveryInfo,
       deliveryDetails: deliveryDetails,
