@@ -10,22 +10,64 @@
   <!-- Then uncomment the line below and replace YOUR_API_KEY with your actual key -->
   <!-- <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places&components=country:za" async defer></script> -->
   <!-- Note: The fallback autocomplete will work even without Google Maps API -->
+  <style>
+    /* Loading Overlay Styles */
+    #loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+    
+    #loading-overlay.show {
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    .loading-spinner {
+      width: 60px;
+      height: 60px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .loading-text {
+      color: white;
+      font-size: 18px;
+      font-weight: 600;
+      margin-top: 20px;
+      text-align: center;
+    }
+  </style>
 </head>
-<body class="bg-gray-50 font-sans text-gray-900" style="padding-top: 64px;">
+<body class="bg-gray-50 font-sans text-gray-900">
 
   <!-- Header -->
-  <header class="bg-white shadow-sm fixed top-0 w-full z-50" style="min-height: 64px; height: 64px;">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between" style="height: 100%;">
-      <div class="flex items-center space-x-2 cursor-pointer" onclick="window.location.href='index.html'">
-        <img src="https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1" alt="Saint Ventura Logo" class="w-10 h-10 rounded-lg object-cover">
-        <span class="text-lg font-black">Saint Ventura</span>
-      </div>
-      <h1 class="text-xl font-bold tracking-wide">Checkout</h1>
+  <header class="bg-white shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+      <img src="https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1" alt="Saint Ventura Logo" class="w-10 h-10 rounded-lg object-cover">
+      <h1 class="text-2xl font-bold tracking-wide">Checkout</h1>
     </div>
   </header>
 
   <!-- Main Section -->
-  <section class="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 lg:grid-cols-2 gap-10" style="margin-top: 0;">
+  <section class="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 lg:grid-cols-2 gap-10">
     
     <!-- Left: Form -->
     <div class="bg-white p-8 rounded-xl shadow-md">
@@ -131,7 +173,14 @@
     </div>
   </section>
 
-<script>
+  <!-- Loading Overlay -->
+  <div id="loading-overlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Processing your payment...</div>
+    <div class="loading-text" style="font-size: 14px; font-weight: 400; margin-top: 10px; opacity: 0.8;">Please wait, do not close this page</div>
+  </div>
+
+  <script>
 // ============================================
 // YOCO PAYMENT CONFIGURATION
 // ============================================
@@ -880,11 +929,45 @@ function updateShipping() {
   updateSummary();
 }
 
+// Show loading screen
+function showLoadingScreen() {
+  const overlay = document.getElementById('loading-overlay');
+  if (overlay) {
+    overlay.classList.add('show');
+    // Disable form submission button
+    const submitButton = document.querySelector('#checkout-form button[type="submit"]');
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.style.opacity = '0.6';
+      submitButton.style.cursor = 'not-allowed';
+    }
+  }
+}
+
+// Hide loading screen
+function hideLoadingScreen() {
+  const overlay = document.getElementById('loading-overlay');
+  if (overlay) {
+    overlay.classList.remove('show');
+    // Re-enable form submission button
+    const submitButton = document.querySelector('#checkout-form button[type="submit"]');
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.style.opacity = '1';
+      submitButton.style.cursor = 'pointer';
+    }
+  }
+}
+
 async function handleCheckout(event) {
   event.preventDefault();
   
+  // Show loading screen immediately
+  showLoadingScreen();
+  
   // Validate backend configuration
   if (!YOCO_CONFIG.backendUrl) {
+    hideLoadingScreen();
     alert('Payment backend not configured. Please contact support.');
     return;
   }
@@ -897,6 +980,7 @@ async function handleCheckout(event) {
   
   // Validate delivery method is selected
   if (!location) {
+    hideLoadingScreen();
     alert('Please select a delivery method.');
     return;
   }
@@ -916,6 +1000,7 @@ async function handleCheckout(event) {
     
     // Validate required address fields
     if (!streetAddress || !city || !province || !postalCode) {
+      hideLoadingScreen();
       alert('Please fill in all required address fields for door-to-door delivery.');
       return;
     }
@@ -936,6 +1021,7 @@ async function handleCheckout(event) {
     // Validate and get campus selection for UJ Campus Delivery
     const campus = document.getElementById('campus-selection').value || '';
     if (!campus) {
+      hideLoadingScreen();
       alert('Please select a UJ campus for delivery.');
       return;
     }
@@ -1040,6 +1126,7 @@ async function handleCheckout(event) {
     if (result.success && result.redirectUrl) {
       // Redirect to Yoco checkout page
       console.log('Redirecting to:', result.redirectUrl);
+      // Keep loading screen visible during redirect
       window.location.href = result.redirectUrl;
     } else if (result.checkoutId) {
       // Alternative: redirect using checkout ID
@@ -1050,9 +1137,10 @@ async function handleCheckout(event) {
         `https://online.yoco.com/checkout/${result.checkoutId}`
       ];
       console.log('Trying redirect URLs:', checkoutUrls);
-      // Try first URL format
+      // Keep loading screen visible during redirect
       window.location.href = checkoutUrls[0];
     } else {
+      hideLoadingScreen();
       throw new Error(result.error || 'Failed to create checkout session');
     }
   } catch (error) {
@@ -1064,6 +1152,9 @@ async function handleCheckout(event) {
       backendUrl: YOCO_CONFIG.backendUrl,
       currentUrl: window.location.href
     });
+    
+    // Hide loading screen on error
+    hideLoadingScreen();
     
     // More user-friendly error messages
     let errorMessage = 'Failed to process payment. ';
