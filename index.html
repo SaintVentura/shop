@@ -303,10 +303,9 @@
     </nav>
 
     <!-- Mobile Search Overlay -->
-    <div id="mobile-search-overlay" class="fixed inset-0 bg-black/50 z-50 hidden md:hidden">
+    <div id="mobile-search-overlay" class="fixed inset-0 bg-black/50 z-50 hidden md:hidden" style="top: 4rem !important;">
         <div class="bg-white h-full">
-            <div class="flex items-center justify-between p-4">
-                <h2 class="text-xl font-semibold">Search Products</h2>
+            <div class="flex items-center justify-end p-4">
                 <button onclick="toggleMobileSearch()" class="p-2 hover:bg-gray-100 rounded-lg transition duration-200">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -330,13 +329,9 @@
     </div>
 
     <!-- Menu Overlay -->
-    <div id="menu-overlay" class="fixed inset-0 bg-black/50 z-50 hidden">
+    <div id="menu-overlay" class="fixed inset-0 bg-black/50 z-50 hidden" style="top: 4rem !important;">
         <div class="bg-white h-full w-full max-w-md ml-auto">
-            <div class="flex items-center justify-between p-6">
-                <div class="flex items-center space-x-3">
-                    <img src="https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1" alt="SV Logo" class="w-8 h-8 rounded-lg object-cover">
-                    <span class="text-lg font-black">Menu</span>
-                </div>
+            <div class="flex items-center justify-end p-6">
                 <button onclick="toggleMenu()" class="p-2 hover:bg-gray-100 rounded-lg transition duration-200">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -345,7 +340,7 @@
                 </button>
             </div>
             
-            <div class="p-6 overflow-y-auto" style="height: calc(100vh - 88px);">
+            <div class="p-6 overflow-y-auto" style="height: calc(100vh - 112px);">
                 <!-- Quick Links Section -->
                 <div class="mb-12">
                     <h3 class="text-sm font-bold uppercase tracking-wider text-gray-500 mb-6">Quick Links</h3>
