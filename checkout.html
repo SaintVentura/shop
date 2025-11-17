@@ -1391,7 +1391,7 @@ function showLoadingScreen() {
   if (overlay) {
     overlay.classList.add('show');
     // Disable form submission button
-    const submitButton = document.querySelector('#checkout-form button[type="submit"]');
+    const submitButton = document.getElementById('proceed-payment-btn');
     if (submitButton) {
       submitButton.disabled = true;
       submitButton.style.opacity = '0.6';
@@ -1406,7 +1406,7 @@ function hideLoadingScreen() {
   if (overlay) {
     overlay.classList.remove('show');
     // Re-enable form submission button
-    const submitButton = document.querySelector('#checkout-form button[type="submit"]');
+    const submitButton = document.getElementById('proceed-payment-btn');
     if (submitButton) {
       submitButton.disabled = false;
       submitButton.style.opacity = '1';
