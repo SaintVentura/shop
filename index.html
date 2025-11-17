@@ -4010,15 +4010,16 @@ async function handleCheckout(event) {
         const result = await response.json();
         console.log('📦 Backend response received:', JSON.stringify(result, null, 2));
         console.log('   Response keys:', Object.keys(result));
+        console.log('   result.success:', result.success);
+        console.log('   result.redirectUrl:', result.redirectUrl);
+        console.log('   result.checkoutId:', result.checkoutId);
         
         // Check for redirect URL first (preferred)
         if (result.redirectUrl) {
             console.log('✅ Found redirectUrl, redirecting to Yoco:', result.redirectUrl);
-            // Keep loading screen visible during redirect
-            setTimeout(() => {
-                console.log('🚀 Redirecting now to:', result.redirectUrl);
-                window.location.href = result.redirectUrl;
-            }, 500);
+            // Redirect immediately - no delay needed
+            console.log('🚀 Redirecting NOW to:', result.redirectUrl);
+            window.location.href = result.redirectUrl;
             return; // Exit function
         }
         
@@ -4026,23 +4027,23 @@ async function handleCheckout(event) {
         if (result.checkoutId) {
             const redirectUrl = `https://payments.yoco.com/checkout/${result.checkoutId}`;
             console.log('✅ Found checkoutId, constructing URL:', redirectUrl);
-            // Keep loading screen visible during redirect
-            setTimeout(() => {
-                console.log('🚀 Redirecting now to:', redirectUrl);
-                window.location.href = redirectUrl;
-            }, 500);
+            // Redirect immediately
+            console.log('🚀 Redirecting NOW to:', redirectUrl);
+            window.location.href = redirectUrl;
             return; // Exit function
         }
         
         // Check for success flag but no URL
         if (result.success === false) {
+            console.error('❌ Backend returned success: false');
             hideCheckoutLoadingScreen();
             throw new Error(result.error || 'Failed to create checkout session');
         }
         
         // No valid response
+        console.error('❌ Invalid response from backend - no redirectUrl or checkoutId');
+        console.error('   Full response:', result);
         hideCheckoutLoadingScreen();
-        console.error('❌ Invalid response from backend:', result);
         throw new Error(result.error || 'Failed to create checkout session. No redirect URL or checkout ID received.');
     } catch (error) {
         console.error('Checkout error:', error);
