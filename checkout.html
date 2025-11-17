@@ -1253,6 +1253,7 @@ function hideLoadingScreen() {
 }
 
 // Direct button click handler (fallback) - MUST be in global scope for onclick
+// This function ensures the checkout process starts and redirects to Yoco
 window.handleCheckoutButtonClick = function(event) {
   console.log('🔘 Direct button click handler called');
   console.log('   Event:', event);
@@ -1263,7 +1264,7 @@ window.handleCheckoutButtonClick = function(event) {
   }
   
   // Show loading screen immediately
-  console.log('Showing loading screen...');
+  console.log('📺 Showing loading screen...');
   if (typeof showLoadingScreen === 'function') {
     showLoadingScreen();
   } else {
@@ -1274,20 +1275,26 @@ window.handleCheckoutButtonClick = function(event) {
     }
   }
   
-  // Trigger form submit
+  // Try to trigger form submit first (preferred method)
   const form = document.getElementById('checkout-form');
   if (form) {
-    console.log('Form found, dispatching submit event...');
+    console.log('✅ Form found, dispatching submit event to trigger checkout...');
     const submitEvent = new Event('submit', { cancelable: true, bubbles: true });
     form.dispatchEvent(submitEvent);
   } else {
-    console.error('❌ Form not found, calling handleCheckout directly');
+    console.warn('⚠️ Form not found, calling handleCheckout directly');
     // If form not found, call handleCheckout directly
-    if (typeof handleCheckout === 'function') {
-      handleCheckout(event);
+    if (typeof window.handleCheckout === 'function') {
+      console.log('✅ Calling handleCheckout directly...');
+      window.handleCheckout(event);
     } else {
       console.error('❌ handleCheckout function not found!');
       alert('Error: Checkout function not loaded. Please refresh the page.');
+      // Hide loading screen on error
+      const overlay = document.getElementById('loading-overlay');
+      if (overlay) {
+        overlay.classList.remove('show');
+      }
     }
   }
 };
@@ -1563,8 +1570,9 @@ window.handleCheckout = async function(event) {
     if (result.redirectUrl) {
       console.log('✅ Found redirectUrl, redirecting to Yoco:', result.redirectUrl);
       // Redirect immediately - no delay needed
-      console.log('🚀 Redirecting NOW to:', result.redirectUrl);
-      window.location.href = result.redirectUrl;
+      console.log('🚀 Redirecting NOW to Yoco checkout:', result.redirectUrl);
+      // Force redirect - use window.location.replace for immediate redirect
+      window.location.replace(result.redirectUrl);
       return; // Exit function
     }
     
@@ -1574,9 +1582,9 @@ window.handleCheckout = async function(event) {
       const redirectUrl = `https://payments.yoco.com/checkout/${result.checkoutId}`;
       console.log('✅ Found checkoutId, constructing URL:', redirectUrl);
       console.log('   This URL works on all devices (mobile, desktop, tablet)');
-      // Redirect immediately
-      console.log('🚀 Redirecting NOW to:', redirectUrl);
-      window.location.href = redirectUrl;
+      // Redirect immediately - use window.location.replace for immediate redirect
+      console.log('🚀 Redirecting NOW to Yoco checkout:', redirectUrl);
+      window.location.replace(redirectUrl);
       return; // Exit function
     }
     
