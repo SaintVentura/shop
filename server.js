@@ -64,7 +64,7 @@ app.get('/keep-alive', (req, res) => {
 // Helper function to send email - tries Resend API first (works on Render), then SMTP fallback
 async function sendEmail({ to, subject, text, html, replyTo }) {
   const RESEND_API_KEY = process.env.RESEND_API_KEY;
-  const zohoEmail = (process.env.ZOHO_EMAIL || 'customersupport@saintventura.co.za').replace(/^"|"$/g, '');
+  const zohoEmail = (process.env.ZOHO_EMAIL || 'neomashego@saintventura.co.za').replace(/^"|"$/g, '');
   const zohoPassword = (process.env.ZOHO_PASSWORD || process.env.ZOHO_APP_PASSWORD || '').replace(/^"|"$/g, '');
   
   // Try Resend API first (HTTP-based, works on Render free tier)
@@ -74,9 +74,9 @@ async function sendEmail({ to, subject, text, html, replyTo }) {
       // Use verified domain email or fallback to onboarding email
       // To change the from email, set RESEND_FROM_EMAIL in your .env file
       // Format: "Your Name <email@domain.com>" or just "email@domain.com"
-      const fromEmail = process.env.RESEND_FROM_EMAIL || 'Saint Ventura <customersupport@saintventura.co.za>';
-      // Set replyTo to customersupport@saintventura.co.za so replies go to Zoho inbox
-      const replyToEmail = replyTo || 'customersupport@saintventura.co.za';
+      const fromEmail = process.env.RESEND_FROM_EMAIL || 'Saint Ventura <neomashego@saintventura.co.za>';
+      // Set replyTo to neomashego@saintventura.co.za so replies go to Zoho inbox
+      const replyToEmail = replyTo || 'neomashego@saintventura.co.za';
       const { data, error } = await resend.emails.send({
         from: fromEmail,
         to: to,
@@ -221,7 +221,7 @@ async function sendEmail({ to, subject, text, html, replyTo }) {
 app.post('/api/test-email', async (req, res) => {
   try {
     const result = await sendEmail({
-      to: 'customersupport@saintventura.co.za',
+      to: 'neomashego@saintventura.co.za',
       subject: 'Test Email - Saint Ventura Backend',
       text: `This is a test email from your Saint Ventura backend server.\n\nSent at: ${new Date().toISOString()}\nServer: ${process.env.NODE_ENV || 'development'}`,
       html: `
@@ -235,7 +235,7 @@ app.post('/api/test-email', async (req, res) => {
     if (result.success) {
       res.json({ 
         success: true, 
-        message: 'Test email sent successfully to customersupport@saintventura.co.za',
+        message: 'Test email sent successfully to neomashego@saintventura.co.za',
         messageId: result.id || result.info?.messageId,
         method: result.method
       });
@@ -466,10 +466,10 @@ app.post('/api/contact-form', async (req, res) => {
       });
     }
 
-    // Send email asynchronously (non-blocking) - SENT TO: customersupport@saintventura.co.za
+    // Send email asynchronously (non-blocking) - SENT TO: neomashego@saintventura.co.za
     // Return success immediately, send email in background
     sendEmail({
-      to: 'customersupport@saintventura.co.za', // All contact form emails go here
+      to: 'neomashego@saintventura.co.za', // All contact form emails go here
       replyTo: email, // Allow replying directly to the customer
       subject: `Contact Form: ${subject}`,
       text: `New contact form submission from Saint Ventura website:
@@ -496,18 +496,18 @@ Submitted on: ${new Date().toLocaleString()}`,
       `
     }).then(result => {
       if (result.success) {
-        console.log('✅ Contact form email SENT successfully to customersupport@saintventura.co.za');
+        console.log('✅ Contact form email SENT successfully to neomashego@saintventura.co.za');
         console.log('Email details:', { 
           messageId: result.id || result.info?.messageId,
           method: result.method,
-          to: 'customersupport@saintventura.co.za',
+          to: 'neomashego@saintventura.co.za',
           subject: `Contact Form: ${subject}`,
           name: name,
           email: email
         });
       }
     }).catch(error => {
-      console.error('❌ FAILED to send contact form email to customersupport@saintventura.co.za');
+      console.error('❌ FAILED to send contact form email to neomashego@saintventura.co.za');
       console.error('Error details:', {
         message: error.message,
         stack: error.stack,
@@ -558,10 +558,10 @@ app.post('/api/newsletter-subscribe', async (req, res) => {
       });
     }
 
-    // Send email asynchronously (non-blocking) - SENT TO: customersupport@saintventura.co.za
+    // Send email asynchronously (non-blocking) - SENT TO: neomashego@saintventura.co.za
     // Return success immediately, send email in background
     sendEmail({
-      to: 'customersupport@saintventura.co.za', // All newsletter subscriptions go here
+      to: 'neomashego@saintventura.co.za', // All newsletter subscriptions go here
       subject: 'Newsletter Subscription Request',
       text: `New newsletter subscription:\n\nEmail: ${email}\nSubscription Date: ${new Date().toLocaleDateString()}\nTime: ${new Date().toLocaleTimeString()}`,
       html: `
@@ -573,17 +573,17 @@ app.post('/api/newsletter-subscribe', async (req, res) => {
       `
     }).then(result => {
       if (result.success) {
-        console.log('✅ Newsletter subscription email SENT successfully to customersupport@saintventura.co.za');
+        console.log('✅ Newsletter subscription email SENT successfully to neomashego@saintventura.co.za');
         console.log('Email details:', { 
           messageId: result.id || result.info?.messageId,
           method: result.method,
-          to: 'customersupport@saintventura.co.za',
+          to: 'neomashego@saintventura.co.za',
           subject: 'Newsletter Subscription Request',
           subscriberEmail: email
         });
       }
     }).catch(error => {
-      console.error('❌ FAILED to send newsletter email to customersupport@saintventura.co.za');
+      console.error('❌ FAILED to send newsletter email to neomashego@saintventura.co.za');
       console.error('Error details:', {
         message: error.message,
         stack: error.stack,
@@ -709,10 +709,10 @@ app.post('/api/send-order-confirmation', async (req, res) => {
       minute: '2-digit'
     });
 
-    // Send email asynchronously (non-blocking) - SENT TO: customersupport@saintventura.co.za
+    // Send email asynchronously (non-blocking) - SENT TO: neomashego@saintventura.co.za
     // Return success immediately, send email in background
     sendEmail({
-      to: 'customersupport@saintventura.co.za', // All order confirmations go here
+      to: 'neomashego@saintventura.co.za', // All order confirmations go here
       replyTo: customerEmail, // Allow replying directly to the customer
       subject: `New Order Received - ${customerName} - R${total.toFixed(2)}`,
       text: `
@@ -789,11 +789,11 @@ ${deliveryAddress ? `Delivery Address: ${deliveryAddress}` : ''}
       `
     }).then(result => {
       if (result.success) {
-        console.log('✅ Order confirmation email SENT successfully to customersupport@saintventura.co.za');
+        console.log('✅ Order confirmation email SENT successfully to neomashego@saintventura.co.za');
         console.log('Email details:', { 
           messageId: result.id || result.info?.messageId,
           method: result.method,
-          to: 'customersupport@saintventura.co.za',
+          to: 'neomashego@saintventura.co.za',
           subject: `New Order Received - ${customerName} - R${total.toFixed(2)}`,
           customerName: customerName,
           customerEmail: customerEmail,
@@ -802,7 +802,7 @@ ${deliveryAddress ? `Delivery Address: ${deliveryAddress}` : ''}
         });
       }
     }).catch(error => {
-      console.error('❌ FAILED to send order confirmation email to customersupport@saintventura.co.za');
+      console.error('❌ FAILED to send order confirmation email to neomashego@saintventura.co.za');
       console.error('Error details:', {
         message: error.message,
         stack: error.stack,
