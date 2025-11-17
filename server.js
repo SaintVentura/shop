@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
-const sgMail = require('@sendgrid/mail');
+const { Resend } = require('resend');
 require('dotenv').config();
 
 const app = express();
@@ -60,43 +60,76 @@ app.get('/keep-alive', (req, res) => {
   });
 });
 
-// Simple email sending function using SendGrid (HTTP-based, no port blocking)
+// Email sending function with multiple service fallbacks
 async function sendEmail({ to, subject, text, html, replyTo }) {
-  // Strip quotes from environment variables (common issue with .env files)
-  const sendGridApiKey = (process.env.SENDGRID_API_KEY || '').replace(/^"|"$/g, '').trim();
   const fromEmail = (process.env.FROM_EMAIL || 'customersupport@saintventura.co.za').replace(/^"|"$/g, '').trim();
+  const replyToEmail = replyTo || fromEmail;
   
-  if (!sendGridApiKey) {
-    console.error('❌ SENDGRID_API_KEY is missing or empty');
-    console.error('   Please check your .env file has: SENDGRID_API_KEY=your_key_here');
-    throw new Error('SENDGRID_API_KEY must be set in environment variables. Get your API key from https://app.sendgrid.com/settings/api_keys');
-  }
+  console.log('📧 Attempting to send email:', { to, from: fromEmail, subject });
   
-  // Set SendGrid API key
-  sgMail.setApiKey(sendGridApiKey);
-  
-  console.log('📧 Attempting to send email via SendGrid:', { to, from: fromEmail, subject });
-  
-  const msg = {
-    to: to,
-    from: `Saint Ventura <${fromEmail}>`,
-    replyTo: replyTo || fromEmail,
-    subject: subject,
-    text: text,
-    html: html || text.replace(/\n/g, '<br>')
-  };
-  
-  try {
-    const response = await sgMail.send(msg);
-    console.log('✅ Email sent successfully to', to, 'via SendGrid. Status:', response[0]?.statusCode);
-    return { success: true, method: 'sendgrid', id: response[0]?.headers['x-message-id'] };
-  } catch (error) {
-    console.error('❌ Failed to send email via SendGrid:', error.message);
-    if (error.response) {
-      console.error('SendGrid error details:', error.response.body);
+  // Try Resend first (simplest, most reliable)
+  const resendApiKey = (process.env.RESEND_API_KEY || '').replace(/^"|"$/g, '').trim();
+  if (resendApiKey) {
+    try {
+      const resend = new Resend(resendApiKey);
+      const { data, error } = await resend.emails.send({
+        from: `Saint Ventura <${fromEmail}>`,
+        to: to,
+        replyTo: replyToEmail,
+        subject: subject,
+        html: html || text.replace(/\n/g, '<br>'),
+        text: text
+      });
+      
+      if (error) {
+        console.log('⚠️ Resend failed:', error.message);
+        throw error;
+      }
+      
+      console.log('✅ Email sent successfully via Resend. Message ID:', data?.id);
+      return { success: true, method: 'resend', id: data?.id };
+    } catch (error) {
+      console.log('⚠️ Resend failed, trying Mailgun...');
     }
-    throw new Error(`Failed to send email: ${error.message}`);
   }
+  
+  // Try Mailgun via HTTP API (no extra packages needed)
+  const mailgunApiKey = (process.env.MAILGUN_API_KEY || '').replace(/^"|"$/g, '').trim();
+  const mailgunDomain = (process.env.MAILGUN_DOMAIN || '').replace(/^"|"$/g, '').trim();
+  if (mailgunApiKey && mailgunDomain) {
+    try {
+      const mailgunUrl = `https://api.mailgun.net/v3/${mailgunDomain}/messages`;
+      const formData = new URLSearchParams();
+      formData.append('from', `Saint Ventura <${fromEmail}>`);
+      formData.append('to', to);
+      formData.append('subject', subject);
+      formData.append('text', text);
+      formData.append('html', html || text.replace(/\n/g, '<br>'));
+      if (replyToEmail) {
+        formData.append('h:Reply-To', replyToEmail);
+      }
+      
+      const response = await axios.post(mailgunUrl, formData, {
+        auth: {
+          username: 'api',
+          password: mailgunApiKey
+        },
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      });
+      
+      console.log('✅ Email sent successfully via Mailgun. Message ID:', response.data.id);
+      return { success: true, method: 'mailgun', id: response.data.id };
+    } catch (error) {
+      console.log('⚠️ Mailgun failed:', error.response?.data?.message || error.message);
+    }
+  }
+  
+  // All services failed or not configured
+  const errorMsg = 'No email service configured. Please set RESEND_API_KEY or MAILGUN_API_KEY in environment variables.';
+  console.error('❌', errorMsg);
+  throw new Error(errorMsg);
 }
 
 // Email test endpoint - test email configuration
@@ -777,15 +810,18 @@ app.get('/api/payment-status/:checkoutId', async (req, res) => {
 });
 
 // Verify email configuration on startup
-const sendGridApiKey = (process.env.SENDGRID_API_KEY || '').replace(/^"|"$/g, '').trim();
+const resendApiKey = (process.env.RESEND_API_KEY || '').replace(/^"|"$/g, '').trim();
+const mailgunApiKey = (process.env.MAILGUN_API_KEY || '').replace(/^"|"$/g, '').trim();
 const fromEmail = (process.env.FROM_EMAIL || 'customersupport@saintventura.co.za').replace(/^"|"$/g, '').trim();
-if (sendGridApiKey) {
-  console.log(`✅ Email configured: ${fromEmail} (SendGrid API key loaded from .env)`);
-  console.log(`   API Key length: ${sendGridApiKey.length} characters`);
+
+if (resendApiKey) {
+  console.log(`✅ Email configured: ${fromEmail} (Resend API key loaded)`);
+} else if (mailgunApiKey) {
+  console.log(`✅ Email configured: ${fromEmail} (Mailgun API key loaded)`);
 } else {
-  console.warn(`⚠️  SendGrid API key not found in .env file. Please set SENDGRID_API_KEY`);
-  console.warn(`   Get your API key from: https://app.sendgrid.com/settings/api_keys`);
-  console.warn(`   Make sure your .env file has: SENDGRID_API_KEY=SG.xxxxxxxxxxxxx`);
+  console.warn(`⚠️  No email service configured. Please set one of the following:`);
+  console.warn(`   - RESEND_API_KEY (recommended - get from https://resend.com/api-keys)`);
+  console.warn(`   - MAILGUN_API_KEY + MAILGUN_DOMAIN (get from https://app.mailgun.com)`);
 }
 
 // Start server
