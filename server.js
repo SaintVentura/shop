@@ -62,10 +62,13 @@ app.get('/keep-alive', (req, res) => {
 
 // Simple email sending function using SendGrid (HTTP-based, no port blocking)
 async function sendEmail({ to, subject, text, html, replyTo }) {
-  const sendGridApiKey = process.env.SENDGRID_API_KEY;
-  const fromEmail = process.env.FROM_EMAIL || 'customersupport@saintventura.co.za';
+  // Strip quotes from environment variables (common issue with .env files)
+  const sendGridApiKey = (process.env.SENDGRID_API_KEY || '').replace(/^"|"$/g, '').trim();
+  const fromEmail = (process.env.FROM_EMAIL || 'customersupport@saintventura.co.za').replace(/^"|"$/g, '').trim();
   
   if (!sendGridApiKey) {
+    console.error('❌ SENDGRID_API_KEY is missing or empty');
+    console.error('   Please check your .env file has: SENDGRID_API_KEY=your_key_here');
     throw new Error('SENDGRID_API_KEY must be set in environment variables. Get your API key from https://app.sendgrid.com/settings/api_keys');
   }
   
@@ -774,13 +777,15 @@ app.get('/api/payment-status/:checkoutId', async (req, res) => {
 });
 
 // Verify email configuration on startup
-const sendGridApiKey = process.env.SENDGRID_API_KEY;
-const fromEmail = process.env.FROM_EMAIL || 'customersupport@saintventura.co.za';
+const sendGridApiKey = (process.env.SENDGRID_API_KEY || '').replace(/^"|"$/g, '').trim();
+const fromEmail = (process.env.FROM_EMAIL || 'customersupport@saintventura.co.za').replace(/^"|"$/g, '').trim();
 if (sendGridApiKey) {
   console.log(`✅ Email configured: ${fromEmail} (SendGrid API key loaded from .env)`);
+  console.log(`   API Key length: ${sendGridApiKey.length} characters`);
 } else {
   console.warn(`⚠️  SendGrid API key not found in .env file. Please set SENDGRID_API_KEY`);
   console.warn(`   Get your API key from: https://app.sendgrid.com/settings/api_keys`);
+  console.warn(`   Make sure your .env file has: SENDGRID_API_KEY=SG.xxxxxxxxxxxxx`);
 }
 
 // Start server
