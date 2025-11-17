@@ -8,8 +8,23 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <!-- Google Maps API for South African Address Autocomplete -->
   <!-- To enable: Get your API key from https://console.cloud.google.com/ -->
-  <!-- Then uncomment the line below and replace YOUR_API_KEY with your actual key -->
-  <!-- <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places&components=country:za" async defer></script> -->
+  <!-- Enable Places API in Google Cloud Console -->
+  <script>
+    // Load Google Maps API dynamically
+    // Replace YOUR_API_KEY with your actual Google Maps API key
+    const GOOGLE_MAPS_API_KEY = 'YOUR_API_KEY'; // Set your API key here or use environment variable
+    
+    if (GOOGLE_MAPS_API_KEY && GOOGLE_MAPS_API_KEY !== 'YOUR_API_KEY') {
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&components=country:za`;
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
+      console.log('Google Maps API loaded');
+    } else {
+      console.log('Google Maps API key not set - using fallback autocomplete');
+    }
+  </script>
   <!-- Note: The fallback autocomplete will work even without Google Maps API -->
   <style>
     /* Loading Overlay Styles */
@@ -358,7 +373,7 @@
       </div>
         </div>
 
-        <button type="submit" class="w-full bg-black text-white py-4 rounded-lg font-semibold hover:bg-gray-800 transition-all duration-300 transform hover:scale-[1.02] text-lg">
+        <button type="submit" id="proceed-payment-btn" class="w-full bg-black text-white py-4 rounded-lg font-semibold hover:bg-gray-800 transition-all duration-300 transform hover:scale-[1.02] text-lg">
           Proceed to Payment
         </button>
       </form>
@@ -600,7 +615,16 @@ let cart = JSON.parse(localStorage.getItem('cart') || '[]');
 let shippingFee = 0;
 
 // Load cart from localStorage on page load
+// Add click handler to button to show loading screen immediately
 document.addEventListener('DOMContentLoaded', function() {
+  // Add click handler to proceed payment button
+  const proceedBtn = document.getElementById('proceed-payment-btn');
+  if (proceedBtn) {
+    proceedBtn.addEventListener('click', function(e) {
+      // Show loading screen immediately on click (before form validation)
+      showLoadingScreen();
+    });
+  }
   console.log('Checkout page loaded');
   
   // Ensure navigation brand name is set correctly
@@ -1097,9 +1121,25 @@ function updateShipping() {
       if (postalInput) postalInput.setAttribute('required', 'required');
       
       // Initialize Google Maps autocomplete when section becomes visible
-      setTimeout(function() {
+      // Wait for Google Maps API to load if needed
+      if (typeof google !== 'undefined' && google.maps && google.maps.places) {
         initializeAddressAutocomplete();
-      }, 300);
+      } else {
+        // Wait for Google Maps API to load
+        let attempts = 0;
+        const maxAttempts = 20; // Wait up to 2 seconds
+        const checkGoogleMaps = setInterval(() => {
+          attempts++;
+          if (typeof google !== 'undefined' && google.maps && google.maps.places) {
+            clearInterval(checkGoogleMaps);
+            initializeAddressAutocomplete();
+          } else if (attempts >= maxAttempts) {
+            clearInterval(checkGoogleMaps);
+            // Use fallback if Google Maps doesn't load
+            initializeAddressAutocomplete();
+          }
+        }, 100);
+      }
     } else {
       console.error('Cannot show address section - element not found!');
     }
@@ -1169,9 +1209,18 @@ function hideLoadingScreen() {
 
 async function handleCheckout(event) {
   event.preventDefault();
+  event.stopPropagation();
   
-  // Show loading screen immediately
+  // Show loading screen IMMEDIATELY - before any validation
   showLoadingScreen();
+  
+  // Disable submit button to prevent double submission
+  const submitButton = document.getElementById('proceed-payment-btn');
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.style.opacity = '0.6';
+    submitButton.style.cursor = 'not-allowed';
+  }
   
   // Validate backend configuration
   if (!YOCO_CONFIG.backendUrl) {
