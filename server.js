@@ -72,7 +72,9 @@ async function sendEmail({ to, subject, text, html, replyTo }) {
     try {
       const resend = new Resend(RESEND_API_KEY);
       // Use verified domain email or fallback to onboarding email
-      const fromEmail = process.env.RESEND_FROM_EMAIL || 'Saint Ventura <noreply@saintventura.co.za>';
+      // To change the from email, set RESEND_FROM_EMAIL in your .env file
+      // Format: "Your Name <email@domain.com>" or just "email@domain.com"
+      const fromEmail = process.env.RESEND_FROM_EMAIL || 'Saint Ventura <customersupport@saintventura.co.za>';
       const { data, error } = await resend.emails.send({
         from: fromEmail,
         to: to,
