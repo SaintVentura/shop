@@ -59,49 +59,132 @@ app.get('/keep-alive', (req, res) => {
   });
 });
 
-// Simple form-to-email service function
+// Form-to-email service function supporting multiple providers with high free limits
 async function sendEmail({ to, subject, text, html, replyTo, name, email: fromEmail, phone }) {
-  const formServiceUrl = process.env.FORM_SERVICE_URL || 'https://formspree.io/f/YOUR_FORM_ID';
+  const formServiceUrl = process.env.FORM_SERVICE_URL || '';
+  const formServiceType = process.env.FORM_SERVICE_TYPE || 'auto'; // auto, web3forms, emailjs, formcarry, formspree
   
-  if (!formServiceUrl || formServiceUrl.includes('YOUR_FORM_ID')) {
+  if (!formServiceUrl || formServiceUrl.includes('YOUR_')) {
     console.warn('⚠️  FORM_SERVICE_URL not configured. Emails will not be sent.');
-    console.warn('   Set up a free form service at https://formspree.io and add FORM_SERVICE_URL to .env');
+    console.warn('   Recommended free services with high limits:');
+    console.warn('   - Web3Forms: 250/month - https://web3forms.com');
+    console.warn('   - EmailJS: 200/month - https://www.emailjs.com');
+    console.warn('   - Formcarry: 100/month - https://formcarry.com');
     // Return success anyway so the form submission doesn't fail
     return { success: true, method: 'form-service', id: 'no-service-configured' };
   }
   
   console.log('📧 Sending form data to email service:', { to, subject });
   
-  // Prepare form data
-  const formData = {
-    _to: to || 'customersupport@saintventura.co.za',
-    _subject: subject,
-    _replyto: replyTo || fromEmail || 'customersupport@saintventura.co.za',
-    message: text || html?.replace(/<[^>]*>/g, '') || '',
-    name: name || 'Website Visitor',
-    email: fromEmail || replyTo || 'noreply@saintventura.co.za',
-    phone: phone || ''
-  };
+  // Detect service type automatically if not specified
+  let serviceType = formServiceType;
+  if (serviceType === 'auto') {
+    if (formServiceUrl.includes('web3forms.com')) {
+      serviceType = 'web3forms';
+    } else if (formServiceUrl.includes('emailjs.com') || formServiceUrl.includes('api.emailjs.com')) {
+      serviceType = 'emailjs';
+    } else if (formServiceUrl.includes('formcarry.com')) {
+      serviceType = 'formcarry';
+    } else if (formServiceUrl.includes('formspree.io')) {
+      serviceType = 'formspree';
+    } else {
+      serviceType = 'formspree'; // Default format
+    }
+  }
   
-  // Add HTML if provided
-  if (html) {
-    formData._html = html;
+  let formData;
+  let headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+  
+  // Format data based on service type
+  if (serviceType === 'web3forms') {
+    // Web3Forms - 250/month free - uses access_key from URL or env
+    const accessKey = formServiceUrl.includes('access_key=') 
+      ? formServiceUrl.split('access_key=')[1].split('&')[0]
+      : formServiceUrl.split('/').pop() || process.env.WEB3FORMS_ACCESS_KEY || '';
+    
+    formData = {
+      access_key: accessKey,
+      subject: subject,
+      from_name: name || 'Website Visitor',
+      email: fromEmail || replyTo || 'noreply@saintventura.co.za',
+      phone: phone || '',
+      message: html || text || ''
+    };
+    
+    // Web3Forms uses a fixed endpoint
+    const web3formsUrl = 'https://api.web3forms.com/submit';
+    try {
+      const response = await axios.post(web3formsUrl, formData, { headers });
+      console.log(`✅ Form submitted successfully via web3forms`);
+      return { success: true, method: 'web3forms', id: response.data?.messageId || 'submitted' };
+    } catch (error) {
+      console.error(`❌ Failed to submit form via web3forms:`, error.response?.data || error.message);
+      return { success: false, method: 'web3forms', error: error.message };
+    }
+  } else if (serviceType === 'emailjs') {
+    // EmailJS - 200/month free
+    // URL format: https://api.emailjs.com/api/v1.0/email/send
+    // Need: service_id, template_id, user_id from env or URL
+    const serviceId = process.env.EMAILJS_SERVICE_ID || '';
+    const templateId = process.env.EMAILJS_TEMPLATE_ID || '';
+    const userId = process.env.EMAILJS_USER_ID || '';
+    
+    formData = {
+      service_id: serviceId,
+      template_id: templateId,
+      user_id: userId,
+      template_params: {
+        to_email: to || 'customersupport@saintventura.co.za',
+        from_name: name || 'Website Visitor',
+        from_email: fromEmail || replyTo || 'noreply@saintventura.co.za',
+        subject: subject,
+        message: html || text || '',
+        phone: phone || ''
+      }
+    };
+    
+    const emailjsUrl = 'https://api.emailjs.com/api/v1.0/email/send';
+    try {
+      const response = await axios.post(emailjsUrl, formData, { headers });
+      console.log(`✅ Form submitted successfully via emailjs`);
+      return { success: true, method: 'emailjs', id: response.data?.text || 'submitted' };
+    } catch (error) {
+      console.error(`❌ Failed to submit form via emailjs:`, error.response?.data || error.message);
+      return { success: false, method: 'emailjs', error: error.message };
+    }
+  } else if (serviceType === 'formcarry') {
+    // Formcarry - 100/month free
+    formData = {
+      email: fromEmail || replyTo || 'noreply@saintventura.co.za',
+      name: name || 'Website Visitor',
+      phone: phone || '',
+      subject: subject,
+      message: html || text || ''
+    };
+  } else {
+    // Formspree or default format - 50/month free
+    formData = {
+      _to: to || 'customersupport@saintventura.co.za',
+      _subject: subject,
+      _replyto: replyTo || fromEmail || 'customersupport@saintventura.co.za',
+      message: text || html?.replace(/<[^>]*>/g, '') || '',
+      name: name || 'Website Visitor',
+      email: fromEmail || replyTo || 'noreply@saintventura.co.za',
+      phone: phone || ''
+    };
+    if (html) {
+      formData._html = html;
+    }
   }
   
   try {
-    const response = await axios.post(formServiceUrl, formData, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
-    });
-    
-    console.log('✅ Form submitted successfully to email service');
-    return { success: true, method: 'form-service', id: response.data?.id || 'submitted' };
+    const response = await axios.post(formServiceUrl, formData, { headers });
+    console.log(`✅ Form submitted successfully via ${serviceType}`);
+    return { success: true, method: serviceType, id: response.data?.id || response.data?.success || 'submitted' };
   } catch (error) {
-    console.error('❌ Failed to submit form:', error.response?.data || error.message);
+    console.error(`❌ Failed to submit form via ${serviceType}:`, error.response?.data || error.message);
     // Don't throw - just log, so form submissions don't fail
-    return { success: false, method: 'form-service', error: error.message };
+    return { success: false, method: serviceType, error: error.message };
   }
 }
 
@@ -790,13 +873,23 @@ app.get('/api/payment-status/:checkoutId', async (req, res) => {
 
 // Verify email configuration on startup
 const formServiceUrl = process.env.FORM_SERVICE_URL || '';
+const formServiceType = process.env.FORM_SERVICE_TYPE || 'auto';
 
-if (formServiceUrl && !formServiceUrl.includes('YOUR_FORM_ID')) {
+if (formServiceUrl && !formServiceUrl.includes('YOUR_')) {
   console.log(`✅ Form-to-email service configured: ${formServiceUrl}`);
+  if (formServiceType !== 'auto') {
+    console.log(`   Service type: ${formServiceType}`);
+  }
 } else {
-  console.warn(`⚠️  Form service not configured. Please set FORM_SERVICE_URL in .env file`);
-  console.warn(`   Get a free form service at: https://formspree.io`);
-  console.warn(`   Then add: FORM_SERVICE_URL=https://formspree.io/f/YOUR_FORM_ID`);
+  console.warn(`⚠️  Form service not configured. Recommended free services:`);
+  console.warn(`   1. Web3Forms - 250/month FREE: https://web3forms.com`);
+  console.warn(`      Add: FORM_SERVICE_URL=your_access_key`);
+  console.warn(`      Add: FORM_SERVICE_TYPE=web3forms`);
+  console.warn(`   2. EmailJS - 200/month FREE: https://www.emailjs.com`);
+  console.warn(`      Add: EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, EMAILJS_USER_ID`);
+  console.warn(`      Add: FORM_SERVICE_TYPE=emailjs`);
+  console.warn(`   3. Formcarry - 100/month FREE: https://formcarry.com`);
+  console.warn(`      Add: FORM_SERVICE_URL=https://formcarry.com/s/YOUR_FORM_ID`);
 }
 
 // Start server
