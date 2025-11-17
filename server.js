@@ -781,7 +781,13 @@ if (password) {
 app.listen(PORT, () => {
   console.log(`🚀 Yoco Payment API Server running on port ${PORT}`);
   console.log(`📍 Health check: http://localhost:${PORT}/health`);
-  console.log(`💳 Checkout endpoint: http://localhost:${PORT}/api/create-yoco-checkout`);
+  console.log(`💳 Checkout endpoint (local): http://localhost:${PORT}/api/create-yoco-checkout`);
+  
+  // Show production URL if available
+  const productionUrl = process.env.BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
+  console.log(`🌐 Production URL: ${productionUrl}`);
+  console.log(`💳 Checkout endpoint (production): ${productionUrl}/api/create-yoco-checkout`);
+  console.log(`✅ This endpoint is accessible from any device via the production URL`);
 });
 
 
