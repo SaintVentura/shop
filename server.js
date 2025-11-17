@@ -60,7 +60,7 @@ app.get('/keep-alive', (req, res) => {
   });
 });
 
-// Helper function to send email using Zoho SMTP (cleaner, direct method)
+// Helper function to send email using Zoho SMTP with retry logic
 async function sendEmail({ to, subject, text, html, replyTo }) {
   const zohoEmail = (process.env.ZOHO_EMAIL || 'customersupport@saintventura.co.za').replace(/^"|"$/g, '');
   const zohoPassword = (process.env.ZOHO_PASSWORD || process.env.ZOHO_APP_PASSWORD || '').replace(/^"|"$/g, '');
@@ -71,32 +71,36 @@ async function sendEmail({ to, subject, text, html, replyTo }) {
     throw new Error(errorMsg);
   }
   
-  // Use Zoho SMTP with port 587 (most reliable)
-  const transporter = nodemailer.createTransport({
-    host: 'smtp.zoho.com',
-    port: 587,
-    secure: false, // true for 465, false for other ports
-    auth: {
-      user: zohoEmail,
-      pass: zohoPassword
+  // Try multiple SMTP configurations with retries
+  const smtpConfigs = [
+    {
+      host: 'smtp.zoho.com',
+      port: 587,
+      secure: false,
+      auth: { user: zohoEmail, pass: zohoPassword },
+      connectionTimeout: 60000, // 60 seconds
+      greetingTimeout: 60000,
+      socketTimeout: 60000,
+      requireTLS: true,
+      tls: { rejectUnauthorized: false },
+      pool: true,
+      maxConnections: 1,
+      maxMessages: 1
     },
-    connectionTimeout: 30000,
-    greetingTimeout: 30000,
-    socketTimeout: 30000,
-    requireTLS: true,
-    tls: {
-      rejectUnauthorized: false
+    {
+      host: 'smtp.zoho.com',
+      port: 465,
+      secure: true,
+      auth: { user: zohoEmail, pass: zohoPassword },
+      connectionTimeout: 60000,
+      greetingTimeout: 60000,
+      socketTimeout: 60000,
+      tls: { rejectUnauthorized: false },
+      pool: true,
+      maxConnections: 1,
+      maxMessages: 1
     }
-  });
-  
-  // Verify connection
-  try {
-    await transporter.verify();
-    console.log('✅ SMTP connection verified with Zoho');
-  } catch (error) {
-    console.error('❌ SMTP connection failed:', error.message);
-    throw new Error(`SMTP connection failed: ${error.message}`);
-  }
+  ];
   
   const mailOptions = {
     from: zohoEmail,
@@ -107,15 +111,58 @@ async function sendEmail({ to, subject, text, html, replyTo }) {
     html: html || text.replace(/\n/g, '<br>')
   };
   
-  // Send email with timeout
-  const emailPromise = transporter.sendMail(mailOptions);
-  const timeoutPromise = new Promise((_, reject) => 
-    setTimeout(() => reject(new Error('Email timeout after 30 seconds')), 30000)
-  );
+  let lastError;
+  const maxRetries = 3;
   
-  const info = await Promise.race([emailPromise, timeoutPromise]);
-  console.log('✅ Email sent successfully to', to, 'via Zoho SMTP. Message ID:', info.messageId);
-  return { success: true, method: 'smtp', info };
+  // Try each SMTP configuration
+  for (const config of smtpConfigs) {
+    console.log(`Attempting SMTP connection on port ${config.port}...`);
+    
+    // Retry logic for each port
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const transporter = nodemailer.createTransport(config);
+        
+        // Verify connection with timeout
+        const verifyPromise = transporter.verify();
+        const verifyTimeout = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Connection verification timeout')), 45000)
+        );
+        
+        await Promise.race([verifyPromise, verifyTimeout]);
+        console.log(`✅ SMTP connection verified on port ${config.port} (attempt ${attempt})`);
+        
+        // Send email with timeout
+        const sendPromise = transporter.sendMail(mailOptions);
+        const sendTimeout = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Email send timeout')), 45000)
+        );
+        
+        const info = await Promise.race([sendPromise, sendTimeout]);
+        
+        // Close transporter
+        transporter.close();
+        
+        console.log('✅ Email sent successfully to', to, 'via Zoho SMTP (port', config.port, '). Message ID:', info.messageId);
+        return { success: true, method: 'smtp', info, port: config.port };
+        
+      } catch (error) {
+        lastError = error;
+        console.log(`⚠️ Port ${config.port} attempt ${attempt}/${maxRetries} failed:`, error.message);
+        
+        if (attempt < maxRetries) {
+          const delay = Math.min(2000 * attempt, 10000); // Exponential backoff, max 10s
+          console.log(`Retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+  }
+  
+  // All attempts failed
+  const errorMsg = `Failed to send email after ${maxRetries} attempts on all ports. Last error: ${lastError?.message || 'Unknown error'}`;
+  console.error('❌', errorMsg);
+  throw new Error(errorMsg);
 }
 
 // Email test endpoint - test email configuration
