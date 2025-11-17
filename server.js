@@ -802,6 +802,15 @@ app.get('/api/payment-status/:checkoutId', async (req, res) => {
   }
 });
 
+// Verify email configuration on startup
+const zohoEmail = (process.env.ZOHO_EMAIL || 'customersupport@saintventura.co.za').replace(/^"|"$/g, '');
+const zohoPassword = process.env.ZOHO_PASSWORD || process.env.ZOHO_APP_PASSWORD || '';
+if (zohoPassword) {
+  console.log(`✅ Email configured: ${zohoEmail} (password loaded from .env)`);
+} else {
+  console.warn(`⚠️  Email password not found in .env file. Please set ZOHO_PASSWORD or ZOHO_APP_PASSWORD`);
+}
+
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Yoco Payment API Server running on port ${PORT}`);
