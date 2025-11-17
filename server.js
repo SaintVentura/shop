@@ -71,8 +71,10 @@ async function sendEmail({ to, subject, text, html, replyTo }) {
   if (RESEND_API_KEY) {
     try {
       const resend = new Resend(RESEND_API_KEY);
+      // Use verified domain email or fallback to onboarding email
+      const fromEmail = process.env.RESEND_FROM_EMAIL || 'Saint Ventura <noreply@saintventura.co.za>';
       const { data, error } = await resend.emails.send({
-        from: 'Saint Ventura <onboarding@resend.dev>', // You can verify your domain later
+        from: fromEmail,
         to: to,
         replyTo: replyTo || zohoEmail,
         subject: subject,
