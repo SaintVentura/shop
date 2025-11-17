@@ -309,7 +309,6 @@
           <select id="shipping-location" onchange="updateShipping()" class="w-full border border-gray-300 rounded-lg px-4 py-3">
             <option value="">Select your location</option>
             <option id="door-option" value="door">Door-to-Door Courier (R130)</option>
-            <option id="uj-option" value="uj">UJ Campus Delivery (R30)</option>
           </select>
           
           <!-- Address Fields - Shows for Door-to-Door Courier -->
@@ -360,19 +359,6 @@
             </div>
           </div>
 
-          <!-- UJ Campus Delivery Option - Independent section -->
-          <div id="uj-campus-section" class="hidden mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-            <label class="block mb-3 font-semibold text-lg">UJ Campus Delivery</label>
-            <p class="text-sm text-gray-600 mb-4">Select your campus for delivery (R30)</p>
-            <select id="uj-campus-select" class="w-full border border-gray-300 rounded-lg px-4 py-3 bg-white">
-              <option value="">-- Select your campus --</option>
-              <option value="DFC">DFC (Doornfontein Campus)</option>
-              <option value="APK">APK (Auckland Park Kingsway Campus)</option>
-              <option value="SWC">SWC (Soweto Campus)</option>
-              <option value="APB">APB (Auckland Park Bunting Road Campus)</option>
-            </select>
-            <p class="text-xs text-gray-500 mt-2">Delivery will be made to your selected campus</p>
-          </div>
         </div>
 
         <button type="button" id="proceed-payment-btn" onclick="handleCheckoutButtonClick(event)" class="w-full bg-black text-white py-4 rounded-lg font-semibold hover:bg-gray-800 transition-all duration-300 transform hover:scale-[1.02] text-lg">
@@ -1125,10 +1111,8 @@ function updateDeliveryMethodText() {
   // Update text: remove shipping cost if order is R1000 or more (free shipping)
   if (subtotalBeforeDiscount >= 1000) {
     doorOption.textContent = 'Door-to-Door Courier';
-    ujOption.textContent = 'UJ Campus Delivery';
   } else {
     doorOption.textContent = 'Door-to-Door Courier (R130)';
-    ujOption.textContent = 'UJ Campus Delivery (R30)';
   }
 }
 
@@ -1211,8 +1195,6 @@ function updateShipping() {
     shippingFee = 0;
   } else if (location === 'door') {
     shippingFee = 130;
-  } else if (location === 'uj') {
-    shippingFee = 30;
   } else {
     shippingFee = 0;
   }
@@ -1224,26 +1206,16 @@ function updateShipping() {
 
   // Show/hide sections based on delivery method
   const addressSection = document.getElementById('address-section');
-  const ujCampusSection = document.getElementById('uj-campus-section');
   
   console.log('Address section found:', !!addressSection);
-  console.log('UJ Campus section found:', !!ujCampusSection);
   
-  // Hide both sections first
+  // Hide section first
   if (addressSection) {
     addressSection.classList.add('hidden');
     addressSection.style.setProperty('display', 'none', 'important');
     console.log('Hiding address section');
   } else {
     console.error('Address section element not found!');
-  }
-  
-  if (ujCampusSection) {
-    ujCampusSection.classList.add('hidden');
-    ujCampusSection.style.setProperty('display', 'none', 'important');
-    console.log('Hiding UJ campus section');
-  } else {
-    console.error('UJ Campus section element not found!');
   }
   
   // Show appropriate section based on selection
@@ -1266,10 +1238,6 @@ function updateShipping() {
       if (cityInput) cityInput.removeAttribute('disabled');
       if (provinceSelect) provinceSelect.removeAttribute('disabled');
       if (postalInput) postalInput.removeAttribute('disabled');
-      
-      // Ensure UJ campus field is not required
-      const ujCampusSelect = document.getElementById('uj-campus-select');
-      if (ujCampusSelect) ujCampusSelect.removeAttribute('required');
       
       // Initialize Google Maps autocomplete when section becomes visible
       // Wait for Google Maps API to load if needed
@@ -1294,17 +1262,6 @@ function updateShipping() {
     } else {
       console.error('Cannot show address section - element not found!');
     }
-  } else if (location === 'uj') {
-    console.log('Showing UJ campus section for UJ delivery');
-    // Show UJ campus selection - NEW independent section
-    const ujCampusSection = document.getElementById('uj-campus-section');
-    if (ujCampusSection) {
-      ujCampusSection.classList.remove('hidden');
-      ujCampusSection.style.setProperty('display', 'block', 'important');
-      console.log('✅ UJ Campus section shown');
-    } else {
-      console.error('❌ UJ Campus section element not found!');
-    }
   } else {
     console.log('No delivery method selected, hiding both sections');
     // Remove required attributes from all fields when no method is selected
@@ -1312,7 +1269,6 @@ function updateShipping() {
     const cityInput = document.getElementById('address-city');
     const provinceSelect = document.getElementById('address-province');
     const postalInput = document.getElementById('address-postal');
-    const ujCampusSelect = document.getElementById('uj-campus-select');
     
     // Ensure all fields are not required and enabled
     if (addressInput) {
@@ -1331,11 +1287,6 @@ function updateShipping() {
       postalInput.removeAttribute('required');
       postalInput.removeAttribute('disabled');
     }
-    if (ujCampusSelect) {
-      ujCampusSelect.removeAttribute('required');
-      ujCampusSelect.removeAttribute('disabled');
-    }
-    
     console.log('All fields made optional (no delivery method selected)');
   }
   
