@@ -360,17 +360,19 @@
             </div>
           </div>
 
-          <!-- Campus Selection - Shows for UJ Campus Delivery -->
-          <div id="campus-section" class="hidden mt-4">
-            <label class="block mb-2 font-medium">Select Campus <span class="text-red-500">*</span></label>
-            <select id="campus-selection" class="w-full border border-gray-300 rounded-lg px-4 py-3">
-              <option value="">Select your campus</option>
+          <!-- UJ Campus Delivery Option - Independent section -->
+          <div id="uj-campus-section" class="hidden mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <label class="block mb-3 font-semibold text-lg">UJ Campus Delivery</label>
+            <p class="text-sm text-gray-600 mb-4">Select your campus for delivery (R30)</p>
+            <select id="uj-campus-select" class="w-full border border-gray-300 rounded-lg px-4 py-3 bg-white">
+              <option value="">-- Select your campus --</option>
               <option value="DFC">DFC (Doornfontein Campus)</option>
               <option value="APK">APK (Auckland Park Kingsway Campus)</option>
               <option value="SWC">SWC (Soweto Campus)</option>
               <option value="APB">APB (Auckland Park Bunting Road Campus)</option>
             </select>
-      </div>
+            <p class="text-xs text-gray-500 mt-2">Delivery will be made to your selected campus</p>
+          </div>
         </div>
 
         <button type="button" id="proceed-payment-btn" onclick="handleCheckoutButtonClick(event)" class="w-full bg-black text-white py-4 rounded-lg font-semibold hover:bg-gray-800 transition-all duration-300 transform hover:scale-[1.02] text-lg">
@@ -1292,29 +1294,15 @@ function updateShipping() {
       console.error('Cannot show address section - element not found!');
     }
   } else if (location === 'uj') {
-    console.log('Showing campus section for UJ delivery');
-    // Show campus selection for UJ Campus Delivery
-    if (campusSection) {
-      campusSection.classList.remove('hidden');
-      campusSection.style.setProperty('display', 'block', 'important'); // Force show with !important
-      console.log('Campus section should now be visible');
-      // Make campus selection required and remove required from address fields
-      const campusSelect = document.getElementById('campus-selection');
-      const addressInput = document.getElementById('address-autocomplete');
-      const cityInput = document.getElementById('address-city');
-      const provinceSelect = document.getElementById('address-province');
-      const postalInput = document.getElementById('address-postal');
-      
-      // Enable campus field (no required attribute - validation in JavaScript)
-      if (campusSelect) campusSelect.removeAttribute('disabled');
-      
-      // Ensure address fields are not required
-      if (addressInput) addressInput.removeAttribute('required');
-      if (cityInput) cityInput.removeAttribute('required');
-      if (provinceSelect) provinceSelect.removeAttribute('required');
-      if (postalInput) postalInput.removeAttribute('required');
+    console.log('Showing UJ campus section for UJ delivery');
+    // Show UJ campus selection - NEW independent section
+    const ujCampusSection = document.getElementById('uj-campus-section');
+    if (ujCampusSection) {
+      ujCampusSection.classList.remove('hidden');
+      ujCampusSection.style.setProperty('display', 'block', 'important');
+      console.log('✅ UJ Campus section shown');
     } else {
-      console.error('Cannot show campus section - element not found!');
+      console.error('❌ UJ Campus section element not found!');
     }
   } else {
     console.log('No delivery method selected, hiding both sections');
@@ -1395,39 +1383,24 @@ window.handleCheckout = async function(event) {
     event.stopPropagation();
   }
   
-  // CRITICAL: Remove required from hidden fields BEFORE any validation
-  // This prevents "invalid form control not focusable" errors
+  // JavaScript validation only - no HTML5 required attributes
   const location = document.getElementById('shipping-location')?.value || '';
-  const addressSection = document.getElementById('address-section');
-  const campusSection = document.getElementById('campus-section');
-  
-  // Check visibility more thoroughly - check both class and computed style
-  const isAddressVisible = addressSection && 
-    !addressSection.classList.contains('hidden') && 
-    addressSection.offsetParent !== null &&
-    window.getComputedStyle(addressSection).display !== 'none';
-    
-  const isCampusVisible = campusSection && 
-    !campusSection.classList.contains('hidden') && 
-    campusSection.offsetParent !== null &&
-    window.getComputedStyle(campusSection).display !== 'none';
   
   console.log('🔧 Validating form fields (JavaScript validation, no HTML5 required)...');
   console.log('   Location:', location);
   
-  // Get all form fields
+  // Remove any required attributes from all fields (safety check)
   const addressInput = document.getElementById('address-autocomplete');
   const cityInput = document.getElementById('address-city');
   const provinceSelect = document.getElementById('address-province');
   const postalInput = document.getElementById('address-postal');
-  const campusSelect = document.getElementById('campus-selection');
+  const ujCampusSelect = document.getElementById('uj-campus-select');
   
-  // Ensure no required attributes exist (validation is in JavaScript)
   if (addressInput) addressInput.removeAttribute('required');
   if (cityInput) cityInput.removeAttribute('required');
   if (provinceSelect) provinceSelect.removeAttribute('required');
   if (postalInput) postalInput.removeAttribute('required');
-  if (campusSelect) campusSelect.removeAttribute('required');
+  if (ujCampusSelect) ujCampusSelect.removeAttribute('required');
   
   // Show loading screen IMMEDIATELY - after fixing required attributes
   console.log('📺 Showing loading screen');
