@@ -2,8 +2,6 @@ const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const nodemailer = require('nodemailer');
-const { Resend } = require('resend');
-const sgMail = require('@sendgrid/mail');
 require('dotenv').config();
 
 const app = express();
