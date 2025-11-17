@@ -1306,33 +1306,50 @@ function updateShipping() {
       console.error('❌ UJ Campus section element not found!');
     }
     
-    // Auto-fill address fields with campus delivery address (not required, but filled for processing)
-    const addressInput = document.getElementById('address-autocomplete');
-    const cityInput = document.getElementById('address-city');
-    const provinceSelect = document.getElementById('address-province');
-    const postalInput = document.getElementById('address-postal');
-    const suburbInput = document.getElementById('address-suburb');
+    // Show address section so fields can be filled (even though hidden visually, we need to fill them)
+    const addressSection = document.getElementById('address-section');
+    if (addressSection) {
+      // Make section visible temporarily to fill fields, or just fill them directly
+      addressSection.classList.remove('hidden');
+      addressSection.style.setProperty('display', 'block', 'important');
+      console.log('✅ Address section shown for auto-fill');
+    }
     
-    if (addressInput) {
-      addressInput.value = '128 van beek street';
-      console.log('✅ Auto-filled address field');
-    }
-    if (cityInput) {
-      cityInput.value = 'Johannesburg';
-      console.log('✅ Auto-filled city field');
-    }
-    if (provinceSelect) {
-      provinceSelect.value = 'Gauteng';
-      console.log('✅ Auto-filled province field');
-    }
-    if (postalInput) {
-      postalInput.value = '2094';
-      console.log('✅ Auto-filled postal code field');
-    }
-    if (suburbInput) {
-      suburbInput.value = '';
-      console.log('✅ Suburb field cleared (optional)');
-    }
+    // Auto-fill address fields with campus delivery address (required for processing)
+    setTimeout(() => {
+      const addressInput = document.getElementById('address-autocomplete');
+      const cityInput = document.getElementById('address-city');
+      const provinceSelect = document.getElementById('address-province');
+      const postalInput = document.getElementById('address-postal');
+      const suburbInput = document.getElementById('address-suburb');
+      
+      if (addressInput) {
+        addressInput.value = '128 van beek street';
+        console.log('✅ Auto-filled address field: 128 van beek street');
+      }
+      if (cityInput) {
+        cityInput.value = 'Johannesburg';
+        console.log('✅ Auto-filled city field: Johannesburg');
+      }
+      if (provinceSelect) {
+        provinceSelect.value = 'Gauteng';
+        console.log('✅ Auto-filled province field: Gauteng');
+      }
+      if (postalInput) {
+        postalInput.value = '2094';
+        console.log('✅ Auto-filled postal code field: 2094');
+      }
+      if (suburbInput) {
+        suburbInput.value = '';
+        console.log('✅ Suburb field cleared (optional)');
+      }
+      
+      // Hide address section after filling (optional - you can keep it visible if needed)
+      // if (addressSection) {
+      //   addressSection.classList.add('hidden');
+      //   addressSection.style.setProperty('display', 'none', 'important');
+      // }
+    }, 100);
   } else {
     console.log('No delivery method selected, hiding both sections');
     // Remove required attributes from all fields when no method is selected
