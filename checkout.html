@@ -619,19 +619,23 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Add form submit listener - main handler
   if (checkoutForm) {
+    console.log('✅ Form found, adding submit listener');
     checkoutForm.addEventListener('submit', function(e) {
-      console.log('Form submit event triggered');
+      console.log('📝 Form submit event triggered');
       e.preventDefault();
       e.stopPropagation();
       handleCheckout(e);
       return false;
     });
+  } else {
+    console.error('❌ Checkout form not found!');
   }
   
   // Add button click handler - shows loading immediately and triggers form submit
   if (proceedBtn) {
+    console.log('✅ Button found, adding click listener');
     proceedBtn.addEventListener('click', function(e) {
-      console.log('✅ Proceed button clicked');
+      console.log('✅ Proceed button clicked (event listener)');
       e.preventDefault();
       e.stopPropagation();
       
@@ -650,10 +654,17 @@ document.addEventListener('DOMContentLoaded', function() {
       } else {
         console.error('❌ Checkout form not found!');
         hideLoadingScreen();
+        // Call handleCheckout directly as fallback
+        handleCheckout(e);
       }
     });
+  } else {
+    console.error('❌ Proceed button not found!');
   }
-  console.log('Checkout page loaded');
+  
+  console.log('✅ Checkout page loaded and initialized');
+  console.log('   Form element:', checkoutForm ? 'Found' : 'NOT FOUND');
+  console.log('   Button element:', proceedBtn ? 'Found' : 'NOT FOUND');
   
   // Ensure navigation brand name is set correctly
   const brandName = document.getElementById('nav-brand-name');
