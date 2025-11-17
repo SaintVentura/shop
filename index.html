@@ -1706,6 +1706,7 @@
                             <select id="shipping-location" onchange="updateCheckoutShipping()" required class="w-full border border-gray-300 rounded-lg px-4 py-3">
                                 <option value="">Select your location</option>
                                 <option id="door-option" value="door">Door-to-Door Courier (R130)</option>
+                                <option id="uj-option" value="uj">UJ Campus Delivery (R30)</option>
                             </select>
                             
                             <!-- Address Fields - Shows for Door-to-Door Courier -->
@@ -1756,6 +1757,19 @@
                                 </div>
                             </div>
 
+                            <!-- UJ Campus Selection - Shows for UJ Campus Delivery -->
+                            <div id="uj-campus-section" class="hidden mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                <label class="block mb-3 font-semibold text-lg">UJ Campus Delivery</label>
+                                <p class="text-sm text-gray-600 mb-4">Select your campus for delivery (R30)</p>
+                                <select id="uj-campus-select" name="uj-campus-select" class="w-full border border-gray-300 rounded-lg px-4 py-3 bg-white">
+                                    <option value="">-- Select your campus --</option>
+                                    <option value="DFC">DFC (Doornfontein Campus)</option>
+                                    <option value="APK">APK (Auckland Park Kingsway Campus)</option>
+                                    <option value="SWC">SWC (Soweto Campus)</option>
+                                    <option value="APB">APB (Auckland Park Bunting Road Campus)</option>
+                                </select>
+                                <p class="text-xs text-gray-500 mt-2">Delivery will be made to your selected campus</p>
+                            </div>
                         </div>
 
                         <button type="submit" class="w-full bg-black text-white py-4 rounded-lg font-semibold hover:bg-gray-800 transition-all duration-300 transform hover:scale-[1.02] text-lg">
@@ -3678,7 +3692,8 @@ function renderCheckoutCart() {
 
 function updateCheckoutDeliveryMethodText() {
     const doorOption = document.getElementById('door-option');
-    if (!doorOption) return;
+    const ujOption = document.getElementById('uj-option');
+    if (!doorOption || !ujOption) return;
     
     let subtotalBeforeDiscount = parseFloat(localStorage.getItem('cartSubtotalBeforeDiscount') || 0);
     
@@ -3688,8 +3703,10 @@ function updateCheckoutDeliveryMethodText() {
     
     if (subtotalBeforeDiscount >= 1000) {
         doorOption.textContent = 'Door-to-Door Courier';
+        ujOption.textContent = 'UJ Campus Delivery';
     } else {
         doorOption.textContent = 'Door-to-Door Courier (R130)';
+        ujOption.textContent = 'UJ Campus Delivery (R30)';
     }
 }
 
@@ -3746,6 +3763,8 @@ function updateCheckoutShipping() {
         checkoutShippingFee = 0;
     } else if (location === 'door') {
         checkoutShippingFee = 130;
+    } else if (location === 'uj') {
+        checkoutShippingFee = 30;
     } else {
         checkoutShippingFee = 0;
     }
@@ -3753,10 +3772,17 @@ function updateCheckoutShipping() {
     updateCheckoutDeliveryMethodText();
 
     const addressSection = document.getElementById('address-section');
+    const ujCampusSection = document.getElementById('uj-campus-section');
     
+    // Hide both sections first
     if (addressSection) {
         addressSection.classList.add('hidden');
         addressSection.style.setProperty('display', 'none', 'important');
+    }
+    
+    if (ujCampusSection) {
+        ujCampusSection.classList.add('hidden');
+        ujCampusSection.style.setProperty('display', 'none', 'important');
     }
     
     if (location === 'door') {
@@ -3772,6 +3798,29 @@ function updateCheckoutShipping() {
             if (provinceSelect) provinceSelect.setAttribute('required', 'required');
             if (postalInput) postalInput.setAttribute('required', 'required');
         }
+    } else if (location === 'uj') {
+        // Show UJ campus selection
+        if (ujCampusSection) {
+            ujCampusSection.classList.remove('hidden');
+            ujCampusSection.style.setProperty('display', 'block', 'important');
+        }
+        
+        // Hide address section - not needed for campus delivery
+        if (addressSection) {
+            addressSection.classList.add('hidden');
+            addressSection.style.setProperty('display', 'none', 'important');
+        }
+        
+        // Remove required attributes from address fields (not needed for campus delivery)
+        const addressInput = document.getElementById('address-autocomplete');
+        const cityInput = document.getElementById('address-city');
+        const provinceSelect = document.getElementById('address-province');
+        const postalInput = document.getElementById('address-postal');
+        
+        if (addressInput) addressInput.removeAttribute('required');
+        if (cityInput) cityInput.removeAttribute('required');
+        if (provinceSelect) provinceSelect.removeAttribute('required');
+        if (postalInput) postalInput.removeAttribute('required');
     } else {
         const addressInput = document.getElementById('address-autocomplete');
         const cityInput = document.getElementById('address-city');
