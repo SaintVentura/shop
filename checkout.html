@@ -1379,11 +1379,16 @@ function updateShipping() {
       const provinceSelect = document.getElementById('address-province');
       const postalInput = document.getElementById('address-postal');
       
-      // Make campus selection required
-      if (campusSelect) {
-        campusSelect.setAttribute('required', 'required');
-        campusSelect.removeAttribute('disabled');
-        console.log('Campus select made required');
+      // Make campus selection required ONLY if section is visible
+      if (campusSection && campusSection.offsetParent !== null && window.getComputedStyle(campusSection).display !== 'none') {
+        if (campusSelect) {
+          campusSelect.setAttribute('required', 'required');
+          campusSelect.removeAttribute('disabled');
+          console.log('Campus select made required');
+        }
+      } else {
+        // Section is hidden, ensure required is removed
+        if (campusSelect) campusSelect.removeAttribute('required');
       }
       
       // Remove required from address fields (they're hidden)
