@@ -260,22 +260,37 @@ app.post('/api/create-yoco-checkout', async (req, res) => {
       throw new Error(`Yoco API failed: ${errorMsg}`);
     }
 
+    // Log full Yoco response for debugging
+    console.log('📦 Full Yoco API response:', JSON.stringify(response.data, null, 2));
+    
     // Extract checkout ID and URL from Yoco response
-    const checkoutId = response.data?.id;
+    // Yoco API returns: { id: "checkout_id", redirectUrl: "https://..." }
+    const checkoutId = response.data?.id || response.data?.checkoutId;
     
     if (!checkoutId) {
-      console.error('❌ Invalid Yoco response - no checkout ID:', response.data);
+      console.error('❌ Invalid Yoco response - no checkout ID');
+      console.error('   Response keys:', Object.keys(response.data || {}));
+      console.error('   Full response:', response.data);
       throw new Error('Invalid response from Yoco API - no checkout ID');
     }
     
     // Get redirect URL from response or construct it
-    const redirectUrl = response.data.redirectUrl || 
-                       response.data.url || 
-                       response.data.checkoutUrl ||
-                       `https://payments.yoco.com/checkout/${checkoutId}`;
+    // Yoco typically returns redirectUrl in the response
+    let redirectUrl = response.data.redirectUrl || 
+                     response.data.url || 
+                     response.data.checkoutUrl ||
+                     response.data.link;
     
-    console.log('✅ Checkout created:', checkoutId);
-    console.log('✅ Redirect URL:', redirectUrl);
+    // If no redirect URL, construct it using the checkout ID
+    if (!redirectUrl) {
+      // Try different Yoco checkout URL formats
+      redirectUrl = `https://payments.yoco.com/checkout/${checkoutId}`;
+      console.log('⚠️ No redirectUrl in response, constructing:', redirectUrl);
+    }
+    
+    console.log('✅ Checkout created successfully!');
+    console.log('   Checkout ID:', checkoutId);
+    console.log('   Redirect URL:', redirectUrl);
     
     // Send success response to frontend
     res.json({
