@@ -614,13 +614,11 @@ window.handleCheckoutButtonClick = function(event) {
   const cityInput = document.getElementById('address-city');
   const provinceSelect = document.getElementById('address-province');
   const postalInput = document.getElementById('address-postal');
-  const ujCampusSelect = document.getElementById('uj-campus-select');
   
   if (addressInput) addressInput.removeAttribute('required');
   if (cityInput) cityInput.removeAttribute('required');
   if (provinceSelect) provinceSelect.removeAttribute('required');
   if (postalInput) postalInput.removeAttribute('required');
-  if (ujCampusSelect) ujCampusSelect.removeAttribute('required');
   
   // Show loading screen immediately
   console.log('📺 Showing loading screen...');
@@ -1098,8 +1096,7 @@ function renderCart() {
 function updateDeliveryMethodText() {
   // Update the door-to-door and UJ campus option text based on free shipping eligibility
   const doorOption = document.getElementById('door-option');
-  const ujOption = document.getElementById('uj-option');
-  if (!doorOption || !ujOption) return;
+  if (!doorOption) return;
   
   let subtotalBeforeDiscount = parseFloat(localStorage.getItem('cartSubtotalBeforeDiscount') || 0);
   
@@ -1346,13 +1343,11 @@ window.handleCheckout = async function(event) {
   const cityInput = document.getElementById('address-city');
   const provinceSelect = document.getElementById('address-province');
   const postalInput = document.getElementById('address-postal');
-  const ujCampusSelect = document.getElementById('uj-campus-select');
   
   if (addressInput) addressInput.removeAttribute('required');
   if (cityInput) cityInput.removeAttribute('required');
   if (provinceSelect) provinceSelect.removeAttribute('required');
   if (postalInput) postalInput.removeAttribute('required');
-  if (ujCampusSelect) ujCampusSelect.removeAttribute('required');
   
   // Show loading screen IMMEDIATELY - after fixing required attributes
   console.log('📺 Showing loading screen');
