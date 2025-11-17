@@ -1412,15 +1412,19 @@ window.handleCheckout = async function(event) {
   
   if (location === 'door') {
     // Validate and get address information for Door-to-Door Courier
-    const streetAddress = document.getElementById('address-autocomplete').value || '';
-    const city = document.getElementById('address-city').value || '';
-    const province = document.getElementById('address-province').value || '';
-    const postalCode = document.getElementById('address-postal').value || '';
-    const suburb = document.getElementById('address-suburb').value || '';
-    const extra = document.getElementById('address-extra').value || '';
+    console.log('🚚 Processing Door-to-Door delivery...');
+    const streetAddress = document.getElementById('address-autocomplete')?.value || '';
+    const city = document.getElementById('address-city')?.value || '';
+    const province = document.getElementById('address-province')?.value || '';
+    const postalCode = document.getElementById('address-postal')?.value || '';
+    const suburb = document.getElementById('address-suburb')?.value || '';
+    const extra = document.getElementById('address-extra')?.value || '';
+    
+    console.log('   Address fields:', { streetAddress, city, province, postalCode, suburb });
     
     // Validate required address fields
     if (!streetAddress || !city || !province || !postalCode) {
+      console.error('❌ Missing required address fields');
       hideLoadingScreen();
       if (submitButton) {
         submitButton.disabled = false;
@@ -1443,10 +1447,19 @@ window.handleCheckout = async function(event) {
       postalCode: postalCode,
       extra: extra
     };
+    
+    console.log('✅ Address delivery info prepared:', deliveryInfo);
   } else if (location === 'uj') {
     // Validate and get campus selection for UJ Campus Delivery
-    const campus = document.getElementById('campus-selection').value || '';
-    if (!campus) {
+    console.log('🏫 Processing UJ Campus delivery...');
+    const campusSelect = document.getElementById('campus-selection');
+    const campus = campusSelect?.value || '';
+    
+    console.log('   Campus select element:', campusSelect ? 'Found' : 'NOT FOUND');
+    console.log('   Campus value:', campus);
+    
+    if (!campus || campus === '') {
+      console.error('❌ No campus selected!');
       hideLoadingScreen();
       if (submitButton) {
         submitButton.disabled = false;
@@ -1456,12 +1469,26 @@ window.handleCheckout = async function(event) {
       alert('Please select a UJ campus for delivery.');
       return;
     }
+    
+    console.log('✅ Campus selected:', campus);
     deliveryInfo = `UJ ${campus} Campus`;
     
     deliveryDetails = {
       type: 'campus',
       campus: campus
     };
+    
+    console.log('✅ Campus delivery info prepared:', deliveryInfo);
+  } else {
+    console.error('❌ Unknown delivery location:', location);
+    hideLoadingScreen();
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.style.opacity = '1';
+      submitButton.style.cursor = 'pointer';
+    }
+    alert('Invalid delivery method selected. Please try again.');
+    return;
   }
 
   // Prepare order data
