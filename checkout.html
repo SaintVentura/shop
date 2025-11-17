@@ -689,7 +689,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const cityInput = document.getElementById('address-city');
     const provinceSelect = document.getElementById('address-province');
     const postalInput = document.getElementById('address-postal');
-    const campusSelect = document.getElementById('campus-selection');
+    const ujCampusSelect = document.getElementById('uj-campus-select');
     
     if (nameInput) nameInput.removeAttribute('required');
     if (emailInput) emailInput.removeAttribute('required');
@@ -699,7 +699,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (cityInput) cityInput.removeAttribute('required');
     if (provinceSelect) provinceSelect.removeAttribute('required');
     if (postalInput) postalInput.removeAttribute('required');
-    if (campusSelect) campusSelect.removeAttribute('required');
+    if (ujCampusSelect) ujCampusSelect.removeAttribute('required');
   }
   
   // Remove all required attributes immediately
@@ -1224,26 +1224,26 @@ function updateShipping() {
 
   // Show/hide sections based on delivery method
   const addressSection = document.getElementById('address-section');
-  const campusSection = document.getElementById('campus-section');
+  const ujCampusSection = document.getElementById('uj-campus-section');
   
   console.log('Address section found:', !!addressSection);
-  console.log('Campus section found:', !!campusSection);
+  console.log('UJ Campus section found:', !!ujCampusSection);
   
   // Hide both sections first
   if (addressSection) {
     addressSection.classList.add('hidden');
-    addressSection.style.setProperty('display', 'none', 'important'); // Force hide with !important
+    addressSection.style.setProperty('display', 'none', 'important');
     console.log('Hiding address section');
   } else {
     console.error('Address section element not found!');
   }
   
-  if (campusSection) {
-    campusSection.classList.add('hidden');
-    campusSection.style.setProperty('display', 'none', 'important'); // Force hide with !important
-    console.log('Hiding campus section');
+  if (ujCampusSection) {
+    ujCampusSection.classList.add('hidden');
+    ujCampusSection.style.setProperty('display', 'none', 'important');
+    console.log('Hiding UJ campus section');
   } else {
-    console.error('Campus section element not found!');
+    console.error('UJ Campus section element not found!');
   }
   
   // Show appropriate section based on selection
@@ -1267,8 +1267,9 @@ function updateShipping() {
       if (provinceSelect) provinceSelect.removeAttribute('disabled');
       if (postalInput) postalInput.removeAttribute('disabled');
       
-      // Ensure campus field is not required
-      if (campusSelect) campusSelect.removeAttribute('required');
+      // Ensure UJ campus field is not required
+      const ujCampusSelect = document.getElementById('uj-campus-select');
+      if (ujCampusSelect) ujCampusSelect.removeAttribute('required');
       
       // Initialize Google Maps autocomplete when section becomes visible
       // Wait for Google Maps API to load if needed
