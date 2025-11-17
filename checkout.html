@@ -694,6 +694,47 @@ let shippingFee = 0;
 // Add click handler to button to show loading screen immediately
 document.addEventListener('DOMContentLoaded', function() {
   console.log('🔵 DOMContentLoaded event fired!');
+  
+  // CRITICAL: Remove required from ALL hidden fields on page load
+  // This prevents browser validation errors before user interaction
+  function removeRequiredFromHiddenFields() {
+    const addressSection = document.getElementById('address-section');
+    const campusSection = document.getElementById('campus-section');
+    
+    const isAddressVisible = addressSection && 
+      addressSection.offsetParent !== null &&
+      window.getComputedStyle(addressSection).display !== 'none';
+      
+    const isCampusVisible = campusSection && 
+      campusSection.offsetParent !== null &&
+      window.getComputedStyle(campusSection).display !== 'none';
+    
+    if (!isAddressVisible) {
+      console.log('🔧 [Page Load] Removing required from address fields (hidden)');
+      const addressInput = document.getElementById('address-autocomplete');
+      const cityInput = document.getElementById('address-city');
+      const provinceSelect = document.getElementById('address-province');
+      const postalInput = document.getElementById('address-postal');
+      if (addressInput) addressInput.removeAttribute('required');
+      if (cityInput) cityInput.removeAttribute('required');
+      if (provinceSelect) provinceSelect.removeAttribute('required');
+      if (postalInput) postalInput.removeAttribute('required');
+    }
+    
+    if (!isCampusVisible) {
+      console.log('🔧 [Page Load] Removing required from campus field (hidden)');
+      const campusSelect = document.getElementById('campus-selection');
+      if (campusSelect) campusSelect.removeAttribute('required');
+    }
+  }
+  
+  // Remove required from hidden fields immediately
+  removeRequiredFromHiddenFields();
+  
+  // Also remove after a short delay to catch any dynamic changes
+  setTimeout(removeRequiredFromHiddenFields, 100);
+  setTimeout(removeRequiredFromHiddenFields, 500);
+  
   // Get form and button elements
   const checkoutForm = document.getElementById('checkout-form');
   const proceedBtn = document.getElementById('proceed-payment-btn');
@@ -1268,23 +1309,31 @@ function updateShipping() {
       const postalInput = document.getElementById('address-postal');
       const campusSelect = document.getElementById('campus-selection');
       
-      // Make address fields required
-      if (addressInput) {
-        addressInput.setAttribute('required', 'required');
-        addressInput.removeAttribute('disabled');
-        console.log('Address input made required');
-      }
-      if (cityInput) {
-        cityInput.setAttribute('required', 'required');
-        cityInput.removeAttribute('disabled');
-      }
-      if (provinceSelect) {
-        provinceSelect.setAttribute('required', 'required');
-        provinceSelect.removeAttribute('disabled');
-      }
-      if (postalInput) {
-        postalInput.setAttribute('required', 'required');
-        postalInput.removeAttribute('disabled');
+      // Make address fields required ONLY if section is visible
+      if (addressSection && addressSection.offsetParent !== null && window.getComputedStyle(addressSection).display !== 'none') {
+        if (addressInput) {
+          addressInput.setAttribute('required', 'required');
+          addressInput.removeAttribute('disabled');
+          console.log('Address input made required');
+        }
+        if (cityInput) {
+          cityInput.setAttribute('required', 'required');
+          cityInput.removeAttribute('disabled');
+        }
+        if (provinceSelect) {
+          provinceSelect.setAttribute('required', 'required');
+          provinceSelect.removeAttribute('disabled');
+        }
+        if (postalInput) {
+          postalInput.setAttribute('required', 'required');
+          postalInput.removeAttribute('disabled');
+        }
+      } else {
+        // Section is hidden, ensure required is removed
+        if (addressInput) addressInput.removeAttribute('required');
+        if (cityInput) cityInput.removeAttribute('required');
+        if (provinceSelect) provinceSelect.removeAttribute('required');
+        if (postalInput) postalInput.removeAttribute('required');
       }
       
       // Remove required from campus field (it's hidden)
