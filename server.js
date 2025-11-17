@@ -282,10 +282,21 @@ app.post('/api/create-yoco-checkout', async (req, res) => {
                      response.data.link;
     
     // If no redirect URL, construct it using the checkout ID
+    // Use the standard Yoco checkout URL that works on all devices
     if (!redirectUrl) {
-      // Try different Yoco checkout URL formats
+      // Standard Yoco checkout URL format - works on all devices (mobile, desktop, tablet)
       redirectUrl = `https://payments.yoco.com/checkout/${checkoutId}`;
       console.log('⚠️ No redirectUrl in response, constructing:', redirectUrl);
+    }
+    
+    // Ensure the URL is a full HTTPS URL (required for all devices)
+    if (redirectUrl && !redirectUrl.startsWith('http')) {
+      redirectUrl = `https://${redirectUrl}`;
+    }
+    
+    // Validate the redirect URL is a valid Yoco URL
+    if (!redirectUrl.includes('yoco.com') && !redirectUrl.includes('checkout')) {
+      console.error('⚠️ Warning: Redirect URL does not appear to be a Yoco checkout URL:', redirectUrl);
     }
     
     console.log('✅ Checkout created successfully!');

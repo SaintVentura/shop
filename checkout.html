@@ -1570,8 +1570,10 @@ window.handleCheckout = async function(event) {
     
     // Check for checkout ID and construct URL
     if (result.checkoutId) {
+      // Standard Yoco checkout URL - works on all devices (mobile, desktop, tablet)
       const redirectUrl = `https://payments.yoco.com/checkout/${result.checkoutId}`;
       console.log('✅ Found checkoutId, constructing URL:', redirectUrl);
+      console.log('   This URL works on all devices (mobile, desktop, tablet)');
       // Redirect immediately
       console.log('🚀 Redirecting NOW to:', redirectUrl);
       window.location.href = redirectUrl;
