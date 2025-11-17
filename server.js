@@ -16,17 +16,28 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Yoco API configuration
-// Main API: https://api.yoco.com
-// Checkouts API: https://payments.yoco.com/api/checkouts
+// ============================================
+// YOCO API CONFIGURATION
+// ============================================
+// Get Yoco credentials from .env file
+// Required in .env: YOCO_SECRET_KEY=your_secret_key_here
+// API Endpoints:
+// - Main API: https://api.yoco.com
+// - Checkouts: https://payments.yoco.com/api/checkouts
+// ============================================
 const YOCO_API_URL = 'https://payments.yoco.com';
-const YOCO_SECRET_KEY = process.env.YOCO_SECRET_KEY;
+const YOCO_SECRET_KEY = process.env.YOCO_SECRET_KEY?.trim();
 
 // Validate Yoco configuration
 if (!YOCO_SECRET_KEY) {
-  console.error('ERROR: YOCO_SECRET_KEY is not set in environment variables!');
+  console.error('❌ ERROR: YOCO_SECRET_KEY is not set in .env file!');
+  console.error('   Please add YOCO_SECRET_KEY=your_key to your .env file');
   process.exit(1);
 }
+
+console.log('✅ Yoco API configured');
+console.log('   API URL:', `${YOCO_API_URL}/api/checkouts`);
+console.log('   Key loaded:', YOCO_SECRET_KEY ? `Yes (${YOCO_SECRET_KEY.length} chars)` : 'No');
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -205,93 +216,73 @@ app.post('/api/create-yoco-checkout', async (req, res) => {
       hasMetadata: !!metadata
     });
 
-    console.log('Creating Yoco checkout session:', {
-      amount: amountInCents,
-      currency: currency,
-      metadata: metadata
-    });
-
-    // Create checkout with Yoco API
-    // Endpoint: https://payments.yoco.com/api/checkouts
-    console.log('Creating checkout with Yoco API:', {
-      keyLength: YOCO_SECRET_KEY?.length,
-      keyPrefix: YOCO_SECRET_KEY?.substring(0, 7),
-      apiUrl: `${YOCO_API_URL}/api/checkouts`
-    });
+    // Call Yoco API to create checkout
+    console.log('📞 Calling Yoco API:', `${YOCO_API_URL}/api/checkouts`);
+    console.log('   Amount:', amountInCents, 'cents');
+    console.log('   Currency:', currency);
     
-    // Retry logic for Yoco API calls
     let response;
     let lastError;
     const maxRetries = 3;
     
+    // Simple retry logic
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        console.log(`Yoco API attempt ${attempt}/${maxRetries}`);
         response = await axios.post(
           `${YOCO_API_URL}/api/checkouts`,
           checkoutData,
           {
             headers: {
               'Authorization': `Bearer ${YOCO_SECRET_KEY}`,
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
+              'Content-Type': 'application/json'
             },
             timeout: 30000
           }
         );
-        break; // Success, exit retry loop
+        console.log('✅ Yoco API success on attempt', attempt);
+        break;
       } catch (error) {
         lastError = error;
-        console.error(`Yoco API attempt ${attempt} failed:`, error.response?.status || error.message);
+        const status = error.response?.status;
+        const message = error.response?.data?.message || error.message;
+        console.error(`❌ Yoco API attempt ${attempt}/${maxRetries} failed:`, status || message);
         
         if (attempt < maxRetries) {
-          const delay = Math.min(1000 * attempt, 5000); // Linear backoff, max 5s
-          console.log(`Retrying Yoco API call in ${delay}ms...`);
+          const delay = 1000 * attempt;
+          console.log(`   Retrying in ${delay}ms...`);
           await new Promise(resolve => setTimeout(resolve, delay));
         }
       }
     }
     
     if (!response) {
-      throw lastError || new Error('Yoco API call failed after retries');
+      const errorMsg = lastError?.response?.data?.message || lastError?.message || 'Unknown error';
+      throw new Error(`Yoco API failed: ${errorMsg}`);
     }
 
-    if (response.data && response.data.id) {
-      console.log('Checkout session created:', response.data.id);
-      console.log('Yoco API response:', JSON.stringify(response.data, null, 2));
-      
-      // Yoco checkout URL format
-      // For live API (payments.yoco.com), the checkout URL format is typically:
-      // https://payments.yoco.com/checkout/{checkoutId}
-      const checkoutId = response.data.id;
-      
-      // Check all possible URL fields in Yoco response
-      let redirectUrl = response.data.redirectUrl || 
+    // Extract checkout ID and URL from Yoco response
+    const checkoutId = response.data?.id;
+    
+    if (!checkoutId) {
+      console.error('❌ Invalid Yoco response - no checkout ID:', response.data);
+      throw new Error('Invalid response from Yoco API - no checkout ID');
+    }
+    
+    // Get redirect URL from response or construct it
+    const redirectUrl = response.data.redirectUrl || 
                        response.data.url || 
                        response.data.checkoutUrl ||
-                       response.data.link;
-      
-      // If no redirect URL provided, construct it using payments.yoco.com format
-      if (!redirectUrl) {
-        redirectUrl = `https://payments.yoco.com/checkout/${checkoutId}`;
-      }
-      
-      console.log('✅ Redirect URL constructed:', redirectUrl);
-      console.log('✅ Sending response to frontend:', {
-        success: true,
-        checkoutId: checkoutId,
-        redirectUrl: redirectUrl
-      });
-      
-      res.json({
-        success: true,
-        checkoutId: checkoutId,
-        redirectUrl: redirectUrl
-      });
-    } else {
-      console.error('Invalid Yoco API response:', response.data);
-      throw new Error('Invalid response from Yoco API');
-    }
+                       `https://payments.yoco.com/checkout/${checkoutId}`;
+    
+    console.log('✅ Checkout created:', checkoutId);
+    console.log('✅ Redirect URL:', redirectUrl);
+    
+    // Send success response to frontend
+    res.json({
+      success: true,
+      checkoutId: checkoutId,
+      redirectUrl: redirectUrl
+    });
 
   } catch (error) {
     console.error('Error creating Yoco checkout:', error.response?.data || error.message);
