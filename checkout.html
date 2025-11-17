@@ -849,14 +849,14 @@ document.addEventListener('DOMContentLoaded', function() {
   } else {
     // Ensure both sections are hidden on initial load
     const addressSection = document.getElementById('address-section');
-    const campusSection = document.getElementById('campus-section');
+    const ujCampusSection = document.getElementById('uj-campus-section');
     if (addressSection) {
       addressSection.classList.add('hidden');
       addressSection.style.setProperty('display', 'none', 'important'); // Force hide
     }
-    if (campusSection) {
-      campusSection.classList.add('hidden');
-      campusSection.style.setProperty('display', 'none', 'important'); // Force hide
+    if (ujCampusSection) {
+      ujCampusSection.classList.add('hidden');
+      ujCampusSection.style.setProperty('display', 'none', 'important'); // Force hide
     }
     console.log('Initialized - both sections hidden');
   }
