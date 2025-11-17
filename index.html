@@ -3853,11 +3853,15 @@ function hideCheckoutLoadingScreen() {
 
 async function handleCheckout(event) {
     event.preventDefault();
+    event.stopPropagation();
     
-    // Show loading screen immediately with white background and black text
+    console.log('handleCheckout called in index.html');
+    
+    // Show loading screen immediately
     showCheckoutLoadingScreen();
     
-    if (!YOCO_CONFIG.backendUrl) {
+    // Validate backend configuration
+    if (!YOCO_CONFIG || !YOCO_CONFIG.backendUrl) {
         hideCheckoutLoadingScreen();
         alert('Payment backend not configured. Please contact support.');
         return;
@@ -4040,9 +4044,17 @@ async function handleCheckout(event) {
         throw new Error(result.error || 'Failed to create checkout session. No redirect URL or checkout ID received.');
     } catch (error) {
         console.error('Checkout error:', error);
+        console.error('Full error details:', {
+            message: error.message,
+            stack: error.stack,
+            backendUrl: YOCO_CONFIG.backendUrl,
+            currentUrl: window.location.href
+        });
         
+        // Hide loading screen on error
         hideCheckoutLoadingScreen();
         
+        // More user-friendly error messages
         let errorMessage = 'Failed to process payment. ';
         if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
             errorMessage += 'Cannot connect to server. Please check your internet connection and try again.';
