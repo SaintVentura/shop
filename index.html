@@ -3979,15 +3979,20 @@ async function handleCheckout(event) {
         };
     }
 
-    const PRODUCTION_DOMAIN = 'https://saintventura.co.za';
-    
+    // Determine base URL for success/cancel URLs
     let baseUrl = window.location.origin;
     
-    if (baseUrl.startsWith('http://') || baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')) {
-        baseUrl = PRODUCTION_DOMAIN;
-    } else if (baseUrl.startsWith('http://')) {
+    // For GitHub Pages or localhost, use production domain
+    if (baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1') || baseUrl.includes('github.io')) {
+        baseUrl = 'https://saintventura.co.za'; // Use your actual domain
+    }
+    
+    // Ensure HTTPS
+    if (baseUrl.startsWith('http://')) {
         baseUrl = baseUrl.replace('http://', 'https://');
     }
+    
+    console.log('Base URL for redirects:', baseUrl);
     
     const orderDetails = {
         customerName: name,
@@ -4056,24 +4061,42 @@ async function handleCheckout(event) {
 
         const result = await response.json();
         console.log('Backend response:', result);
+        console.log('Response keys:', Object.keys(result));
         
-        if (result.success && result.redirectUrl) {
-            console.log('Redirecting to Yoco:', result.redirectUrl);
-            // Keep loading screen visible during redirect
-            window.location.href = result.redirectUrl;
+        // Check for redirect URL first
+        if (result.redirectUrl) {
+            console.log('✅ Found redirectUrl, redirecting to Yoco:', result.redirectUrl);
+            // Small delay to ensure loading screen is visible
+            setTimeout(() => {
+                window.location.href = result.redirectUrl;
+            }, 100);
             return; // Exit function
-        } else if (result.checkoutId) {
-            console.log('Using checkout ID to construct URL:', result.checkoutId);
+        }
+        
+        // Check for checkout ID
+        if (result.checkoutId) {
+            console.log('✅ Found checkoutId, constructing URL:', result.checkoutId);
             const redirectUrl = `https://payments.yoco.com/checkout/${result.checkoutId}`;
             console.log('Redirecting to Yoco:', redirectUrl);
-            // Keep loading screen visible during redirect
-            window.location.href = redirectUrl;
+            // Small delay to ensure loading screen is visible
+            setTimeout(() => {
+                window.location.href = redirectUrl;
+            }, 100);
             return; // Exit function
-        } else {
-            hideCheckoutLoadingScreen();
-            console.error('Invalid response from backend:', result);
-            throw new Error(result.error || 'Failed to create checkout session. No redirect URL or checkout ID received.');
         }
+        
+        // Check for success flag
+        if (result.success === false) {
+            hideCheckoutLoadingScreen();
+            console.error('Backend returned success: false');
+            throw new Error(result.error || 'Payment session creation failed');
+        }
+        
+        // No valid response
+        hideCheckoutLoadingScreen();
+        console.error('❌ Invalid response from backend:', result);
+        console.error('Expected: redirectUrl or checkoutId');
+        throw new Error(result.error || 'Failed to create checkout session. No redirect URL or checkout ID received.');
     } catch (error) {
         console.error('Checkout error:', error);
         

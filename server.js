@@ -392,7 +392,12 @@ app.post('/api/create-yoco-checkout', async (req, res) => {
         redirectUrl = `https://payments.yoco.com/checkout/${checkoutId}`;
       }
       
-      console.log('Redirect URL:', redirectUrl);
+      console.log('✅ Redirect URL constructed:', redirectUrl);
+      console.log('✅ Sending response to frontend:', {
+        success: true,
+        checkoutId: checkoutId,
+        redirectUrl: redirectUrl
+      });
       
       res.json({
         success: true,
