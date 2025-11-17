@@ -91,10 +91,10 @@ async function sendEmail({ to, subject, text, html, replyTo }) {
   
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log('✅ Email sent successfully to', to, 'Message ID:', info.messageId);
+    console.log('✅ Email sent successfully to', to, 'via SMTP. Message ID:', info.messageId);
     return { success: true, method: 'smtp', id: info.messageId };
   } catch (error) {
-    console.error('❌ Failed to send email:', error.message);
+    console.error('❌ Failed to send email via SMTP:', error.message);
     throw error;
   }
 }
