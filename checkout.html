@@ -289,24 +289,24 @@
       <form id="checkout-form" class="space-y-6" novalidate>
         <div>
           <label class="block mb-2 font-medium">Full Name <span class="text-red-500">*</span></label>
-          <input id="customer-name" type="text" class="w-full border border-gray-300 rounded-lg px-4 py-3">
+          <input id="customer-name" name="customer-name" type="text" class="w-full border border-gray-300 rounded-lg px-4 py-3">
         </div>
 
         <div>
           <label class="block mb-2 font-medium">Email <span class="text-red-500">*</span></label>
-          <input id="customer-email" type="email" class="w-full border border-gray-300 rounded-lg px-4 py-3">
+          <input id="customer-email" name="customer-email" type="email" class="w-full border border-gray-300 rounded-lg px-4 py-3">
           <p class="text-xs text-gray-500 mt-1">Order tracking link will be sent to your email</p>
         </div>
 
         <div>
           <label class="block mb-2 font-medium">Phone Number <span class="text-red-500">*</span></label>
-          <input id="customer-phone" type="tel" class="w-full border border-gray-300 rounded-lg px-4 py-3" placeholder="+27 12 345 6789">
+          <input id="customer-phone" name="customer-phone" type="tel" class="w-full border border-gray-300 rounded-lg px-4 py-3" placeholder="+27 12 345 6789">
           <p class="text-xs text-gray-500 mt-1">Courier will contact this number for delivery</p>
         </div>
 
         <div>
           <label class="block mb-2 font-medium">Delivery Method <span class="text-red-500">*</span></label>
-          <select id="shipping-location" onchange="updateShipping()" class="w-full border border-gray-300 rounded-lg px-4 py-3">
+          <select id="shipping-location" name="shipping-location" onchange="updateShipping()" class="w-full border border-gray-300 rounded-lg px-4 py-3">
             <option value="">Select your location</option>
             <option id="door-option" value="door">Door-to-Door Courier (R130)</option>
             <option id="uj-option" value="uj">UJ Campus Delivery (R30)</option>
@@ -316,7 +316,7 @@
           <div id="address-section" class="hidden mt-4 space-y-4">
             <div>
               <label class="block mb-2 font-medium">Street Address <span class="text-red-500">*</span></label>
-              <input id="address-autocomplete" type="text" placeholder="Start typing your South African address..." class="w-full border border-gray-300 rounded-lg px-4 py-3" autocomplete="street-address">
+              <input id="address-autocomplete" name="address-autocomplete" type="text" placeholder="Start typing your South African address..." class="w-full border border-gray-300 rounded-lg px-4 py-3" autocomplete="street-address">
               <div id="address-suggestions" class="hidden mt-2 border border-gray-200 rounded-lg bg-white shadow-lg max-h-60 overflow-y-auto"></div>
               <p class="text-xs text-gray-500 mt-1">Powered by Google Maps - Start typing to see suggestions</p>
         </div>
@@ -324,11 +324,11 @@
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="block mb-2 font-medium">City <span class="text-red-500">*</span></label>
-                <input id="address-city" type="text" class="w-full border border-gray-300 rounded-lg px-4 py-3" autocomplete="address-level2">
+                <input id="address-city" name="address-city" type="text" class="w-full border border-gray-300 rounded-lg px-4 py-3" autocomplete="address-level2">
               </div>
               <div>
                 <label class="block mb-2 font-medium">Province <span class="text-red-500">*</span></label>
-                <select id="address-province" class="w-full border border-gray-300 rounded-lg px-4 py-3" autocomplete="address-level1">
+                <select id="address-province" name="address-province" class="w-full border border-gray-300 rounded-lg px-4 py-3" autocomplete="address-level1">
                   <option value="">Select Province</option>
                   <option value="Eastern Cape">Eastern Cape</option>
                   <option value="Free State">Free State</option>
@@ -346,11 +346,11 @@
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="block mb-2 font-medium">Postal Code <span class="text-red-500">*</span></label>
-                <input id="address-postal" type="text" pattern="[0-9]{4}" maxlength="4" class="w-full border border-gray-300 rounded-lg px-4 py-3" autocomplete="postal-code" placeholder="0000">
+                <input id="address-postal" name="address-postal" type="text" pattern="[0-9]{4}" maxlength="4" class="w-full border border-gray-300 rounded-lg px-4 py-3" autocomplete="postal-code" placeholder="0000">
               </div>
               <div>
                 <label class="block mb-2 font-medium">Suburb</label>
-                <input id="address-suburb" type="text" class="w-full border border-gray-300 rounded-lg px-4 py-3" autocomplete="address-level3">
+                <input id="address-suburb" name="address-suburb" type="text" class="w-full border border-gray-300 rounded-lg px-4 py-3" autocomplete="address-level3">
               </div>
     </div>
 
@@ -364,7 +364,7 @@
           <div id="uj-campus-section" class="hidden mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
             <label class="block mb-3 font-semibold text-lg">UJ Campus Delivery</label>
             <p class="text-sm text-gray-600 mb-4">Select your campus for delivery (R30)</p>
-            <select id="uj-campus-select" class="w-full border border-gray-300 rounded-lg px-4 py-3 bg-white">
+            <select id="uj-campus-select" name="uj-campus-select" class="w-full border border-gray-300 rounded-lg px-4 py-3 bg-white">
               <option value="">-- Select your campus --</option>
               <option value="DFC">DFC (Doornfontein Campus)</option>
               <option value="APK">APK (Auckland Park Kingsway Campus)</option>
