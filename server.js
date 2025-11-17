@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
-const { Resend } = require('resend');
+const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const app = express();
@@ -60,76 +60,46 @@ app.get('/keep-alive', (req, res) => {
   });
 });
 
-// Email sending function with multiple service fallbacks
+// Basic email sending function using SMTP
 async function sendEmail({ to, subject, text, html, replyTo }) {
-  const fromEmail = (process.env.FROM_EMAIL || 'customersupport@saintventura.co.za').replace(/^"|"$/g, '').trim();
-  const replyToEmail = replyTo || fromEmail;
+  const email = (process.env.ZOHO_EMAIL || 'customersupport@saintventura.co.za').replace(/^"|"$/g, '').trim();
+  const password = (process.env.ZOHO_PASSWORD || process.env.ZOHO_APP_PASSWORD || '').replace(/^"|"$/g, '').trim();
   
-  console.log('📧 Attempting to send email:', { to, from: fromEmail, subject });
-  
-  // Try Resend first (simplest, most reliable)
-  const resendApiKey = (process.env.RESEND_API_KEY || '').replace(/^"|"$/g, '').trim();
-  if (resendApiKey) {
-    try {
-      const resend = new Resend(resendApiKey);
-      const { data, error } = await resend.emails.send({
-        from: `Saint Ventura <${fromEmail}>`,
-        to: to,
-        replyTo: replyToEmail,
-        subject: subject,
-        html: html || text.replace(/\n/g, '<br>'),
-        text: text
-      });
-      
-      if (error) {
-        console.log('⚠️ Resend failed:', error.message);
-        throw error;
-      }
-      
-      console.log('✅ Email sent successfully via Resend. Message ID:', data?.id);
-      return { success: true, method: 'resend', id: data?.id };
-    } catch (error) {
-      console.log('⚠️ Resend failed, trying Mailgun...');
-    }
+  if (!password) {
+    throw new Error('ZOHO_PASSWORD or ZOHO_APP_PASSWORD must be set in .env file');
   }
   
-  // Try Mailgun via HTTP API (no extra packages needed)
-  const mailgunApiKey = (process.env.MAILGUN_API_KEY || '').replace(/^"|"$/g, '').trim();
-  const mailgunDomain = (process.env.MAILGUN_DOMAIN || '').replace(/^"|"$/g, '').trim();
-  if (mailgunApiKey && mailgunDomain) {
-    try {
-      const mailgunUrl = `https://api.mailgun.net/v3/${mailgunDomain}/messages`;
-      const formData = new URLSearchParams();
-      formData.append('from', `Saint Ventura <${fromEmail}>`);
-      formData.append('to', to);
-      formData.append('subject', subject);
-      formData.append('text', text);
-      formData.append('html', html || text.replace(/\n/g, '<br>'));
-      if (replyToEmail) {
-        formData.append('h:Reply-To', replyToEmail);
-      }
-      
-      const response = await axios.post(mailgunUrl, formData, {
-        auth: {
-          username: 'api',
-          password: mailgunApiKey
-        },
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        }
-      });
-      
-      console.log('✅ Email sent successfully via Mailgun. Message ID:', response.data.id);
-      return { success: true, method: 'mailgun', id: response.data.id };
-    } catch (error) {
-      console.log('⚠️ Mailgun failed:', error.response?.data?.message || error.message);
-    }
-  }
+  console.log('📧 Sending email via SMTP:', { to, from: email, subject });
   
-  // All services failed or not configured
-  const errorMsg = 'No email service configured. Please set RESEND_API_KEY or MAILGUN_API_KEY in environment variables.';
-  console.error('❌', errorMsg);
-  throw new Error(errorMsg);
+  // Create transporter
+  const transporter = nodemailer.createTransport({
+    host: 'smtp.zoho.com',
+    port: 587,
+    secure: false,
+    auth: {
+      user: email,
+      pass: password
+    }
+  });
+  
+  // Send email
+  const mailOptions = {
+    from: `Saint Ventura <${email}>`,
+    to: to,
+    replyTo: replyTo || email,
+    subject: subject,
+    text: text,
+    html: html || text.replace(/\n/g, '<br>')
+  };
+  
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('✅ Email sent successfully. Message ID:', info.messageId);
+    return { success: true, method: 'smtp', id: info.messageId };
+  } catch (error) {
+    console.error('❌ Failed to send email:', error.message);
+    throw error;
+  }
 }
 
 // Email test endpoint - test email configuration
@@ -810,18 +780,13 @@ app.get('/api/payment-status/:checkoutId', async (req, res) => {
 });
 
 // Verify email configuration on startup
-const resendApiKey = (process.env.RESEND_API_KEY || '').replace(/^"|"$/g, '').trim();
-const mailgunApiKey = (process.env.MAILGUN_API_KEY || '').replace(/^"|"$/g, '').trim();
-const fromEmail = (process.env.FROM_EMAIL || 'customersupport@saintventura.co.za').replace(/^"|"$/g, '').trim();
+const zohoEmail = (process.env.ZOHO_EMAIL || 'customersupport@saintventura.co.za').replace(/^"|"$/g, '').trim();
+const zohoPassword = (process.env.ZOHO_PASSWORD || process.env.ZOHO_APP_PASSWORD || '').replace(/^"|"$/g, '').trim();
 
-if (resendApiKey) {
-  console.log(`✅ Email configured: ${fromEmail} (Resend API key loaded)`);
-} else if (mailgunApiKey) {
-  console.log(`✅ Email configured: ${fromEmail} (Mailgun API key loaded)`);
+if (zohoPassword) {
+  console.log(`✅ Email configured: ${zohoEmail} (SMTP via Zoho)`);
 } else {
-  console.warn(`⚠️  No email service configured. Please set one of the following:`);
-  console.warn(`   - RESEND_API_KEY (recommended - get from https://resend.com/api-keys)`);
-  console.warn(`   - MAILGUN_API_KEY + MAILGUN_DOMAIN (get from https://app.mailgun.com)`);
+  console.warn(`⚠️  Email password not found. Please set ZOHO_PASSWORD or ZOHO_APP_PASSWORD in .env file`);
 }
 
 // Start server
