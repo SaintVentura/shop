@@ -3919,6 +3919,30 @@ async function handleCheckout(event) {
             postalCode: postalCode,
             extra: extra
         };
+    } else if (location === 'uj') {
+        // Validate and get campus selection for UJ Campus Delivery
+        const ujCampusSelect = document.getElementById('uj-campus-select');
+        const campus = ujCampusSelect?.value || '';
+        
+        if (!ujCampusSelect) {
+            hideCheckoutLoadingScreen();
+            alert('Error: Campus selection not found. Please refresh the page and try again.');
+            return;
+        }
+        
+        if (!campus || campus === '') {
+            hideCheckoutLoadingScreen();
+            alert('Please select a UJ campus for delivery.');
+            ujCampusSelect.focus();
+            return;
+        }
+        
+        deliveryInfo = `UJ ${campus} Campus`;
+        
+        deliveryDetails = {
+            type: 'campus',
+            campus: campus
+        };
     }
 
     // Determine base URL for success/cancel URLs
