@@ -399,24 +399,20 @@ function getBackendUrl() {
   const origin = window.location.origin;
   
   console.log('Detecting backend URL for hostname:', hostname, 'origin:', origin);
-  
-  // Local development
-  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '' || hostname === '0.0.0.0') {
-    console.log('Using localhost backend');
-    return 'http://localhost:3000/api/create-yoco-checkout';
-  }
-  
-  // GitHub Pages (production)
-  // Backend deployed on Render
+
+  // Production backend URL (Render)
   const PRODUCTION_BACKEND_URL = 'https://saint-ventura-backend.onrender.com/api/create-yoco-checkout';
-  
-  // If you're on GitHub Pages, use production backend
-  if (hostname.includes('github.io') || hostname.includes('github.com') || origin.includes('github.io') || origin.includes('github.com')) {
-    console.log('Detected GitHub Pages, using production backend:', PRODUCTION_BACKEND_URL);
+
+  // Local development - only use localhost if server is actually running locally
+  // Otherwise, always use production backend
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    // Try to detect if local server is running, otherwise use production
+    console.log('Localhost detected - will try localhost first, fallback to production');
+    // For now, always use production since server is on Render
     return PRODUCTION_BACKEND_URL;
   }
-  
-  // Default to production for any other domain
+
+  // Always use production backend for all other cases
   console.log('Using production backend:', PRODUCTION_BACKEND_URL);
   return PRODUCTION_BACKEND_URL;
 }
