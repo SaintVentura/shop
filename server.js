@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
-const nodemailer = require('nodemailer');
+const sgMail = require('@sendgrid/mail');
 require('dotenv').config();
 
 const app = express();
@@ -60,69 +60,40 @@ app.get('/keep-alive', (req, res) => {
   });
 });
 
-// Simple email sending function using Zoho SMTP
+// Simple email sending function using SendGrid (HTTP-based, no port blocking)
 async function sendEmail({ to, subject, text, html, replyTo }) {
-  const zohoEmail = (process.env.ZOHO_EMAIL || 'customersupport@saintventura.co.za').replace(/^"|"$/g, '');
-  const zohoPassword = (process.env.ZOHO_PASSWORD || process.env.ZOHO_APP_PASSWORD || '').replace(/^"|"$/g, '');
+  const sendGridApiKey = process.env.SENDGRID_API_KEY;
+  const fromEmail = process.env.FROM_EMAIL || 'customersupport@saintventura.co.za';
   
-  if (!zohoPassword) {
-    throw new Error('ZOHO_PASSWORD or ZOHO_APP_PASSWORD must be set in environment variables');
+  if (!sendGridApiKey) {
+    throw new Error('SENDGRID_API_KEY must be set in environment variables. Get your API key from https://app.sendgrid.com/settings/api_keys');
   }
   
-  console.log('📧 Attempting to send email:', { to, from: zohoEmail, subject });
+  // Set SendGrid API key
+  sgMail.setApiKey(sendGridApiKey);
   
-  const mailOptions = {
-    from: `Saint Ventura <${zohoEmail}>`,
+  console.log('📧 Attempting to send email via SendGrid:', { to, from: fromEmail, subject });
+  
+  const msg = {
     to: to,
-    replyTo: replyTo || zohoEmail,
+    from: `Saint Ventura <${fromEmail}>`,
+    replyTo: replyTo || fromEmail,
     subject: subject,
     text: text,
     html: html || text.replace(/\n/g, '<br>')
   };
   
-  // Try port 587 first (TLS), then 465 (SSL) as fallback
-  const smtpConfigs = [
-    { host: 'smtp.zoho.com', port: 587, secure: false },
-    { host: 'smtp.zoho.com', port: 465, secure: true }
-  ];
-  
-  let lastError;
-  
-  for (const config of smtpConfigs) {
-    try {
-      const transporter = nodemailer.createTransport({
-        ...config,
-        auth: {
-          user: zohoEmail,
-          pass: zohoPassword
-        }
-      });
-      
-      // Verify connection first
-      await transporter.verify();
-      console.log(`✅ SMTP connection verified on port ${config.port}`);
-      
-      // Send email
-      const info = await transporter.sendMail(mailOptions);
-      console.log('✅ Email sent successfully to', to, 'via SMTP (port', config.port, '). Message ID:', info.messageId);
-      return { success: true, method: 'smtp', id: info.messageId };
-      
-    } catch (error) {
-      lastError = error;
-      console.error(`❌ Failed on port ${config.port}:`, error.message);
-      if (error.code) {
-        console.error('Error code:', error.code);
-      }
-      // Try next port
-      continue;
+  try {
+    const response = await sgMail.send(msg);
+    console.log('✅ Email sent successfully to', to, 'via SendGrid. Status:', response[0]?.statusCode);
+    return { success: true, method: 'sendgrid', id: response[0]?.headers['x-message-id'] };
+  } catch (error) {
+    console.error('❌ Failed to send email via SendGrid:', error.message);
+    if (error.response) {
+      console.error('SendGrid error details:', error.response.body);
     }
+    throw new Error(`Failed to send email: ${error.message}`);
   }
-  
-  // All attempts failed
-  console.error('❌ Failed to send email via SMTP after trying all ports');
-  console.error('Last error:', lastError?.message);
-  console.error('Full error:', lastError);
-  throw new Error(`Failed to send email: ${lastError?.message || 'Unknown error'}`);
 }
 
 // Email test endpoint - test email configuration
@@ -803,12 +774,13 @@ app.get('/api/payment-status/:checkoutId', async (req, res) => {
 });
 
 // Verify email configuration on startup
-const zohoEmail = (process.env.ZOHO_EMAIL || 'customersupport@saintventura.co.za').replace(/^"|"$/g, '');
-const zohoPassword = process.env.ZOHO_PASSWORD || process.env.ZOHO_APP_PASSWORD || '';
-if (zohoPassword) {
-  console.log(`✅ Email configured: ${zohoEmail} (password loaded from .env)`);
+const sendGridApiKey = process.env.SENDGRID_API_KEY;
+const fromEmail = process.env.FROM_EMAIL || 'customersupport@saintventura.co.za';
+if (sendGridApiKey) {
+  console.log(`✅ Email configured: ${fromEmail} (SendGrid API key loaded from .env)`);
 } else {
-  console.warn(`⚠️  Email password not found in .env file. Please set ZOHO_PASSWORD or ZOHO_APP_PASSWORD`);
+  console.warn(`⚠️  SendGrid API key not found in .env file. Please set SENDGRID_API_KEY`);
+  console.warn(`   Get your API key from: https://app.sendgrid.com/settings/api_keys`);
 }
 
 // Start server
