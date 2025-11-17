@@ -1279,6 +1279,36 @@ function updateShipping() {
     } else {
       console.error('Cannot show address section - element not found!');
     }
+  } else if (location === 'uj') {
+    console.log('Showing UJ campus section for UJ delivery');
+    // Show UJ campus selection
+    if (ujCampusSection) {
+      ujCampusSection.classList.remove('hidden');
+      ujCampusSection.style.setProperty('display', 'block', 'important');
+      console.log('✅ UJ Campus section shown');
+    } else {
+      console.error('❌ UJ Campus section element not found!');
+    }
+    
+    // Hide address section - not needed for campus delivery
+    if (addressSection) {
+      addressSection.classList.add('hidden');
+      addressSection.style.setProperty('display', 'none', 'important');
+      console.log('✅ Address section hidden for campus delivery');
+    }
+    
+    // Remove required attributes from address fields (not needed for campus delivery)
+    const addressInput = document.getElementById('address-autocomplete');
+    const cityInput = document.getElementById('address-city');
+    const provinceSelect = document.getElementById('address-province');
+    const postalInput = document.getElementById('address-postal');
+    
+    if (addressInput) addressInput.removeAttribute('required');
+    if (cityInput) cityInput.removeAttribute('required');
+    if (provinceSelect) provinceSelect.removeAttribute('required');
+    if (postalInput) postalInput.removeAttribute('required');
+    
+    console.log('✅ Address fields made optional for campus delivery');
   } else {
     console.log('No delivery method selected, hiding both sections');
     // Remove required attributes from all fields when no method is selected
