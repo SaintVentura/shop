@@ -3619,14 +3619,9 @@ function initializeCheckoutPage() {
         updateCheckoutShipping();
     } else {
         const addressSection = document.getElementById('address-section');
-        const campusSection = document.getElementById('campus-section');
         if (addressSection) {
             addressSection.classList.add('hidden');
             addressSection.style.setProperty('display', 'none', 'important');
-        }
-        if (campusSection) {
-            campusSection.classList.add('hidden');
-            campusSection.style.setProperty('display', 'none', 'important');
         }
     }
 }
