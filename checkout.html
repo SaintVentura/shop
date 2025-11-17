@@ -607,12 +607,18 @@ if (typeof window !== 'undefined' && window.products && Array.isArray(window.pro
   products = window.products;
 }
 
+// ============================================
+// CHECKOUT PAGE JAVASCRIPT
+// ============================================
+console.log('🔵 Checkout page script loaded!');
+
 let cart = JSON.parse(localStorage.getItem('cart') || '[]');
 let shippingFee = 0;
 
 // Load cart from localStorage on page load
 // Add click handler to button to show loading screen immediately
 document.addEventListener('DOMContentLoaded', function() {
+  console.log('🔵 DOMContentLoaded event fired!');
   // Get form and button elements
   const checkoutForm = document.getElementById('checkout-form');
   const proceedBtn = document.getElementById('proceed-payment-btn');
@@ -1246,25 +1252,45 @@ function hideLoadingScreen() {
   }
 }
 
-// Direct button click handler (fallback)
-function handleCheckoutButtonClick(event) {
+// Direct button click handler (fallback) - MUST be in global scope for onclick
+window.handleCheckoutButtonClick = function(event) {
   console.log('🔘 Direct button click handler called');
+  console.log('   Event:', event);
+  
   if (event) {
     event.preventDefault();
     event.stopPropagation();
   }
-  showLoadingScreen();
+  
+  // Show loading screen immediately
+  console.log('Showing loading screen...');
+  if (typeof showLoadingScreen === 'function') {
+    showLoadingScreen();
+  } else {
+    console.error('❌ showLoadingScreen function not found!');
+    const overlay = document.getElementById('loading-overlay');
+    if (overlay) {
+      overlay.classList.add('show');
+    }
+  }
+  
   // Trigger form submit
   const form = document.getElementById('checkout-form');
   if (form) {
+    console.log('Form found, dispatching submit event...');
     const submitEvent = new Event('submit', { cancelable: true, bubbles: true });
     form.dispatchEvent(submitEvent);
   } else {
+    console.error('❌ Form not found, calling handleCheckout directly');
     // If form not found, call handleCheckout directly
-    console.log('Form not found, calling handleCheckout directly');
-    handleCheckout(event);
+    if (typeof handleCheckout === 'function') {
+      handleCheckout(event);
+    } else {
+      console.error('❌ handleCheckout function not found!');
+      alert('Error: Checkout function not loaded. Please refresh the page.');
+    }
   }
-}
+};
 
 async function handleCheckout(event) {
   console.log('🚀 handleCheckout function called');
