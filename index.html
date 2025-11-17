@@ -3974,22 +3974,25 @@ async function handleCheckout(event) {
     };
 
     try {
-        if (!YOCO_CONFIG.backendUrl) {
-            throw new Error('Backend URL not configured. Please set backendUrl in YOCO_CONFIG.');
-        }
-
         console.log('Sending checkout request to:', YOCO_CONFIG.backendUrl);
-        console.log('Order data:', orderData);
+        console.log('Order data:', JSON.stringify(orderData, null, 2));
+
+        // Add timeout to fetch request
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
         const response = await fetch(YOCO_CONFIG.backendUrl, {
             method: "POST",
             headers: { 
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "Accept": "application/json"
             },
-            body: JSON.stringify(orderData)
+            body: JSON.stringify(orderData),
+            signal: controller.signal
         });
 
-        console.log('Response status:', response.status, response.statusText);
+        clearTimeout(timeoutId);
+        console.log('Backend response status:', response.status, response.statusText);
 
         if (!response.ok) {
             const errorText = await response.text();
@@ -4005,43 +4008,27 @@ async function handleCheckout(event) {
         }
 
         const result = await response.json();
-        console.log('Backend response:', result);
-        console.log('Response keys:', Object.keys(result));
+        console.log('Backend response:', JSON.stringify(result, null, 2));
         
-        // Check for redirect URL first
-        if (result.redirectUrl) {
-            console.log('✅ Found redirectUrl, redirecting to Yoco:', result.redirectUrl);
-            // Small delay to ensure loading screen is visible
+        // Redirect to Yoco checkout page
+        if (result.success && result.redirectUrl) {
+            console.log('✅ Redirecting to Yoco checkout:', result.redirectUrl);
+            // Keep loading screen visible during redirect
             setTimeout(() => {
                 window.location.href = result.redirectUrl;
-            }, 100);
-            return; // Exit function
-        }
-        
-        // Check for checkout ID
-        if (result.checkoutId) {
-            console.log('✅ Found checkoutId, constructing URL:', result.checkoutId);
+            }, 500);
+        } else if (result.checkoutId) {
+            // Alternative: redirect using checkout ID
             const redirectUrl = `https://payments.yoco.com/checkout/${result.checkoutId}`;
-            console.log('Redirecting to Yoco:', redirectUrl);
-            // Small delay to ensure loading screen is visible
+            console.log('✅ Redirecting to Yoco checkout (using ID):', redirectUrl);
+            // Keep loading screen visible during redirect
             setTimeout(() => {
                 window.location.href = redirectUrl;
-            }, 100);
-            return; // Exit function
-        }
-        
-        // Check for success flag
-        if (result.success === false) {
+            }, 500);
+        } else {
             hideCheckoutLoadingScreen();
-            console.error('Backend returned success: false');
-            throw new Error(result.error || 'Payment session creation failed');
+            throw new Error(result.error || 'Failed to create checkout session');
         }
-        
-        // No valid response
-        hideCheckoutLoadingScreen();
-        console.error('❌ Invalid response from backend:', result);
-        console.error('Expected: redirectUrl or checkoutId');
-        throw new Error(result.error || 'Failed to create checkout session. No redirect URL or checkout ID received.');
     } catch (error) {
         console.error('Checkout error:', error);
         console.error('Full error details:', {
