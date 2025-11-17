@@ -3633,9 +3633,14 @@ function initializeCheckoutPage() {
         updateCheckoutShipping();
     } else {
         const addressSection = document.getElementById('address-section');
+        const ujCampusSection = document.getElementById('uj-campus-section');
         if (addressSection) {
             addressSection.classList.add('hidden');
             addressSection.style.setProperty('display', 'none', 'important');
+        }
+        if (ujCampusSection) {
+            ujCampusSection.classList.add('hidden');
+            ujCampusSection.style.setProperty('display', 'none', 'important');
         }
     }
 }
