@@ -17,7 +17,8 @@ app.use(cors({
 app.use(express.json());
 
 // Yoco API configuration
-// Yoco API base URL for live transactions
+// Main API: https://api.yoco.com
+// Checkouts API: https://payments.yoco.com/api/checkouts
 const YOCO_API_URL = 'https://payments.yoco.com';
 const YOCO_SECRET_KEY = process.env.YOCO_SECRET_KEY;
 
@@ -211,7 +212,7 @@ app.post('/api/create-yoco-checkout', async (req, res) => {
     });
 
     // Create checkout with Yoco API
-    // For live transactions, use: https://payments.yoco.com/api/checkouts
+    // Endpoint: https://payments.yoco.com/api/checkouts
     console.log('Creating checkout with Yoco API:', {
       keyLength: YOCO_SECRET_KEY?.length,
       keyPrefix: YOCO_SECRET_KEY?.substring(0, 7),
