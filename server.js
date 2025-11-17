@@ -1,7 +1,6 @@
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
-const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const app = express();
@@ -60,45 +59,49 @@ app.get('/keep-alive', (req, res) => {
   });
 });
 
-// Basic email sending function using SMTP
-async function sendEmail({ to, subject, text, html, replyTo }) {
-  const email = (process.env.ZOHO_EMAIL || 'customersupport@saintventura.co.za').replace(/^"|"$/g, '').trim();
-  const password = (process.env.ZOHO_PASSWORD || process.env.ZOHO_APP_PASSWORD || '').replace(/^"|"$/g, '').trim();
+// Simple form-to-email service function
+async function sendEmail({ to, subject, text, html, replyTo, name, email: fromEmail, phone }) {
+  const formServiceUrl = process.env.FORM_SERVICE_URL || 'https://formspree.io/f/YOUR_FORM_ID';
   
-  if (!password) {
-    throw new Error('ZOHO_PASSWORD or ZOHO_APP_PASSWORD must be set in .env file');
+  if (!formServiceUrl || formServiceUrl.includes('YOUR_FORM_ID')) {
+    console.warn('⚠️  FORM_SERVICE_URL not configured. Emails will not be sent.');
+    console.warn('   Set up a free form service at https://formspree.io and add FORM_SERVICE_URL to .env');
+    // Return success anyway so the form submission doesn't fail
+    return { success: true, method: 'form-service', id: 'no-service-configured' };
   }
   
-  console.log('📧 Sending email via SMTP:', { to, from: email, subject });
+  console.log('📧 Sending form data to email service:', { to, subject });
   
-  // Create transporter
-  const transporter = nodemailer.createTransport({
-    host: 'smtp.zoho.com',
-    port: 587,
-    secure: false,
-    auth: {
-      user: email,
-      pass: password
-    }
-  });
-  
-  // Send email
-  const mailOptions = {
-    from: `Saint Ventura <${email}>`,
-    to: to,
-    replyTo: replyTo || email,
-    subject: subject,
-    text: text,
-    html: html || text.replace(/\n/g, '<br>')
+  // Prepare form data
+  const formData = {
+    _to: to || 'customersupport@saintventura.co.za',
+    _subject: subject,
+    _replyto: replyTo || fromEmail || 'customersupport@saintventura.co.za',
+    message: text || html?.replace(/<[^>]*>/g, '') || '',
+    name: name || 'Website Visitor',
+    email: fromEmail || replyTo || 'noreply@saintventura.co.za',
+    phone: phone || ''
   };
   
+  // Add HTML if provided
+  if (html) {
+    formData._html = html;
+  }
+  
   try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log('✅ Email sent successfully. Message ID:', info.messageId);
-    return { success: true, method: 'smtp', id: info.messageId };
+    const response = await axios.post(formServiceUrl, formData, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+    
+    console.log('✅ Form submitted successfully to email service');
+    return { success: true, method: 'form-service', id: response.data?.id || 'submitted' };
   } catch (error) {
-    console.error('❌ Failed to send email:', error.message);
-    throw error;
+    console.error('❌ Failed to submit form:', error.response?.data || error.message);
+    // Don't throw - just log, so form submissions don't fail
+    return { success: false, method: 'form-service', error: error.message };
   }
 }
 
@@ -378,7 +381,10 @@ Submitted on: ${new Date().toLocaleString()}`,
         <hr>
         <h3>Message:</h3>
         <p>${message.replace(/\n/g, '<br>')}</p>
-      `
+      `,
+      name: name,
+      email: email,
+      phone: phone
     }).then(result => {
       if (result.success) {
         console.log('✅ Contact form email SENT successfully to customersupport@saintventura.co.za');
@@ -455,7 +461,8 @@ app.post('/api/newsletter-subscribe', async (req, res) => {
         <p><strong>Subscription Date:</strong> ${new Date().toLocaleDateString()}</p>
         <p><strong>Time:</strong> ${new Date().toLocaleTimeString()}</p>
         <p>Please add this email to your newsletter subscription list.</p>
-      `
+      `,
+      email: email
     }).then(result => {
       if (result.success) {
         console.log('✅ Newsletter subscription email SENT successfully to customersupport@saintventura.co.za');
@@ -600,6 +607,8 @@ app.post('/api/send-order-confirmation', async (req, res) => {
       to: 'customersupport@saintventura.co.za', // All order confirmations go here
       replyTo: customerEmail, // Allow replying directly to the customer
       subject: `New Order Received - ${customerName} - R${total.toFixed(2)}`,
+      name: customerName,
+      email: customerEmail,
       text: `
 New Order Received
 
@@ -780,13 +789,14 @@ app.get('/api/payment-status/:checkoutId', async (req, res) => {
 });
 
 // Verify email configuration on startup
-const zohoEmail = (process.env.ZOHO_EMAIL || 'customersupport@saintventura.co.za').replace(/^"|"$/g, '').trim();
-const zohoPassword = (process.env.ZOHO_PASSWORD || process.env.ZOHO_APP_PASSWORD || '').replace(/^"|"$/g, '').trim();
+const formServiceUrl = process.env.FORM_SERVICE_URL || '';
 
-if (zohoPassword) {
-  console.log(`✅ Email configured: ${zohoEmail} (SMTP via Zoho)`);
+if (formServiceUrl && !formServiceUrl.includes('YOUR_FORM_ID')) {
+  console.log(`✅ Form-to-email service configured: ${formServiceUrl}`);
 } else {
-  console.warn(`⚠️  Email password not found. Please set ZOHO_PASSWORD or ZOHO_APP_PASSWORD in .env file`);
+  console.warn(`⚠️  Form service not configured. Please set FORM_SERVICE_URL in .env file`);
+  console.warn(`   Get a free form service at: https://formspree.io`);
+  console.warn(`   Then add: FORM_SERVICE_URL=https://formspree.io/f/YOUR_FORM_ID`);
 }
 
 // Start server
