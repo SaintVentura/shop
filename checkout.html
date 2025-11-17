@@ -1284,17 +1284,36 @@ function updateShipping() {
     }
   } else {
     console.log('No delivery method selected, hiding both sections');
-    // Remove required attributes when no method is selected
+    // Remove required attributes from all fields when no method is selected
     const addressInput = document.getElementById('address-autocomplete');
     const cityInput = document.getElementById('address-city');
     const provinceSelect = document.getElementById('address-province');
     const postalInput = document.getElementById('address-postal');
     const campusSelect = document.getElementById('campus-selection');
-    if (addressInput) addressInput.removeAttribute('required');
-    if (cityInput) cityInput.removeAttribute('required');
-    if (provinceSelect) provinceSelect.removeAttribute('required');
-    if (postalInput) postalInput.removeAttribute('required');
-    if (campusSelect) campusSelect.removeAttribute('required');
+    
+    // Remove required from all fields
+    if (addressInput) {
+      addressInput.removeAttribute('required');
+      addressInput.removeAttribute('disabled');
+    }
+    if (cityInput) {
+      cityInput.removeAttribute('required');
+      cityInput.removeAttribute('disabled');
+    }
+    if (provinceSelect) {
+      provinceSelect.removeAttribute('required');
+      provinceSelect.removeAttribute('disabled');
+    }
+    if (postalInput) {
+      postalInput.removeAttribute('required');
+      postalInput.removeAttribute('disabled');
+    }
+    if (campusSelect) {
+      campusSelect.removeAttribute('required');
+      campusSelect.removeAttribute('disabled');
+    }
+    
+    console.log('All fields made optional (no delivery method selected)');
   }
   
   updateSummary();
