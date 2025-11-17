@@ -621,6 +621,38 @@ window.handleCheckoutButtonClick = function(event) {
     event.stopPropagation();
   }
   
+  // CRITICAL: Remove required from hidden fields BEFORE anything else
+  // This prevents browser validation errors
+  const addressSection = document.getElementById('address-section');
+  const campusSection = document.getElementById('campus-section');
+  
+  const isAddressVisible = addressSection && 
+    addressSection.offsetParent !== null &&
+    window.getComputedStyle(addressSection).display !== 'none';
+    
+  const isCampusVisible = campusSection && 
+    campusSection.offsetParent !== null &&
+    window.getComputedStyle(campusSection).display !== 'none';
+  
+  // Remove required from hidden sections IMMEDIATELY
+  if (!isAddressVisible) {
+    console.log('🔧 [ButtonClick] Removing required from address fields (hidden)');
+    const addressInput = document.getElementById('address-autocomplete');
+    const cityInput = document.getElementById('address-city');
+    const provinceSelect = document.getElementById('address-province');
+    const postalInput = document.getElementById('address-postal');
+    if (addressInput) addressInput.removeAttribute('required');
+    if (cityInput) cityInput.removeAttribute('required');
+    if (provinceSelect) provinceSelect.removeAttribute('required');
+    if (postalInput) postalInput.removeAttribute('required');
+  }
+  
+  if (!isCampusVisible) {
+    console.log('🔧 [ButtonClick] Removing required from campus field (hidden)');
+    const campusSelect = document.getElementById('campus-selection');
+    if (campusSelect) campusSelect.removeAttribute('required');
+  }
+  
   // Show loading screen immediately
   console.log('📺 Showing loading screen...');
   const overlay = document.getElementById('loading-overlay');
