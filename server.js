@@ -83,11 +83,28 @@ async function sendEmail({ to, subject, text, html, replyTo }) {
       });
       
       if (error) {
-        console.log('⚠️ Resend API error, trying SMTP fallback:', error.message);
+        console.log('⚠️ Resend API error:', error.message);
+        console.log('⚠️ Error details:', {
+          name: error.name,
+          message: error.message,
+          code: error.code
+        });
+        // If domain not verified, provide helpful message
+        if (error.message && error.message.includes('verify a domain')) {
+          console.error('❌ Domain not verified in Resend. Please verify saintventura.co.za at https://resend.com/domains');
+          console.error('❌ Until domain is verified, emails can only be sent to your verified email address.');
+        }
         throw error;
       }
       
       console.log('✅ Email sent successfully to', to, 'via Resend API. Message ID:', data?.id);
+      console.log('📧 Email details:', {
+        to: to,
+        subject: subject,
+        from: fromEmail,
+        messageId: data?.id,
+        method: 'resend'
+      });
       return { success: true, method: 'resend', id: data?.id };
     } catch (error) {
       console.log('⚠️ Resend failed, trying SMTP fallback...', error.message);
