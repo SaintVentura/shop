@@ -628,13 +628,13 @@ window.handleCheckoutButtonClick = function(event) {
   const cityInput = document.getElementById('address-city');
   const provinceSelect = document.getElementById('address-province');
   const postalInput = document.getElementById('address-postal');
-  const campusSelect = document.getElementById('campus-selection');
+  const ujCampusSelect = document.getElementById('uj-campus-select');
   
   if (addressInput) addressInput.removeAttribute('required');
   if (cityInput) cityInput.removeAttribute('required');
   if (provinceSelect) provinceSelect.removeAttribute('required');
   if (postalInput) postalInput.removeAttribute('required');
-  if (campusSelect) campusSelect.removeAttribute('required');
+  if (ujCampusSelect) ujCampusSelect.removeAttribute('required');
   
   // Show loading screen immediately
   console.log('📺 Showing loading screen...');
@@ -724,13 +724,13 @@ document.addEventListener('DOMContentLoaded', function() {
       const cityInput = document.getElementById('address-city');
       const provinceSelect = document.getElementById('address-province');
       const postalInput = document.getElementById('address-postal');
-      const campusSelect = document.getElementById('campus-selection');
+      const ujCampusSelect = document.getElementById('uj-campus-select');
       
       if (addressInput) addressInput.removeAttribute('required');
       if (cityInput) cityInput.removeAttribute('required');
       if (provinceSelect) provinceSelect.removeAttribute('required');
       if (postalInput) postalInput.removeAttribute('required');
-      if (campusSelect) campusSelect.removeAttribute('required');
+      if (ujCampusSelect) ujCampusSelect.removeAttribute('required');
       
       handleCheckout(e);
       return false;
@@ -1312,7 +1312,7 @@ function updateShipping() {
     const cityInput = document.getElementById('address-city');
     const provinceSelect = document.getElementById('address-province');
     const postalInput = document.getElementById('address-postal');
-    const campusSelect = document.getElementById('campus-selection');
+    const ujCampusSelect = document.getElementById('uj-campus-select');
     
     // Ensure all fields are not required and enabled
     if (addressInput) {
@@ -1331,9 +1331,9 @@ function updateShipping() {
       postalInput.removeAttribute('required');
       postalInput.removeAttribute('disabled');
     }
-    if (campusSelect) {
-      campusSelect.removeAttribute('required');
-      campusSelect.removeAttribute('disabled');
+    if (ujCampusSelect) {
+      ujCampusSelect.removeAttribute('required');
+      ujCampusSelect.removeAttribute('disabled');
     }
     
     console.log('All fields made optional (no delivery method selected)');
@@ -1548,18 +1548,14 @@ window.handleCheckout = async function(event) {
   } else if (location === 'uj') {
     // Validate and get campus selection for UJ Campus Delivery
     console.log('🏫 Processing UJ Campus delivery...');
-    const campusSelect = document.getElementById('campus-selection');
-    const campus = campusSelect?.value || '';
+    const ujCampusSelect = document.getElementById('uj-campus-select');
+    const campus = ujCampusSelect?.value || '';
     
-    console.log('   Campus select element:', campusSelect ? 'Found' : 'NOT FOUND');
+    console.log('   UJ Campus select element:', ujCampusSelect ? 'Found' : 'NOT FOUND');
     console.log('   Campus value:', campus);
     
-    // Check if campus section is visible
-    const campusSection = document.getElementById('campus-section');
-    console.log('   Campus section visible:', campusSection && !campusSection.classList.contains('hidden'));
-    
-    if (!campusSelect) {
-      console.error('❌ Campus select element not found!');
+    if (!ujCampusSelect) {
+      console.error('❌ UJ Campus select element not found!');
       hideLoadingScreen();
       if (submitButton) {
         submitButton.disabled = false;
@@ -1579,10 +1575,7 @@ window.handleCheckout = async function(event) {
         submitButton.style.cursor = 'pointer';
       }
       alert('Please select a UJ campus for delivery.');
-      // Focus on campus select to help user
-      if (campusSelect) {
-        campusSelect.focus();
-      }
+      ujCampusSelect.focus();
       return;
     }
     
