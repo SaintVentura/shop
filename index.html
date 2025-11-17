@@ -3617,7 +3617,12 @@ function getBackendUrl() {
         return 'http://localhost:3000/api/create-yoco-checkout';
     }
     
-    // Production backend on Render
+    // Production backend - UPDATE THIS WITH YOUR NEW BACKEND URL
+    // Options:
+    // - Railway: https://your-app.up.railway.app/api/create-yoco-checkout
+    // - Vercel: https://your-app.vercel.app/api/create-yoco-checkout
+    // - Fly.io: https://your-app.fly.dev/api/create-yoco-checkout
+    // - Render: https://saint-ventura-backend.onrender.com/api/create-yoco-checkout
     const PRODUCTION_BACKEND_URL = 'https://saint-ventura-backend.onrender.com/api/create-yoco-checkout';
     
     // If on GitHub Pages, use production backend
