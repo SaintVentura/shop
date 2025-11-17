@@ -286,7 +286,7 @@
     <div class="bg-white p-8 rounded-xl shadow-md order-2 lg:order-2">
       <h2 class="text-2xl font-semibold mb-6">Shipping Information</h2>
 
-      <form id="checkout-form" class="space-y-6" onsubmit="handleCheckout(event); return false;">
+      <form id="checkout-form" class="space-y-6" novalidate>
         <div>
           <label class="block mb-2 font-medium">Full Name <span class="text-red-500">*</span></label>
           <input id="customer-name" type="text" required class="w-full border border-gray-300 rounded-lg px-4 py-3">
@@ -617,22 +617,39 @@ let shippingFee = 0;
 // Load cart from localStorage on page load
 // Add click handler to button to show loading screen immediately
 document.addEventListener('DOMContentLoaded', function() {
-  // Add click handler to proceed payment button as backup
-  const proceedBtn = document.getElementById('proceed-payment-btn');
-  if (proceedBtn) {
-    proceedBtn.addEventListener('click', function(e) {
-      console.log('Proceed button clicked');
-      // Show loading screen immediately on click (before form validation)
-      showLoadingScreen();
-    });
-  }
-  
-  // Also add form submit listener as backup
+  // Get form and button elements
   const checkoutForm = document.getElementById('checkout-form');
+  const proceedBtn = document.getElementById('proceed-payment-btn');
+  
+  // Add form submit listener - main handler
   if (checkoutForm) {
     checkoutForm.addEventListener('submit', function(e) {
       console.log('Form submit event triggered');
+      e.preventDefault();
+      e.stopPropagation();
       handleCheckout(e);
+      return false;
+    });
+  }
+  
+  // Add button click handler - shows loading immediately and triggers form submit
+  if (proceedBtn) {
+    proceedBtn.addEventListener('click', function(e) {
+      console.log('Proceed button clicked');
+      // Show loading screen immediately
+      showLoadingScreen();
+      
+      // Trigger form validation and submit
+      if (checkoutForm) {
+        if (checkoutForm.checkValidity()) {
+          console.log('Form is valid, submitting...');
+          checkoutForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+        } else {
+          console.log('Form validation failed');
+          hideLoadingScreen();
+          checkoutForm.reportValidity();
+        }
+      }
     });
   }
   console.log('Checkout page loaded');
