@@ -681,8 +681,9 @@ app.post('/api/send-order-confirmation', async (req, res) => {
       minute: '2-digit'
     });
 
-    // Send email - SENT TO: customersupport@saintventura.co.za
-    const result = await sendEmail({
+    // Send email asynchronously (non-blocking) - SENT TO: customersupport@saintventura.co.za
+    // Return success immediately, send email in background
+    sendEmail({
       to: 'customersupport@saintventura.co.za', // All order confirmations go here
       replyTo: customerEmail, // Allow replying directly to the customer
       subject: `New Order Received - ${customerName} - R${total.toFixed(2)}`,
@@ -758,44 +759,37 @@ ${deliveryAddress ? `Delivery Address: ${deliveryAddress}` : ''}
           </p>
         </div>
       `
-    });
-    
-    if (result.success) {
-      console.log('✅ Order confirmation email SENT successfully to customersupport@saintventura.co.za');
-      console.log('Email details:', { 
-        messageId: result.id || result.info?.messageId,
-        method: result.method,
-        to: 'customersupport@saintventura.co.za',
-        subject: `New Order Received - ${customerName} - R${total.toFixed(2)}`,
+    }).then(result => {
+      if (result.success) {
+        console.log('✅ Order confirmation email SENT successfully to customersupport@saintventura.co.za');
+        console.log('Email details:', { 
+          messageId: result.id || result.info?.messageId,
+          method: result.method,
+          to: 'customersupport@saintventura.co.za',
+          subject: `New Order Received - ${customerName} - R${total.toFixed(2)}`,
+          customerName: customerName,
+          customerEmail: customerEmail,
+          total: total,
+          orderId: orderId
+        });
+      }
+    }).catch(error => {
+      console.error('❌ FAILED to send order confirmation email to customersupport@saintventura.co.za');
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
         customerName: customerName,
         customerEmail: customerEmail,
         total: total,
         orderId: orderId
       });
-      
-      res.json({ 
-        success: true, 
-        message: 'Order confirmation email sent successfully' 
-      });
-    } else {
-      console.error('❌ FAILED to send order confirmation email to customersupport@saintventura.co.za after retries');
-      console.error('Error details:', {
-        code: result.error?.code,
-        command: result.error?.command,
-        response: result.error?.response,
-        responseCode: result.error?.responseCode,
-        message: result.error?.message,
-        stack: result.error?.stack,
-        customerName: customerName,
-        orderId: orderId
-      });
-      
-      // Still return success to user, but log the error
-      res.json({ 
-        success: true, 
-        message: 'Order confirmation email sent successfully (email may be delayed)' 
-      });
-    }
+    });
+    
+    // Return success immediately (email sends in background)
+    res.json({ 
+      success: true, 
+      message: 'Order confirmation email sent successfully' 
+    });
 
   } catch (error) {
     console.error('Error sending order confirmation email:', error);
