@@ -3619,14 +3619,9 @@ function initializeCheckoutPage() {
         updateCheckoutShipping();
     } else {
         const addressSection = document.getElementById('address-section');
-        const campusSection = document.getElementById('campus-section');
         if (addressSection) {
             addressSection.classList.add('hidden');
             addressSection.style.setProperty('display', 'none', 'important');
-        }
-        if (campusSection) {
-            campusSection.classList.add('hidden');
-            campusSection.style.setProperty('display', 'none', 'important');
         }
     }
 }
@@ -3874,19 +3869,6 @@ async function handleCheckout(event) {
             province: province,
             postalCode: postalCode,
             extra: extra
-        };
-    } else if (location === 'uj') {
-        const campus = document.getElementById('campus-selection').value || '';
-        if (!campus) {
-            hideCheckoutLoadingScreen();
-            alert('Please select a UJ campus for delivery.');
-            return;
-        }
-        deliveryInfo = `UJ ${campus} Campus`;
-        
-        deliveryDetails = {
-            type: 'campus',
-            campus: campus
         };
     }
 
