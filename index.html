@@ -4017,9 +4017,9 @@ async function handleCheckout(event) {
         // Check for redirect URL first (preferred)
         if (result.redirectUrl) {
             console.log('✅ Found redirectUrl, redirecting to Yoco:', result.redirectUrl);
-            // Redirect immediately - no delay needed
-            console.log('🚀 Redirecting NOW to:', result.redirectUrl);
-            window.location.href = result.redirectUrl;
+            // Redirect immediately - use window.location.replace for immediate redirect
+            console.log('🚀 Redirecting NOW to Yoco checkout:', result.redirectUrl);
+            window.location.replace(result.redirectUrl);
             return; // Exit function
         }
         
@@ -4029,9 +4029,9 @@ async function handleCheckout(event) {
             const redirectUrl = `https://payments.yoco.com/checkout/${result.checkoutId}`;
             console.log('✅ Found checkoutId, constructing URL:', redirectUrl);
             console.log('   This URL works on all devices (mobile, desktop, tablet)');
-            // Redirect immediately
-            console.log('🚀 Redirecting NOW to:', redirectUrl);
-            window.location.href = redirectUrl;
+            // Redirect immediately - use window.location.replace for immediate redirect
+            console.log('🚀 Redirecting NOW to Yoco checkout:', redirectUrl);
+            window.location.replace(redirectUrl);
             return; // Exit function
         }
         
