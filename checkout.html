@@ -614,13 +614,11 @@ window.handleCheckoutButtonClick = function(event) {
   const cityInput = document.getElementById('address-city');
   const provinceSelect = document.getElementById('address-province');
   const postalInput = document.getElementById('address-postal');
-  const ujCampusSelect = document.getElementById('uj-campus-select');
   
   if (addressInput) addressInput.removeAttribute('required');
   if (cityInput) cityInput.removeAttribute('required');
   if (provinceSelect) provinceSelect.removeAttribute('required');
   if (postalInput) postalInput.removeAttribute('required');
-  if (ujCampusSelect) ujCampusSelect.removeAttribute('required');
   
   // Show loading screen immediately
   console.log('📺 Showing loading screen...');
@@ -1337,13 +1335,11 @@ window.handleCheckout = async function(event) {
   const cityInput = document.getElementById('address-city');
   const provinceSelect = document.getElementById('address-province');
   const postalInput = document.getElementById('address-postal');
-  const ujCampusSelect = document.getElementById('uj-campus-select');
   
   if (addressInput) addressInput.removeAttribute('required');
   if (cityInput) cityInput.removeAttribute('required');
   if (provinceSelect) provinceSelect.removeAttribute('required');
   if (postalInput) postalInput.removeAttribute('required');
-  if (ujCampusSelect) ujCampusSelect.removeAttribute('required');
   
   // Show loading screen IMMEDIATELY - after fixing required attributes
   console.log('📺 Showing loading screen');
