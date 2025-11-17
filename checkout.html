@@ -1361,7 +1361,41 @@ window.handleCheckout = async function(event) {
     event.stopPropagation();
   }
   
-  // Show loading screen IMMEDIATELY - before any validation
+  // CRITICAL: Remove required from hidden fields BEFORE any validation
+  // This prevents "invalid form control not focusable" errors
+  const location = document.getElementById('shipping-location')?.value || '';
+  const addressSection = document.getElementById('address-section');
+  const campusSection = document.getElementById('campus-section');
+  const isAddressVisible = addressSection && !addressSection.classList.contains('hidden');
+  const isCampusVisible = campusSection && !campusSection.classList.contains('hidden');
+  
+  console.log('🔧 Managing required attributes based on visibility...');
+  console.log('   Location:', location);
+  console.log('   Address section visible:', isAddressVisible);
+  console.log('   Campus section visible:', isCampusVisible);
+  
+  // Get all form fields
+  const addressInput = document.getElementById('address-autocomplete');
+  const cityInput = document.getElementById('address-city');
+  const provinceSelect = document.getElementById('address-province');
+  const postalInput = document.getElementById('address-postal');
+  const campusSelect = document.getElementById('campus-selection');
+  
+  // Remove required from hidden fields
+  if (!isAddressVisible) {
+    console.log('   Removing required from address fields (hidden)');
+    if (addressInput) addressInput.removeAttribute('required');
+    if (cityInput) cityInput.removeAttribute('required');
+    if (provinceSelect) provinceSelect.removeAttribute('required');
+    if (postalInput) postalInput.removeAttribute('required');
+  }
+  
+  if (!isCampusVisible) {
+    console.log('   Removing required from campus field (hidden)');
+    if (campusSelect) campusSelect.removeAttribute('required');
+  }
+  
+  // Show loading screen IMMEDIATELY - after fixing required attributes
   console.log('📺 Showing loading screen');
   showLoadingScreen();
   
