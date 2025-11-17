@@ -631,20 +631,25 @@ document.addEventListener('DOMContentLoaded', function() {
   // Add button click handler - shows loading immediately and triggers form submit
   if (proceedBtn) {
     proceedBtn.addEventListener('click', function(e) {
-      console.log('Proceed button clicked');
+      console.log('✅ Proceed button clicked');
+      e.preventDefault();
+      e.stopPropagation();
+      
       // Show loading screen immediately
       showLoadingScreen();
       
-      // Trigger form validation and submit
+      // Trigger form submit directly (form has novalidate, so we handle validation in handleCheckout)
       if (checkoutForm) {
-        if (checkoutForm.checkValidity()) {
-          console.log('Form is valid, submitting...');
-          checkoutForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
-        } else {
-          console.log('Form validation failed');
-          hideLoadingScreen();
-          checkoutForm.reportValidity();
-        }
+        console.log('Triggering form submit...');
+        // Create and dispatch submit event
+        const submitEvent = new Event('submit', { 
+          cancelable: true, 
+          bubbles: true 
+        });
+        checkoutForm.dispatchEvent(submitEvent);
+      } else {
+        console.error('❌ Checkout form not found!');
+        hideLoadingScreen();
       }
     });
   }
@@ -1231,7 +1236,7 @@ function hideLoadingScreen() {
 }
 
 async function handleCheckout(event) {
-  console.log('handleCheckout called');
+  console.log('🚀 handleCheckout function called');
   
   if (event) {
     event.preventDefault();
@@ -1239,7 +1244,7 @@ async function handleCheckout(event) {
   }
   
   // Show loading screen IMMEDIATELY - before any validation
-  console.log('Showing loading screen');
+  console.log('📺 Showing loading screen');
   showLoadingScreen();
   
   // Disable submit button to prevent double submission
