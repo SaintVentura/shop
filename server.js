@@ -75,10 +75,12 @@ async function sendEmail({ to, subject, text, html, replyTo }) {
       // To change the from email, set RESEND_FROM_EMAIL in your .env file
       // Format: "Your Name <email@domain.com>" or just "email@domain.com"
       const fromEmail = process.env.RESEND_FROM_EMAIL || 'Saint Ventura <customersupport@saintventura.co.za>';
+      // Set replyTo to customersupport@saintventura.co.za so replies go to Zoho inbox
+      const replyToEmail = replyTo || 'customersupport@saintventura.co.za';
       const { data, error } = await resend.emails.send({
         from: fromEmail,
         to: to,
-        replyTo: replyTo || zohoEmail,
+        replyTo: replyToEmail,
         subject: subject,
         html: html || text.replace(/\n/g, '<br>'),
         text: text
