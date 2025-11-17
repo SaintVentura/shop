@@ -316,7 +316,7 @@
           <div id="address-section" class="hidden mt-4 space-y-4">
             <div>
               <label class="block mb-2 font-medium">Street Address <span class="text-red-500">*</span></label>
-              <input id="address-autocomplete" type="text" placeholder="Start typing your South African address..." required class="w-full border border-gray-300 rounded-lg px-4 py-3" autocomplete="street-address">
+              <input id="address-autocomplete" type="text" placeholder="Start typing your South African address..." class="w-full border border-gray-300 rounded-lg px-4 py-3" autocomplete="street-address">
               <div id="address-suggestions" class="hidden mt-2 border border-gray-200 rounded-lg bg-white shadow-lg max-h-60 overflow-y-auto"></div>
               <p class="text-xs text-gray-500 mt-1">Powered by Google Maps - Start typing to see suggestions</p>
         </div>
@@ -324,11 +324,11 @@
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="block mb-2 font-medium">City <span class="text-red-500">*</span></label>
-                <input id="address-city" type="text" required class="w-full border border-gray-300 rounded-lg px-4 py-3" autocomplete="address-level2">
+                <input id="address-city" type="text" class="w-full border border-gray-300 rounded-lg px-4 py-3" autocomplete="address-level2">
               </div>
               <div>
                 <label class="block mb-2 font-medium">Province <span class="text-red-500">*</span></label>
-                <select id="address-province" required class="w-full border border-gray-300 rounded-lg px-4 py-3" autocomplete="address-level1">
+                <select id="address-province" class="w-full border border-gray-300 rounded-lg px-4 py-3" autocomplete="address-level1">
                   <option value="">Select Province</option>
                   <option value="Eastern Cape">Eastern Cape</option>
                   <option value="Free State">Free State</option>
@@ -346,7 +346,7 @@
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="block mb-2 font-medium">Postal Code <span class="text-red-500">*</span></label>
-                <input id="address-postal" type="text" pattern="[0-9]{4}" maxlength="4" required class="w-full border border-gray-300 rounded-lg px-4 py-3" autocomplete="postal-code" placeholder="0000">
+                <input id="address-postal" type="text" pattern="[0-9]{4}" maxlength="4" class="w-full border border-gray-300 rounded-lg px-4 py-3" autocomplete="postal-code" placeholder="0000">
               </div>
               <div>
                 <label class="block mb-2 font-medium">Suburb</label>
