@@ -373,7 +373,7 @@
       </div>
         </div>
 
-        <button type="submit" id="proceed-payment-btn" class="w-full bg-black text-white py-4 rounded-lg font-semibold hover:bg-gray-800 transition-all duration-300 transform hover:scale-[1.02] text-lg">
+        <button type="submit" id="proceed-payment-btn" onclick="handleCheckoutButtonClick(event)" class="w-full bg-black text-white py-4 rounded-lg font-semibold hover:bg-gray-800 transition-all duration-300 transform hover:scale-[1.02] text-lg">
           Proceed to Payment
         </button>
       </form>
@@ -1232,6 +1232,26 @@ function hideLoadingScreen() {
       submitButton.style.opacity = '1';
       submitButton.style.cursor = 'pointer';
     }
+  }
+}
+
+// Direct button click handler (fallback)
+function handleCheckoutButtonClick(event) {
+  console.log('🔘 Direct button click handler called');
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  showLoadingScreen();
+  // Trigger form submit
+  const form = document.getElementById('checkout-form');
+  if (form) {
+    const submitEvent = new Event('submit', { cancelable: true, bubbles: true });
+    form.dispatchEvent(submitEvent);
+  } else {
+    // If form not found, call handleCheckout directly
+    console.log('Form not found, calling handleCheckout directly');
+    handleCheckout(event);
   }
 }
 
