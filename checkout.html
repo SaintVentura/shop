@@ -1305,6 +1305,29 @@ function updateShipping() {
     } else {
       console.error('❌ UJ Campus section element not found!');
     }
+    
+    // Auto-fill address fields with campus delivery info (not required, just for reference)
+    const addressInput = document.getElementById('address-autocomplete');
+    const cityInput = document.getElementById('address-city');
+    const provinceSelect = document.getElementById('address-province');
+    const postalInput = document.getElementById('address-postal');
+    
+    if (addressInput) {
+      addressInput.value = 'University of Johannesburg Campus';
+      console.log('✅ Auto-filled address field');
+    }
+    if (cityInput) {
+      cityInput.value = 'Johannesburg';
+      console.log('✅ Auto-filled city field');
+    }
+    if (provinceSelect) {
+      provinceSelect.value = 'Gauteng';
+      console.log('✅ Auto-filled province field');
+    }
+    if (postalInput) {
+      postalInput.value = '2000';
+      console.log('✅ Auto-filled postal code field');
+    }
   } else {
     console.log('No delivery method selected, hiding both sections');
     // Remove required attributes from all fields when no method is selected
