@@ -841,13 +841,18 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Initial location selected:', currentLocation.value);
     updateShipping();
   } else {
-    // Ensure address section is hidden on initial load
+    // Ensure both sections are hidden on initial load
     const addressSection = document.getElementById('address-section');
+    const ujCampusSection = document.getElementById('uj-campus-section');
     if (addressSection) {
       addressSection.classList.add('hidden');
       addressSection.style.setProperty('display', 'none', 'important'); // Force hide
     }
-    console.log('Initialized - address section hidden');
+    if (ujCampusSection) {
+      ujCampusSection.classList.add('hidden');
+      ujCampusSection.style.setProperty('display', 'none', 'important'); // Force hide
+    }
+    console.log('Initialized - both sections hidden');
   }
 });
 
