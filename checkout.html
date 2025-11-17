@@ -1195,18 +1195,37 @@ function updateShipping() {
       addressSection.classList.remove('hidden');
       addressSection.style.setProperty('display', 'block', 'important'); // Force show with !important
       console.log('Address section should now be visible');
-      // Make address fields required
+      // Make address fields required and remove required from campus
       const addressInput = document.getElementById('address-autocomplete');
       const cityInput = document.getElementById('address-city');
       const provinceSelect = document.getElementById('address-province');
       const postalInput = document.getElementById('address-postal');
+      const campusSelect = document.getElementById('campus-selection');
+      
+      // Make address fields required
       if (addressInput) {
         addressInput.setAttribute('required', 'required');
+        addressInput.removeAttribute('disabled');
         console.log('Address input made required');
       }
-      if (cityInput) cityInput.setAttribute('required', 'required');
-      if (provinceSelect) provinceSelect.setAttribute('required', 'required');
-      if (postalInput) postalInput.setAttribute('required', 'required');
+      if (cityInput) {
+        cityInput.setAttribute('required', 'required');
+        cityInput.removeAttribute('disabled');
+      }
+      if (provinceSelect) {
+        provinceSelect.setAttribute('required', 'required');
+        provinceSelect.removeAttribute('disabled');
+      }
+      if (postalInput) {
+        postalInput.setAttribute('required', 'required');
+        postalInput.removeAttribute('disabled');
+      }
+      
+      // Remove required from campus field (it's hidden)
+      if (campusSelect) {
+        campusSelect.removeAttribute('required');
+        console.log('Campus select made optional (address section visible)');
+      }
       
       // Initialize Google Maps autocomplete when section becomes visible
       // Wait for Google Maps API to load if needed
@@ -1238,12 +1257,28 @@ function updateShipping() {
       campusSection.classList.remove('hidden');
       campusSection.style.setProperty('display', 'block', 'important'); // Force show with !important
       console.log('Campus section should now be visible');
-      // Make campus selection required
+      // Make campus selection required and remove required from address fields
       const campusSelect = document.getElementById('campus-selection');
+      const addressInput = document.getElementById('address-autocomplete');
+      const cityInput = document.getElementById('address-city');
+      const provinceSelect = document.getElementById('address-province');
+      const postalInput = document.getElementById('address-postal');
+      
+      // Make campus selection required
       if (campusSelect) {
         campusSelect.setAttribute('required', 'required');
+        campusSelect.removeAttribute('disabled');
         console.log('Campus select made required');
       }
+      
+      // Remove required from address fields (they're hidden)
+      if (addressInput) {
+        addressInput.removeAttribute('required');
+        console.log('Address input made optional (campus section visible)');
+      }
+      if (cityInput) cityInput.removeAttribute('required');
+      if (provinceSelect) provinceSelect.removeAttribute('required');
+      if (postalInput) postalInput.removeAttribute('required');
     } else {
       console.error('Cannot show campus section - element not found!');
     }
