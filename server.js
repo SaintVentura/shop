@@ -300,24 +300,33 @@ app.post('/api/create-yoco-checkout', async (req, res) => {
     });
 
   } catch (error) {
-    // Simplified error handling
+    // Detailed error logging
     const status = error.response?.status || 500;
     const errorData = error.response?.data;
-    const errorMessage = errorData?.message || error.message || 'Failed to create checkout';
+    const errorMessage = errorData?.message || errorData?.error || error.message || 'Failed to create checkout';
     
-    console.error('❌ Checkout error:', {
-      status: status,
-      message: errorMessage
-    });
+    console.error('❌ Checkout error occurred:');
+    console.error('   Status:', status);
+    console.error('   Message:', errorMessage);
+    console.error('   Error data:', JSON.stringify(errorData, null, 2));
+    
+    // Log request details for debugging
+    if (error.config) {
+      console.error('   Request URL:', error.config.url);
+      console.error('   Request method:', error.config.method);
+    }
     
     // User-friendly error messages
     let userMessage = errorMessage;
     if (status === 401 || status === 403) {
       userMessage = 'Authentication failed. Check YOCO_SECRET_KEY in .env file.';
+      console.error('   ⚠️ This is an authentication error - check your API key!');
     } else if (status === 404) {
-      userMessage = 'Yoco API endpoint not found.';
+      userMessage = 'Yoco API endpoint not found. Check API URL.';
+      console.error('   ⚠️ This is a 404 error - check the API endpoint URL!');
     } else if (!error.response) {
       userMessage = 'Cannot connect to Yoco API. Check internet connection.';
+      console.error('   ⚠️ No response from Yoco - network issue!');
     }
     
     res.status(status).json({ 
