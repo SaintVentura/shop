@@ -1256,7 +1256,12 @@ async function handleCheckout(event) {
   }
   
   // Validate backend configuration
+  console.log('🔍 Checking backend configuration...');
+  console.log('   YOCO_CONFIG:', YOCO_CONFIG);
+  console.log('   backendUrl:', YOCO_CONFIG?.backendUrl);
+  
   if (!YOCO_CONFIG || !YOCO_CONFIG.backendUrl) {
+    console.error('❌ Backend URL not configured!');
     hideLoadingScreen();
     if (submitButton) {
       submitButton.disabled = false;
@@ -1267,7 +1272,10 @@ async function handleCheckout(event) {
     return;
   }
   
+  console.log('✅ Backend URL configured:', YOCO_CONFIG.backendUrl);
+  
   try {
+    console.log('📝 Collecting form data...');
     const checkoutSubtotal = parseFloat(localStorage.getItem('checkoutSubtotal') || 0);
     const finalTotal = checkoutSubtotal + shippingFee;
     const location = document.getElementById('shipping-location')?.value || '';
@@ -1275,7 +1283,15 @@ async function handleCheckout(event) {
     const email = document.getElementById('customer-email')?.value || '';
     const phone = document.getElementById('customer-phone')?.value || '';
     
-    console.log('Form data:', { name, email, phone, location, checkoutSubtotal, shippingFee, finalTotal });
+    console.log('📋 Form data collected:', { 
+      name, 
+      email, 
+      phone, 
+      location, 
+      checkoutSubtotal, 
+      shippingFee, 
+      finalTotal 
+    });
     
     // Validate cart has items
     if (!cart || cart.length === 0) {
