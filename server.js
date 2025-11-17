@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 require('dotenv').config();
 
 const app = express();
@@ -60,13 +61,41 @@ app.get('/keep-alive', (req, res) => {
   });
 });
 
-// Helper function to send email using Zoho SMTP with retry logic
+// Helper function to send email - tries Resend API first (works on Render), then SMTP fallback
 async function sendEmail({ to, subject, text, html, replyTo }) {
+  const RESEND_API_KEY = process.env.RESEND_API_KEY;
   const zohoEmail = (process.env.ZOHO_EMAIL || 'customersupport@saintventura.co.za').replace(/^"|"$/g, '');
   const zohoPassword = (process.env.ZOHO_PASSWORD || process.env.ZOHO_APP_PASSWORD || '').replace(/^"|"$/g, '');
   
+  // Try Resend API first (HTTP-based, works on Render free tier)
+  if (RESEND_API_KEY) {
+    try {
+      const resend = new Resend(RESEND_API_KEY);
+      const { data, error } = await resend.emails.send({
+        from: 'Saint Ventura <onboarding@resend.dev>', // You can verify your domain later
+        to: to,
+        replyTo: replyTo || zohoEmail,
+        subject: subject,
+        html: html || text.replace(/\n/g, '<br>'),
+        text: text
+      });
+      
+      if (error) {
+        console.log('⚠️ Resend API error, trying SMTP fallback:', error.message);
+        throw error;
+      }
+      
+      console.log('✅ Email sent successfully to', to, 'via Resend API. Message ID:', data?.id);
+      return { success: true, method: 'resend', id: data?.id };
+    } catch (error) {
+      console.log('⚠️ Resend failed, trying SMTP fallback...', error.message);
+      // Fall through to SMTP
+    }
+  }
+  
+  // Fallback to SMTP (may not work on Render free tier)
   if (!zohoPassword) {
-    const errorMsg = 'ZOHO_PASSWORD is not set in environment variables. Please set ZOHO_PASSWORD in your .env file.';
+    const errorMsg = 'No email service configured. Please set RESEND_API_KEY or ZOHO_PASSWORD in environment variables.';
     console.error('❌', errorMsg);
     throw new Error(errorMsg);
   }
@@ -78,7 +107,7 @@ async function sendEmail({ to, subject, text, html, replyTo }) {
       port: 587,
       secure: false,
       auth: { user: zohoEmail, pass: zohoPassword },
-      connectionTimeout: 60000, // 60 seconds
+      connectionTimeout: 60000,
       greetingTimeout: 60000,
       socketTimeout: 60000,
       requireTLS: true,
@@ -112,7 +141,7 @@ async function sendEmail({ to, subject, text, html, replyTo }) {
   };
   
   let lastError;
-  const maxRetries = 3;
+  const maxRetries = 2; // Reduced retries since SMTP often fails on Render
   
   // Try each SMTP configuration
   for (const config of smtpConfigs) {
@@ -126,7 +155,7 @@ async function sendEmail({ to, subject, text, html, replyTo }) {
         // Verify connection with timeout
         const verifyPromise = transporter.verify();
         const verifyTimeout = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Connection verification timeout')), 45000)
+          setTimeout(() => reject(new Error('Connection verification timeout')), 30000)
         );
         
         await Promise.race([verifyPromise, verifyTimeout]);
@@ -135,7 +164,7 @@ async function sendEmail({ to, subject, text, html, replyTo }) {
         // Send email with timeout
         const sendPromise = transporter.sendMail(mailOptions);
         const sendTimeout = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Email send timeout')), 45000)
+          setTimeout(() => reject(new Error('Email send timeout')), 30000)
         );
         
         const info = await Promise.race([sendPromise, sendTimeout]);
@@ -151,7 +180,7 @@ async function sendEmail({ to, subject, text, html, replyTo }) {
         console.log(`⚠️ Port ${config.port} attempt ${attempt}/${maxRetries} failed:`, error.message);
         
         if (attempt < maxRetries) {
-          const delay = Math.min(2000 * attempt, 10000); // Exponential backoff, max 10s
+          const delay = Math.min(2000 * attempt, 5000);
           console.log(`Retrying in ${delay}ms...`);
           await new Promise(resolve => setTimeout(resolve, delay));
         }
@@ -160,7 +189,7 @@ async function sendEmail({ to, subject, text, html, replyTo }) {
   }
   
   // All attempts failed
-  const errorMsg = `Failed to send email after ${maxRetries} attempts on all ports. Last error: ${lastError?.message || 'Unknown error'}`;
+  const errorMsg = `Failed to send email. SMTP is blocked on Render free tier. Please set RESEND_API_KEY in environment variables for reliable email delivery. Last error: ${lastError?.message || 'Unknown error'}`;
   console.error('❌', errorMsg);
   throw new Error(errorMsg);
 }
@@ -409,8 +438,9 @@ app.post('/api/contact-form', async (req, res) => {
       });
     }
 
-    // Send email - SENT TO: customersupport@saintventura.co.za
-    const result = await sendEmail({
+    // Send email asynchronously (non-blocking) - SENT TO: customersupport@saintventura.co.za
+    // Return success immediately, send email in background
+    sendEmail({
       to: 'customersupport@saintventura.co.za', // All contact form emails go here
       replyTo: email, // Allow replying directly to the customer
       subject: `Contact Form: ${subject}`,
@@ -436,40 +466,33 @@ Submitted on: ${new Date().toLocaleString()}`,
         <h3>Message:</h3>
         <p>${message.replace(/\n/g, '<br>')}</p>
       `
-    });
-    
-    if (result.success) {
-      console.log('✅ Contact form email SENT successfully to customersupport@saintventura.co.za');
-      console.log('Email details:', { 
-        messageId: result.id || result.info?.messageId,
-        method: result.method,
-        to: 'customersupport@saintventura.co.za',
-        subject: `Contact Form: ${subject}`,
+    }).then(result => {
+      if (result.success) {
+        console.log('✅ Contact form email SENT successfully to customersupport@saintventura.co.za');
+        console.log('Email details:', { 
+          messageId: result.id || result.info?.messageId,
+          method: result.method,
+          to: 'customersupport@saintventura.co.za',
+          subject: `Contact Form: ${subject}`,
+          name: name,
+          email: email
+        });
+      }
+    }).catch(error => {
+      console.error('❌ FAILED to send contact form email to customersupport@saintventura.co.za');
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
         name: name,
         email: email
       });
-      
-      res.json({ 
-        success: true, 
-        message: 'Contact form submitted successfully' 
-      });
-    } else {
-      console.error('❌ FAILED to send contact form email to customersupport@saintventura.co.za after retries');
-      console.error('Error details:', {
-        code: result.error?.code,
-        command: result.error?.command,
-        response: result.error?.response,
-        responseCode: result.error?.responseCode,
-        message: result.error?.message,
-        stack: result.error?.stack
-      });
-      
-      // Still return success to user, but log the error
-      res.json({ 
-        success: true, 
-        message: 'Contact form submitted successfully (email may be delayed)' 
-      });
-    }
+    });
+    
+    // Return success immediately (email sends in background)
+    res.json({ 
+      success: true, 
+      message: 'Contact form submitted successfully' 
+    });
 
   } catch (error) {
     console.error('Error sending contact form email:', error);
@@ -507,8 +530,9 @@ app.post('/api/newsletter-subscribe', async (req, res) => {
       });
     }
 
-    // Send email - SENT TO: customersupport@saintventura.co.za
-    const result = await sendEmail({
+    // Send email asynchronously (non-blocking) - SENT TO: customersupport@saintventura.co.za
+    // Return success immediately, send email in background
+    sendEmail({
       to: 'customersupport@saintventura.co.za', // All newsletter subscriptions go here
       subject: 'Newsletter Subscription Request',
       text: `New newsletter subscription:\n\nEmail: ${email}\nSubscription Date: ${new Date().toLocaleDateString()}\nTime: ${new Date().toLocaleTimeString()}`,
@@ -519,39 +543,31 @@ app.post('/api/newsletter-subscribe', async (req, res) => {
         <p><strong>Time:</strong> ${new Date().toLocaleTimeString()}</p>
         <p>Please add this email to your newsletter subscription list.</p>
       `
-    });
-    
-    if (result.success) {
-      console.log('✅ Newsletter subscription email SENT successfully to customersupport@saintventura.co.za');
-      console.log('Email details:', { 
-        messageId: result.id || result.info?.messageId,
-        method: result.method,
-        to: 'customersupport@saintventura.co.za',
-        subject: 'Newsletter Subscription Request',
+    }).then(result => {
+      if (result.success) {
+        console.log('✅ Newsletter subscription email SENT successfully to customersupport@saintventura.co.za');
+        console.log('Email details:', { 
+          messageId: result.id || result.info?.messageId,
+          method: result.method,
+          to: 'customersupport@saintventura.co.za',
+          subject: 'Newsletter Subscription Request',
+          subscriberEmail: email
+        });
+      }
+    }).catch(error => {
+      console.error('❌ FAILED to send newsletter email to customersupport@saintventura.co.za');
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
         subscriberEmail: email
       });
-      
-      res.json({ 
-        success: true, 
-        message: 'Subscription request sent successfully' 
-      });
-    } else {
-      console.error('❌ FAILED to send newsletter email to customersupport@saintventura.co.za after retries');
-      console.error('Error details:', {
-        code: result.error?.code,
-        command: result.error?.command,
-        response: result.error?.response,
-        responseCode: result.error?.responseCode,
-        message: result.error?.message,
-        stack: result.error?.stack
-      });
-      
-      // Still return success to user, but log the error
-      res.json({ 
-        success: true, 
-        message: 'Subscription request sent successfully (email may be delayed)' 
-      });
-    }
+    });
+    
+    // Return success immediately (email sends in background)
+    res.json({ 
+      success: true, 
+      message: 'Subscription request sent successfully' 
+    });
 
   } catch (error) {
     console.error('Error sending newsletter subscription email:', error);
