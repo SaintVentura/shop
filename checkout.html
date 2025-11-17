@@ -1292,7 +1292,8 @@ window.handleCheckoutButtonClick = function(event) {
   }
 };
 
-async function handleCheckout(event) {
+// Make handleCheckout available globally
+window.handleCheckout = async function(event) {
   console.log('🚀 handleCheckout function called');
   
   if (event) {
