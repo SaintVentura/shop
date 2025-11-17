@@ -286,7 +286,7 @@
     <div class="bg-white p-8 rounded-xl shadow-md order-2 lg:order-2">
       <h2 class="text-2xl font-semibold mb-6">Shipping Information</h2>
 
-      <form id="checkout-form" class="space-y-6" onsubmit="handleCheckout(event)">
+      <form id="checkout-form" class="space-y-6" onsubmit="handleCheckout(event); return false;">
         <div>
           <label class="block mb-2 font-medium">Full Name <span class="text-red-500">*</span></label>
           <input id="customer-name" type="text" required class="w-full border border-gray-300 rounded-lg px-4 py-3">
@@ -617,12 +617,22 @@ let shippingFee = 0;
 // Load cart from localStorage on page load
 // Add click handler to button to show loading screen immediately
 document.addEventListener('DOMContentLoaded', function() {
-  // Add click handler to proceed payment button
+  // Add click handler to proceed payment button as backup
   const proceedBtn = document.getElementById('proceed-payment-btn');
   if (proceedBtn) {
     proceedBtn.addEventListener('click', function(e) {
+      console.log('Proceed button clicked');
       // Show loading screen immediately on click (before form validation)
       showLoadingScreen();
+    });
+  }
+  
+  // Also add form submit listener as backup
+  const checkoutForm = document.getElementById('checkout-form');
+  if (checkoutForm) {
+    checkoutForm.addEventListener('submit', function(e) {
+      console.log('Form submit event triggered');
+      handleCheckout(e);
     });
   }
   console.log('Checkout page loaded');
@@ -1208,10 +1218,15 @@ function hideLoadingScreen() {
 }
 
 async function handleCheckout(event) {
-  event.preventDefault();
-  event.stopPropagation();
+  console.log('handleCheckout called');
+  
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
   
   // Show loading screen IMMEDIATELY - before any validation
+  console.log('Showing loading screen');
   showLoadingScreen();
   
   // Disable submit button to prevent double submission
@@ -1223,24 +1238,75 @@ async function handleCheckout(event) {
   }
   
   // Validate backend configuration
-  if (!YOCO_CONFIG.backendUrl) {
+  if (!YOCO_CONFIG || !YOCO_CONFIG.backendUrl) {
     hideLoadingScreen();
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.style.opacity = '1';
+      submitButton.style.cursor = 'pointer';
+    }
     alert('Payment backend not configured. Please contact support.');
     return;
   }
   
-  const checkoutSubtotal = parseFloat(localStorage.getItem('checkoutSubtotal') || 0);
-  const finalTotal = checkoutSubtotal + shippingFee;
-  const location = document.getElementById('shipping-location').value;
-  const name = document.getElementById('customer-name').value;
-  const email = document.getElementById('customer-email').value;
-  
-  // Validate delivery method is selected
-  if (!location) {
-    hideLoadingScreen();
-    alert('Please select a delivery method.');
-    return;
-  }
+  try {
+    const checkoutSubtotal = parseFloat(localStorage.getItem('checkoutSubtotal') || 0);
+    const finalTotal = checkoutSubtotal + shippingFee;
+    const location = document.getElementById('shipping-location')?.value || '';
+    const name = document.getElementById('customer-name')?.value || '';
+    const email = document.getElementById('customer-email')?.value || '';
+    const phone = document.getElementById('customer-phone')?.value || '';
+    
+    console.log('Form data:', { name, email, phone, location, checkoutSubtotal, shippingFee, finalTotal });
+    
+    // Validate cart has items
+    if (!cart || cart.length === 0) {
+      hideLoadingScreen();
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.style.opacity = '1';
+        submitButton.style.cursor = 'pointer';
+      }
+      alert('Your cart is empty. Please add items before checkout.');
+      window.location.href = 'index.html';
+      return;
+    }
+    
+    // Validate total amount
+    if (finalTotal <= 0) {
+      hideLoadingScreen();
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.style.opacity = '1';
+        submitButton.style.cursor = 'pointer';
+      }
+      alert('Invalid order total. Please check your cart.');
+      return;
+    }
+    
+    // Validate required fields
+    if (!name || !email || !phone) {
+      hideLoadingScreen();
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.style.opacity = '1';
+        submitButton.style.cursor = 'pointer';
+      }
+      alert('Please fill in all required fields (Name, Email, Phone).');
+      return;
+    }
+    
+    // Validate delivery method is selected
+    if (!location) {
+      hideLoadingScreen();
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.style.opacity = '1';
+        submitButton.style.cursor = 'pointer';
+      }
+      alert('Please select a delivery method.');
+      return;
+    }
   
   // Build delivery information based on selected method
   let deliveryInfo = '';
@@ -1258,6 +1324,11 @@ async function handleCheckout(event) {
     // Validate required address fields
     if (!streetAddress || !city || !province || !postalCode) {
       hideLoadingScreen();
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.style.opacity = '1';
+        submitButton.style.cursor = 'pointer';
+      }
       alert('Please fill in all required address fields for door-to-door delivery.');
       return;
     }
@@ -1279,6 +1350,11 @@ async function handleCheckout(event) {
     const campus = document.getElementById('campus-selection').value || '';
     if (!campus) {
       hideLoadingScreen();
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.style.opacity = '1';
+        submitButton.style.cursor = 'pointer';
+      }
       alert('Please select a UJ campus for delivery.');
       return;
     }
@@ -1403,17 +1479,29 @@ async function handleCheckout(event) {
       throw new Error(result.error || 'Failed to create checkout session');
     }
   } catch (error) {
+    console.error('Backend request error:', error);
+    hideLoadingScreen();
+    throw error; // Re-throw to outer catch
+  }
+  
+  } catch (error) {
     console.error('Checkout error:', error);
     console.error('Full error details:', {
       message: error.message,
       stack: error.stack,
-      response: error.response,
       backendUrl: YOCO_CONFIG.backendUrl,
       currentUrl: window.location.href
     });
     
     // Hide loading screen on error
     hideLoadingScreen();
+    
+    // Re-enable submit button
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.style.opacity = '1';
+      submitButton.style.cursor = 'pointer';
+    }
     
     // More user-friendly error messages
     let errorMessage = 'Failed to process payment. ';
