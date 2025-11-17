@@ -678,12 +678,21 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Remove ALL required attributes on page load - validation is handled in JavaScript
   function removeAllRequiredAttributes() {
+    // Remove from all form fields
+    const nameInput = document.getElementById('customer-name');
+    const emailInput = document.getElementById('customer-email');
+    const phoneInput = document.getElementById('customer-phone');
+    const shippingSelect = document.getElementById('shipping-location');
     const addressInput = document.getElementById('address-autocomplete');
     const cityInput = document.getElementById('address-city');
     const provinceSelect = document.getElementById('address-province');
     const postalInput = document.getElementById('address-postal');
     const campusSelect = document.getElementById('campus-selection');
     
+    if (nameInput) nameInput.removeAttribute('required');
+    if (emailInput) emailInput.removeAttribute('required');
+    if (phoneInput) phoneInput.removeAttribute('required');
+    if (shippingSelect) shippingSelect.removeAttribute('required');
     if (addressInput) addressInput.removeAttribute('required');
     if (cityInput) cityInput.removeAttribute('required');
     if (provinceSelect) provinceSelect.removeAttribute('required');
