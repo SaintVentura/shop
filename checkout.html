@@ -1306,14 +1306,15 @@ function updateShipping() {
       console.error('❌ UJ Campus section element not found!');
     }
     
-    // Auto-fill address fields with campus delivery info (not required, just for reference)
+    // Auto-fill address fields with campus delivery address (not required, but filled for processing)
     const addressInput = document.getElementById('address-autocomplete');
     const cityInput = document.getElementById('address-city');
     const provinceSelect = document.getElementById('address-province');
     const postalInput = document.getElementById('address-postal');
+    const suburbInput = document.getElementById('address-suburb');
     
     if (addressInput) {
-      addressInput.value = 'University of Johannesburg Campus';
+      addressInput.value = '128 van beek street';
       console.log('✅ Auto-filled address field');
     }
     if (cityInput) {
@@ -1325,8 +1326,12 @@ function updateShipping() {
       console.log('✅ Auto-filled province field');
     }
     if (postalInput) {
-      postalInput.value = '2000';
+      postalInput.value = '2094';
       console.log('✅ Auto-filled postal code field');
+    }
+    if (suburbInput) {
+      suburbInput.value = '';
+      console.log('✅ Suburb field cleared (optional)');
     }
   } else {
     console.log('No delivery method selected, hiding both sections');
