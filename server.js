@@ -62,112 +62,42 @@ app.get('/keep-alive', (req, res) => {
   });
 });
 
-// Helper function to send email using multiple services (SendGrid > Resend > SMTP)
+// Helper function to send email using Zoho SMTP (cleaner, direct method)
 async function sendEmail({ to, subject, text, html, replyTo }) {
-  const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
-  const RESEND_API_KEY = process.env.RESEND_API_KEY;
   const zohoEmail = (process.env.ZOHO_EMAIL || 'customersupport@saintventura.co.za').replace(/^"|"$/g, '');
-  
-  // Try SendGrid first (most reliable, works on all platforms)
-  if (SENDGRID_API_KEY) {
-    try {
-      sgMail.setApiKey(SENDGRID_API_KEY);
-      const msg = {
-        to: to,
-        from: 'customersupport@saintventura.co.za', // Must be verified in SendGrid
-        replyTo: replyTo || zohoEmail,
-        subject: subject,
-        text: text,
-        html: html || text.replace(/\n/g, '<br>')
-      };
-      
-      await sgMail.send(msg);
-      console.log('✅ Email sent via SendGrid API');
-      return { success: true, method: 'sendgrid' };
-    } catch (error) {
-      console.log('⚠️ SendGrid failed, trying next...', error.message);
-      // Fall through to Resend
-    }
-  }
-  
-  // Try Resend second (API-based, works on all platforms including Render)
-  if (RESEND_API_KEY) {
-    try {
-      const resend = new Resend(RESEND_API_KEY);
-      const { data, error } = await resend.emails.send({
-        from: 'Saint Ventura <onboarding@resend.dev>', // Change to your verified domain later
-        to: to,
-        replyTo: replyTo || zohoEmail,
-        subject: subject,
-        html: html || text.replace(/\n/g, '<br>'),
-        text: text
-      });
-      
-      if (error) {
-        console.error('❌ Resend API error:', error);
-        throw error;
-      }
-      
-      console.log('✅ Email sent via Resend API:', data?.id);
-      return { success: true, method: 'resend', id: data?.id };
-    } catch (error) {
-      console.log('⚠️ Resend failed, trying SMTP fallback...', error.message);
-      // Fall through to SMTP
-    }
-  }
-  
-  // Fallback to SMTP (Zoho) - may not work on Render free tier
   const zohoPassword = (process.env.ZOHO_PASSWORD || process.env.ZOHO_APP_PASSWORD || '').replace(/^"|"$/g, '');
   
   if (!zohoPassword) {
-    const errorMsg = 'No email service configured. Please set one of: SENDGRID_API_KEY, RESEND_API_KEY, or ZOHO_PASSWORD in environment variables.';
+    const errorMsg = 'ZOHO_PASSWORD is not set in environment variables. Please set ZOHO_PASSWORD in your .env file.';
     console.error('❌', errorMsg);
     throw new Error(errorMsg);
   }
   
-  // Try multiple SMTP configurations
-  const smtpConfigs = [
-    {
-      host: 'smtp.zoho.com',
-      port: 465,
-      secure: true,
-      auth: { user: zohoEmail, pass: zohoPassword },
-      connectionTimeout: 20000,
-      greetingTimeout: 20000,
-      socketTimeout: 20000,
-      tls: { rejectUnauthorized: false }
+  // Use Zoho SMTP with port 587 (most reliable)
+  const transporter = nodemailer.createTransport({
+    host: 'smtp.zoho.com',
+    port: 587,
+    secure: false, // true for 465, false for other ports
+    auth: {
+      user: zohoEmail,
+      pass: zohoPassword
     },
-    {
-      host: 'smtp.zoho.com',
-      port: 587,
-      secure: false,
-      auth: { user: zohoEmail, pass: zohoPassword },
-      connectionTimeout: 20000,
-      greetingTimeout: 20000,
-      socketTimeout: 20000,
-      requireTLS: true,
-      tls: { rejectUnauthorized: false }
+    connectionTimeout: 30000,
+    greetingTimeout: 30000,
+    socketTimeout: 30000,
+    requireTLS: true,
+    tls: {
+      rejectUnauthorized: false
     }
-  ];
+  });
   
-  let transporter;
-  let lastError;
-  
-  for (const config of smtpConfigs) {
-    try {
-      transporter = nodemailer.createTransport(config);
-      await transporter.verify();
-      console.log(`✅ SMTP connection verified using port ${config.port}`);
-      break;
-    } catch (error) {
-      lastError = error;
-      console.log(`⚠️ Port ${config.port} failed, trying next...`);
-      continue;
-    }
-  }
-  
-  if (!transporter) {
-    throw new Error(`SMTP connection failed: ${lastError?.message || 'All ports failed'}`);
+  // Verify connection
+  try {
+    await transporter.verify();
+    console.log('✅ SMTP connection verified with Zoho');
+  } catch (error) {
+    console.error('❌ SMTP connection failed:', error.message);
+    throw new Error(`SMTP connection failed: ${error.message}`);
   }
   
   const mailOptions = {
@@ -179,14 +109,14 @@ async function sendEmail({ to, subject, text, html, replyTo }) {
     html: html || text.replace(/\n/g, '<br>')
   };
   
-  // Send with timeout
+  // Send email with timeout
   const emailPromise = transporter.sendMail(mailOptions);
   const timeoutPromise = new Promise((_, reject) => 
-    setTimeout(() => reject(new Error('Email timeout after 20 seconds')), 20000)
+    setTimeout(() => reject(new Error('Email timeout after 30 seconds')), 30000)
   );
   
   const info = await Promise.race([emailPromise, timeoutPromise]);
-  console.log('✅ Email sent via SMTP:', info.messageId);
+  console.log('✅ Email sent successfully to', to, 'via Zoho SMTP. Message ID:', info.messageId);
   return { success: true, method: 'smtp', info };
 }
 
