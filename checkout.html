@@ -309,6 +309,7 @@
           <select id="shipping-location" name="shipping-location" onchange="updateShipping()" class="w-full border border-gray-300 rounded-lg px-4 py-3">
             <option value="">Select your location</option>
             <option id="door-option" value="door">Door-to-Door Courier (R130)</option>
+            <option id="uj-option" value="uj">UJ Campus Delivery (R30)</option>
           </select>
           
           <!-- Address Fields - Shows for Door-to-Door Courier -->
@@ -359,6 +360,19 @@
             </div>
           </div>
 
+          <!-- UJ Campus Selection - Shows for UJ Campus Delivery -->
+          <div id="uj-campus-section" class="hidden mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <label class="block mb-3 font-semibold text-lg">UJ Campus Delivery</label>
+            <p class="text-sm text-gray-600 mb-4">Select your campus for delivery (R30)</p>
+            <select id="uj-campus-select" name="uj-campus-select" class="w-full border border-gray-300 rounded-lg px-4 py-3 bg-white">
+              <option value="">-- Select your campus --</option>
+              <option value="DFC">DFC (Doornfontein Campus)</option>
+              <option value="APK">APK (Auckland Park Kingsway Campus)</option>
+              <option value="SWC">SWC (Soweto Campus)</option>
+              <option value="APB">APB (Auckland Park Bunting Road Campus)</option>
+            </select>
+            <p class="text-xs text-gray-500 mt-2">Delivery will be made to your selected campus</p>
+          </div>
         </div>
 
         <button type="button" id="proceed-payment-btn" onclick="handleCheckoutButtonClick(event)" class="w-full bg-black text-white py-4 rounded-lg font-semibold hover:bg-gray-800 transition-all duration-300 transform hover:scale-[1.02] text-lg">
@@ -1085,9 +1099,10 @@ function renderCart() {
 }
 
 function updateDeliveryMethodText() {
-  // Update the door-to-door option text based on free shipping eligibility
+  // Update the door-to-door and UJ campus option text based on free shipping eligibility
   const doorOption = document.getElementById('door-option');
-  if (!doorOption) return;
+  const ujOption = document.getElementById('uj-option');
+  if (!doorOption || !ujOption) return;
   
   let subtotalBeforeDiscount = parseFloat(localStorage.getItem('cartSubtotalBeforeDiscount') || 0);
   
@@ -1099,8 +1114,10 @@ function updateDeliveryMethodText() {
   // Update text: remove shipping cost if order is R1000 or more (free shipping)
   if (subtotalBeforeDiscount >= 1000) {
     doorOption.textContent = 'Door-to-Door Courier';
+    ujOption.textContent = 'UJ Campus Delivery';
   } else {
     doorOption.textContent = 'Door-to-Door Courier (R130)';
+    ujOption.textContent = 'UJ Campus Delivery (R30)';
   }
 }
 
@@ -1183,6 +1200,8 @@ function updateShipping() {
     shippingFee = 0;
   } else if (location === 'door') {
     shippingFee = 130;
+  } else if (location === 'uj') {
+    shippingFee = 30;
   } else {
     shippingFee = 0;
   }
@@ -1194,16 +1213,26 @@ function updateShipping() {
 
   // Show/hide sections based on delivery method
   const addressSection = document.getElementById('address-section');
+  const ujCampusSection = document.getElementById('uj-campus-section');
   
   console.log('Address section found:', !!addressSection);
+  console.log('UJ Campus section found:', !!ujCampusSection);
   
-  // Hide address section first
+  // Hide both sections first
   if (addressSection) {
     addressSection.classList.add('hidden');
     addressSection.style.setProperty('display', 'none', 'important');
     console.log('Hiding address section');
   } else {
     console.error('Address section element not found!');
+  }
+  
+  if (ujCampusSection) {
+    ujCampusSection.classList.add('hidden');
+    ujCampusSection.style.setProperty('display', 'none', 'important');
+    console.log('Hiding UJ campus section');
+  } else {
+    console.error('UJ Campus section element not found!');
   }
   
   // Show appropriate section based on selection
