@@ -827,13 +827,13 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Initial location selected:', currentLocation.value);
     updateShipping();
   } else {
-    // Ensure both sections are hidden on initial load
+    // Ensure address section is hidden on initial load
     const addressSection = document.getElementById('address-section');
     if (addressSection) {
       addressSection.classList.add('hidden');
       addressSection.style.setProperty('display', 'none', 'important'); // Force hide
     }
-    console.log('Initialized - both sections hidden');
+    console.log('Initialized - address section hidden');
   }
 });
 
