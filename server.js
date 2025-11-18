@@ -561,11 +561,8 @@ app.post('/api/send-checkout-email', async (req, res) => {
       deliveryHtml = `<p><strong>Delivery Address:</strong><br>${deliveryAddress.replace(/\n/g, '<br>')}</p>`;
     }
 
-    // Send email to customer support
-    sendEmail({
-      to: 'customersupport@saintventura.co.za',
-      subject: `New Order Checkout - ${customerName}`,
-      text: `
+    // Prepare email content
+    const emailText = `
 New Order Checkout Initiated
 
 Customer Details:
@@ -590,78 +587,162 @@ Timestamp: ${timestamp || new Date().toISOString()}
 
 ---
 This is a checkout notification. The customer has clicked "Proceed to Payment" and is being redirected to the payment gateway.
-      `,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #000; border-bottom: 2px solid #000; padding-bottom: 10px;">New Order Checkout</h2>
-          
-          <h3 style="color: #333; margin-top: 20px;">Customer Details</h3>
-          <p><strong>Name:</strong> ${customerName}</p>
-          <p><strong>Email:</strong> ${customerEmail}</p>
-          <p><strong>Phone:</strong> ${customerPhone || 'Not provided'}</p>
+    `;
 
-          <h3 style="color: #333; margin-top: 20px;">Shipping Information</h3>
-          <p><strong>Shipping Method:</strong> ${shippingMethod}</p>
-          ${deliveryHtml}
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #000; border-bottom: 2px solid #000; padding-bottom: 10px;">New Order Checkout</h2>
+        
+        <h3 style="color: #333; margin-top: 20px;">Customer Details</h3>
+        <p><strong>Name:</strong> ${customerName}</p>
+        <p><strong>Email:</strong> ${customerEmail}</p>
+        <p><strong>Phone:</strong> ${customerPhone || 'Not provided'}</p>
 
-          <h3 style="color: #333; margin-top: 20px;">Order Items</h3>
-          <ul>
-            ${itemsHtml}
-          </ul>
+        <h3 style="color: #333; margin-top: 20px;">Shipping Information</h3>
+        <p><strong>Shipping Method:</strong> ${shippingMethod}</p>
+        ${deliveryHtml}
 
-          <h3 style="color: #333; margin-top: 20px;">Order Summary</h3>
-          <table style="width: 100%; margin: 20px 0;">
-            <tr>
-              <td style="padding: 5px;"><strong>Subtotal:</strong></td>
-              <td style="padding: 5px; text-align: right;">R${subtotal.toFixed(2)}</td>
-            </tr>
-            <tr>
-              <td style="padding: 5px;"><strong>Shipping:</strong></td>
-              <td style="padding: 5px; text-align: right;">R${shipping.toFixed(2)}</td>
-            </tr>
-            <tr style="font-size: 1.2em; font-weight: bold; border-top: 2px solid #000;">
-              <td style="padding: 10px 5px;"><strong>Total:</strong></td>
-              <td style="padding: 10px 5px; text-align: right;">R${total.toFixed(2)}</td>
-            </tr>
-          </table>
+        <h3 style="color: #333; margin-top: 20px;">Order Items</h3>
+        <ul>
+          ${itemsHtml}
+        </ul>
 
-          <p style="margin-top: 30px; color: #666; font-size: 0.9em;">
-            <strong>Timestamp:</strong> ${timestamp || new Date().toISOString()}
-          </p>
+        <h3 style="color: #333; margin-top: 20px;">Order Summary</h3>
+        <table style="width: 100%; margin: 20px 0;">
+          <tr>
+            <td style="padding: 5px;"><strong>Subtotal:</strong></td>
+            <td style="padding: 5px; text-align: right;">R${subtotal.toFixed(2)}</td>
+          </tr>
+          <tr>
+            <td style="padding: 5px;"><strong>Shipping:</strong></td>
+            <td style="padding: 5px; text-align: right;">R${shipping.toFixed(2)}</td>
+          </tr>
+          <tr style="font-size: 1.2em; font-weight: bold; border-top: 2px solid #000;">
+            <td style="padding: 10px 5px;"><strong>Total:</strong></td>
+            <td style="padding: 10px 5px; text-align: right;">R${total.toFixed(2)}</td>
+          </tr>
+        </table>
 
-          <p style="margin-top: 20px; color: #666; font-size: 0.9em; padding: 15px; background-color: #f5f5f5; border-left: 4px solid #000;">
-            <strong>Note:</strong> This is a checkout notification. The customer has clicked "Proceed to Payment" and is being redirected to the payment gateway.
-          </p>
-        </div>
-      `
-    }).then(result => {
-      if (result.success) {
-        console.log('✅ Checkout email notification SENT successfully to customersupport@saintventura.co.za');
-        console.log('Email details:', { 
-          messageId: result.id || result.info?.messageId,
-          method: result.method,
-          to: 'customersupport@saintventura.co.za',
-          subject: `New Order Checkout - ${customerName}`,
-          customerName: customerName,
-          customerEmail: customerEmail,
-          total: total
-        });
-      }
-    }).catch(error => {
-      console.error('❌ FAILED to send checkout email notification to customersupport@saintventura.co.za');
-      console.error('Error details:', {
-        message: error.message,
-        stack: error.stack,
-        customerName: customerName,
-        customerEmail: customerEmail
+        <p style="margin-top: 30px; color: #666; font-size: 0.9em;">
+          <strong>Timestamp:</strong> ${timestamp || new Date().toISOString()}
+        </p>
+
+        <p style="margin-top: 20px; color: #666; font-size: 0.9em; padding: 15px; background-color: #f5f5f5; border-left: 4px solid #000;">
+          <strong>Note:</strong> This is a checkout notification. The customer has clicked "Proceed to Payment" and is being redirected to the payment gateway.
+        </p>
+      </div>
+    `;
+
+    // Customer email content
+    const customerEmailText = `
+Thank you for your order, ${customerName}!
+
+Your order has been received and you are being redirected to complete payment.
+
+Order Summary:
+${itemsText}
+
+Subtotal: R${subtotal.toFixed(2)}
+Shipping: R${shipping.toFixed(2)}
+Total: R${total.toFixed(2)}
+
+Shipping Method: ${shippingMethod}
+${deliveryAddress ? `Delivery Address: ${deliveryAddress}` : ''}
+
+You will receive an order confirmation email once your payment is successfully processed.
+
+Thank you for choosing Saint Ventura!
+    `;
+
+    const customerEmailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #000; border-bottom: 2px solid #000; padding-bottom: 10px;">Order Checkout Confirmation</h2>
+        
+        <p>Thank you for your order, <strong>${customerName}</strong>!</p>
+        
+        <p>Your order has been received and you are being redirected to complete payment.</p>
+
+        <h3 style="color: #333; margin-top: 20px;">Order Items</h3>
+        <ul>
+          ${itemsHtml}
+        </ul>
+
+        <h3 style="color: #333; margin-top: 20px;">Order Summary</h3>
+        <table style="width: 100%; margin: 20px 0;">
+          <tr>
+            <td style="padding: 5px;"><strong>Subtotal:</strong></td>
+            <td style="padding: 5px; text-align: right;">R${subtotal.toFixed(2)}</td>
+          </tr>
+          <tr>
+            <td style="padding: 5px;"><strong>Shipping:</strong></td>
+            <td style="padding: 5px; text-align: right;">R${shipping.toFixed(2)}</td>
+          </tr>
+          <tr style="font-size: 1.2em; font-weight: bold; border-top: 2px solid #000;">
+            <td style="padding: 10px 5px;"><strong>Total:</strong></td>
+            <td style="padding: 10px 5px; text-align: right;">R${total.toFixed(2)}</td>
+          </tr>
+        </table>
+
+        <h3 style="color: #333; margin-top: 20px;">Shipping Information</h3>
+        <p><strong>Shipping Method:</strong> ${shippingMethod}</p>
+        ${deliveryHtml}
+
+        <p style="margin-top: 30px; color: #666; font-size: 0.9em;">
+          You will receive an order confirmation email once your payment is successfully processed.
+        </p>
+
+        <p style="margin-top: 20px; color: #000; font-weight: bold;">
+          Thank you for choosing Saint Ventura!
+        </p>
+      </div>
+    `;
+
+    // Send emails to both customer and support (wait for both)
+    const supportEmailPromise = sendEmail({
+      to: 'customersupport@saintventura.co.za',
+      subject: `New Order Checkout - ${customerName}`,
+      text: emailText,
+      html: emailHtml
+    });
+
+    const customerEmailPromise = sendEmail({
+      to: customerEmail,
+      subject: `Order Checkout Confirmation - Saint Ventura`,
+      text: customerEmailText,
+      html: customerEmailHtml
+    });
+
+    // Wait for both emails to be sent
+    const [supportResult, customerResult] = await Promise.all([
+      supportEmailPromise,
+      customerEmailPromise
+    ]);
+
+    if (supportResult.success) {
+      console.log('✅ Checkout email notification SENT successfully to customersupport@saintventura.co.za');
+    } else {
+      console.error('❌ FAILED to send checkout email to support:', supportResult.error);
+    }
+
+    if (customerResult.success) {
+      console.log('✅ Checkout confirmation email SENT successfully to customer:', customerEmail);
+    } else {
+      console.error('❌ FAILED to send checkout email to customer:', customerResult.error);
+    }
+
+    // Return success only if at least support email was sent
+    if (supportResult.success) {
+      res.json({ 
+        success: true,
+        message: 'Checkout emails sent successfully',
+        customerEmailSent: customerResult.success
       });
-    });
-
-    // Return success immediately (don't wait for email)
-    res.json({ 
-      success: true,
-      message: 'Checkout email notification sent successfully' 
-    });
+    } else {
+      res.status(500).json({ 
+        success: false,
+        error: 'Failed to send checkout emails' 
+      });
+    }
 
   } catch (error) {
     console.error('Error sending checkout email notification:', error);
@@ -770,8 +851,91 @@ app.post('/api/send-order-confirmation', async (req, res) => {
       minute: '2-digit'
     });
 
-    // Send email to customer support
-    sendEmail({
+    // Prepare customer email content
+    const customerOrderEmailText = `
+Order Confirmation - Thank You!
+
+Dear ${customerName},
+
+Thank you for your order! Your payment has been successfully processed.
+
+Order ${orderId ? `ID: ${orderId}` : 'Details'}:
+Date: ${orderDate}
+
+Order Items:
+${orderItems.map(item => `- ${item.name} (Qty: ${item.quantity}) - R${(item.price * item.quantity).toFixed(2)}`).join('\n')}
+
+Order Summary:
+Subtotal: R${subtotal.toFixed(2)}
+Shipping: R${shipping.toFixed(2)}
+Total: R${total.toFixed(2)}
+
+Delivery Method: ${shippingMethod === 'door' ? 'Door-to-Door Courier' : shippingMethod === 'uj' ? 'UJ Campus Delivery' : 'Testing Delivery'}
+${deliveryAddress ? `Delivery Address: ${deliveryAddress}` : ''}
+
+We will process your order and send you tracking information once it ships.
+
+Thank you for choosing Saint Ventura!
+    `;
+
+    const customerOrderEmailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #000; border-bottom: 2px solid #000; padding-bottom: 10px;">Order Confirmation</h2>
+        
+        <p>Dear <strong>${customerName}</strong>,</p>
+        
+        <p>Thank you for your order! Your payment has been successfully processed.</p>
+        
+        <div style="background: #f5f5f5; padding: 15px; margin: 20px 0; border-radius: 5px;">
+          <p style="margin: 5px 0;"><strong>Order ${orderId ? `ID: ${orderId}` : 'Date'}:</strong> ${orderDate}</p>
+        </div>
+
+        <h3 style="color: #333; margin-top: 30px;">Order Items</h3>
+        <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+          <thead>
+            <tr style="background: #f9f9f9;">
+              <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Item</th>
+              <th style="padding: 10px; text-align: center; border-bottom: 2px solid #ddd;">Qty</th>
+              <th style="padding: 10px; text-align: right; border-bottom: 2px solid #ddd;">Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+        </table>
+
+        <h3 style="color: #333; margin-top: 30px;">Order Summary</h3>
+        <table style="width: 100%; margin: 20px 0;">
+          <tr>
+            <td style="padding: 5px;"><strong>Subtotal:</strong></td>
+            <td style="padding: 5px; text-align: right;">R${subtotal.toFixed(2)}</td>
+          </tr>
+          <tr>
+            <td style="padding: 5px;"><strong>Shipping:</strong></td>
+            <td style="padding: 5px; text-align: right;">R${shipping.toFixed(2)}</td>
+          </tr>
+          <tr style="font-size: 1.2em; font-weight: bold; border-top: 2px solid #000;">
+            <td style="padding: 10px 5px;"><strong>Total:</strong></td>
+            <td style="padding: 10px 5px; text-align: right;">R${total.toFixed(2)}</td>
+          </tr>
+        </table>
+
+        <h3 style="color: #333; margin-top: 30px;">Delivery Information</h3>
+        <p><strong>Delivery Method:</strong> ${shippingMethod === 'door' ? 'Door-to-Door Courier' : shippingMethod === 'uj' ? 'UJ Campus Delivery' : 'Testing Delivery'}</p>
+        ${deliveryHtml}
+
+        <p style="margin-top: 30px; color: #666; font-size: 0.9em;">
+          We will process your order and send you tracking information once it ships.
+        </p>
+
+        <p style="margin-top: 20px; color: #000; font-weight: bold;">
+          Thank you for choosing Saint Ventura!
+        </p>
+      </div>
+    `;
+
+    // Send emails to both customer and support (wait for both)
+    const supportEmailPromise = sendEmail({
       to: 'customersupport@saintventura.co.za',
       subject: `New Order - ${customerName} - R${total.toFixed(2)}`,
       text: `
@@ -792,7 +956,7 @@ Subtotal: R${subtotal.toFixed(2)}
 Shipping: R${shipping.toFixed(2)}
 Total: R${total.toFixed(2)}
 
-Delivery Method: ${shippingMethod === 'door' ? 'Door-to-Door Courier' : 'UJ Campus Delivery'}
+Delivery Method: ${shippingMethod === 'door' ? 'Door-to-Door Courier' : shippingMethod === 'uj' ? 'UJ Campus Delivery' : 'Testing Delivery'}
 ${deliveryAddress ? `Delivery Address: ${deliveryAddress}` : ''}
       `,
       html: `
@@ -838,7 +1002,7 @@ ${deliveryAddress ? `Delivery Address: ${deliveryAddress}` : ''}
           </table>
 
           <h3 style="color: #333; margin-top: 30px;">Delivery Information</h3>
-          <p><strong>Delivery Method:</strong> ${shippingMethod === 'door' ? 'Door-to-Door Courier' : 'UJ Campus Delivery'}</p>
+          <p><strong>Delivery Method:</strong> ${shippingMethod === 'door' ? 'Door-to-Door Courier' : shippingMethod === 'uj' ? 'UJ Campus Delivery' : 'Testing Delivery'}</p>
           ${deliveryHtml}
 
           <p style="margin-top: 30px; color: #666; font-size: 0.9em;">
@@ -846,37 +1010,46 @@ ${deliveryAddress ? `Delivery Address: ${deliveryAddress}` : ''}
           </p>
         </div>
       `
-    }).then(result => {
-      if (result.success) {
-        console.log('✅ Order confirmation email SENT successfully to customersupport@saintventura.co.za');
-        console.log('Email details:', { 
-          messageId: result.id || result.info?.messageId,
-          method: result.method,
-          to: 'customersupport@saintventura.co.za',
-          subject: `New Order Received - ${customerName} - R${total.toFixed(2)}`,
-          customerName: customerName,
-          customerEmail: customerEmail,
-          total: total,
-          orderId: orderId
-        });
-      }
-    }).catch(error => {
-      console.error('❌ FAILED to send order confirmation email to customersupport@saintventura.co.za');
-      console.error('Error details:', {
-        message: error.message,
-        stack: error.stack,
-        customerName: customerName,
-        customerEmail: customerEmail,
-        total: total,
-        orderId: orderId
+    });
+
+    const customerEmailPromise = sendEmail({
+      to: customerEmail,
+      subject: `Order Confirmation - Saint Ventura`,
+      text: customerOrderEmailText,
+      html: customerOrderEmailHtml
+    });
+
+    // Wait for both emails to be sent
+    const [supportResult, customerResult] = await Promise.all([
+      supportEmailPromise,
+      customerEmailPromise
+    ]);
+
+    if (supportResult.success) {
+      console.log('✅ Order confirmation email SENT successfully to customersupport@saintventura.co.za');
+    } else {
+      console.error('❌ FAILED to send order confirmation email to support:', supportResult.error);
+    }
+
+    if (customerResult.success) {
+      console.log('✅ Order confirmation email SENT successfully to customer:', customerEmail);
+    } else {
+      console.error('❌ FAILED to send order confirmation email to customer:', customerResult.error);
+    }
+
+    // Return success only if at least support email was sent
+    if (supportResult.success) {
+      res.json({ 
+        success: true, 
+        message: 'Order confirmation emails sent successfully',
+        customerEmailSent: customerResult.success
       });
-    });
-    
-    // Return success immediately (email sends in background)
-    res.json({ 
-      success: true, 
-      message: 'Order confirmation email sent successfully' 
-    });
+    } else {
+      res.status(500).json({ 
+        success: false,
+        error: 'Failed to send order confirmation emails' 
+      });
+    }
 
   } catch (error) {
     console.error('Error sending order confirmation email:', error);

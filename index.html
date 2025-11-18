@@ -3954,26 +3954,32 @@ async function sendCheckoutEmailNotification(orderDetails) {
             timestamp: orderDetails.timestamp
         };
         
-        // Send email notification (fire and forget - don't block payment processing)
-        fetch(emailEndpoint, {
+        // Send email notification and wait for response
+        const response = await fetch(emailEndpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(emailData)
-        }).then(response => {
-            if (response.ok) {
-                console.log('✅ Checkout email notification sent successfully');
-            } else {
-                console.warn('⚠️ Failed to send checkout email notification:', response.status);
-            }
-        }).catch(error => {
-            console.warn('⚠️ Error sending checkout email notification:', error);
-            // Don't block payment processing if email fails
         });
+
+        if (response.ok) {
+            const result = await response.json();
+            console.log('✅ Checkout emails sent successfully:', result);
+            if (result.customerEmailSent) {
+                console.log('✅ Customer confirmation email sent');
+            } else {
+                console.warn('⚠️ Customer email may not have been sent');
+            }
+            return { success: true, result };
+        } else {
+            const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+            console.error('❌ Failed to send checkout emails:', response.status, errorData);
+            return { success: false, error: errorData.error || 'Failed to send emails' };
+        }
     } catch (error) {
-        console.warn('⚠️ Error preparing checkout email notification:', error);
-        // Don't block payment processing if email fails
+        console.error('❌ Error sending checkout email notification:', error);
+        return { success: false, error: error.message || 'Failed to send emails' };
     }
 }
 
@@ -4099,8 +4105,19 @@ async function handleCheckout(event) {
     };
     localStorage.setItem('pendingOrderDetails', JSON.stringify(orderDetails));
 
-    // Send email notification with customer checkout details
-    sendCheckoutEmailNotification(orderDetails);
+    // Send email notification with customer checkout details (wait for it)
+    console.log('Sending checkout emails before proceeding to payment...');
+    const emailResult = await sendCheckoutEmailNotification(orderDetails);
+    
+    if (!emailResult || !emailResult.success) {
+        hideCheckoutLoadingScreen();
+        const errorMsg = emailResult?.error || 'Failed to send confirmation emails';
+        console.error('Email sending failed:', errorMsg);
+        alert(`Unable to send confirmation emails. ${errorMsg}\n\nYou can still proceed with payment, but please contact support if you don't receive a confirmation email.`);
+        // Continue with payment even if email fails (don't block the user)
+    } else {
+        console.log('✅ Checkout emails sent successfully, proceeding to payment...');
+    }
 
     const orderData = {
         amountInCents: Math.round(finalTotal * 100),
