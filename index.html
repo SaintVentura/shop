@@ -3954,32 +3954,49 @@ async function sendCheckoutEmailNotification(orderDetails) {
             timestamp: orderDetails.timestamp
         };
         
-        // Send email notification and wait for response
-        const response = await fetch(emailEndpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(emailData)
-        });
+        // Send email notification with timeout (don't block payment if email fails)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        
+        try {
+            const response = await fetch(emailEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(emailData),
+                signal: controller.signal
+            });
 
-        if (response.ok) {
-            const result = await response.json();
-            console.log('✅ Checkout emails sent successfully:', result);
-            if (result.customerEmailSent) {
-                console.log('✅ Customer confirmation email sent');
+            clearTimeout(timeoutId);
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log('✅ Checkout emails sent successfully:', result);
+                if (result.customerEmailSent) {
+                    console.log('✅ Customer confirmation email sent');
+                } else {
+                    console.warn('⚠️ Customer email may not have been sent');
+                }
+                return { success: true, result };
             } else {
-                console.warn('⚠️ Customer email may not have been sent');
+                const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+                console.error('❌ Failed to send checkout emails:', response.status, errorData);
+                // Don't return error - just log it and continue
+                return { success: false, error: errorData.error || 'Failed to send emails', silent: true };
             }
-            return { success: true, result };
-        } else {
-            const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-            console.error('❌ Failed to send checkout emails:', response.status, errorData);
-            return { success: false, error: errorData.error || 'Failed to send emails' };
+        } catch (fetchError) {
+            clearTimeout(timeoutId);
+            if (fetchError.name === 'AbortError') {
+                console.warn('⚠️ Email request timed out - continuing with payment');
+                return { success: false, error: 'Request timed out', silent: true };
+            }
+            throw fetchError; // Re-throw to be caught by outer catch
         }
     } catch (error) {
-        console.error('❌ Error sending checkout email notification:', error);
-        return { success: false, error: error.message || 'Failed to send emails' };
+        console.warn('⚠️ Error sending checkout email notification (non-blocking):', error);
+        // Return silent failure - don't block payment
+        return { success: false, error: error.message || 'Network error', silent: true };
     }
 }
 
@@ -4105,19 +4122,20 @@ async function handleCheckout(event) {
     };
     localStorage.setItem('pendingOrderDetails', JSON.stringify(orderDetails));
 
-    // Send email notification with customer checkout details (wait for it)
-    console.log('Sending checkout emails before proceeding to payment...');
-    const emailResult = await sendCheckoutEmailNotification(orderDetails);
+    // Send email notification in background (non-blocking - don't wait for it)
+    console.log('Sending checkout emails in background...');
+    sendCheckoutEmailNotification(orderDetails).then(result => {
+        if (result && result.success) {
+            console.log('✅ Checkout emails sent successfully');
+        } else {
+            console.warn('⚠️ Checkout emails may not have been sent - will send after payment confirmation');
+        }
+    }).catch(error => {
+        console.warn('⚠️ Error sending checkout emails (non-critical):', error);
+    });
     
-    if (!emailResult || !emailResult.success) {
-        hideCheckoutLoadingScreen();
-        const errorMsg = emailResult?.error || 'Failed to send confirmation emails';
-        console.error('Email sending failed:', errorMsg);
-        alert(`Unable to send confirmation emails. ${errorMsg}\n\nYou can still proceed with payment, but please contact support if you don't receive a confirmation email.`);
-        // Continue with payment even if email fails (don't block the user)
-    } else {
-        console.log('✅ Checkout emails sent successfully, proceeding to payment...');
-    }
+    // Continue immediately with payment - don't wait for email
+    console.log('Proceeding to payment...');
 
     const orderData = {
         amountInCents: Math.round(finalTotal * 100),
