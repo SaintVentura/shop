@@ -72,7 +72,7 @@ app.get('/keep-alive', (req, res) => {
   });
 });
 
-// Simple email function - sends email directly to customer support
+// SMTP email function with improved configuration and error handling
 async function sendEmail({ to, subject, text, html }) {
   const email = process.env.EMAIL || 'customersupport@saintventura.co.za';
   const password = process.env.EMAIL_PASSWORD || '';
@@ -82,30 +82,73 @@ async function sendEmail({ to, subject, text, html }) {
     return { success: false, error: 'Email not configured' };
   }
   
+  // Improved SMTP configuration with better connection settings
   const transporter = nodemailer.createTransport({
     host: 'smtp.zoho.com',
     port: 587,
-    secure: false,
+    secure: false, // true for 465, false for other ports
     auth: {
       user: email,
       pass: password
-    }
+    },
+    tls: {
+      // Do not fail on invalid certs
+      rejectUnauthorized: false
+    },
+    connectionTimeout: 10000, // 10 seconds
+    greetingTimeout: 10000, // 10 seconds
+    socketTimeout: 10000, // 10 seconds
+    // Retry configuration
+    pool: true,
+    maxConnections: 1,
+    maxMessages: 3
   });
   
-  try {
-    await transporter.sendMail({
-      from: email,
-      to: to || 'customersupport@saintventura.co.za',
-      subject: subject,
-      text: text,
-      html: html || text
-    });
-    console.log('✅ Email sent to', to || 'customersupport@saintventura.co.za');
-    return { success: true };
-  } catch (error) {
-    console.error('❌ Email failed:', error.message);
-    return { success: false, error: error.message };
+  // Verify SMTP connection (non-blocking - just log if it fails)
+  transporter.verify().then(() => {
+    console.log('✅ SMTP server connection verified');
+  }).catch(verifyError => {
+    console.warn('⚠️ SMTP verification failed (will still attempt to send):', verifyError.message);
+  });
+  
+  // Send email with retry logic
+  let lastError = null;
+  const maxRetries = 2;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const info = await transporter.sendMail({
+        from: `"Saint Ventura" <${email}>`,
+        to: to || 'customersupport@saintventura.co.za',
+        subject: subject,
+        text: text,
+        html: html || text,
+        // Add reply-to
+        replyTo: email
+      });
+      
+      console.log('✅ Email sent successfully to', to || 'customersupport@saintventura.co.za');
+      console.log('   Message ID:', info.messageId);
+      return { success: true, messageId: info.messageId };
+    } catch (error) {
+      lastError = error;
+      console.error(`❌ Email attempt ${attempt}/${maxRetries} failed:`, error.message);
+      
+      // If it's a connection error and we have retries left, wait and retry
+      if (attempt < maxRetries && (error.code === 'ECONNECTION' || error.code === 'ETIMEDOUT')) {
+        console.log(`   Retrying in 2 seconds...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        continue;
+      }
+      
+      // For other errors or last attempt, return error
+      break;
+    }
   }
+  
+  // All retries failed
+  console.error('❌ Email failed after all retries:', lastError.message);
+  return { success: false, error: lastError.message || 'Email sending failed' };
 }
 
 // Email test endpoint - test email configuration
