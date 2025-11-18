@@ -1707,6 +1707,7 @@
                                 <option value="">Select your location</option>
                                 <option id="door-option" value="door">Door-to-Door Courier (R130)</option>
                                 <option id="uj-option" value="uj">UJ Campus Delivery (R30)</option>
+                                <option id="test-option" value="test">Testing Delivery (R1)</option>
                             </select>
                             
                             <!-- Address Fields - Shows for Door-to-Door Courier -->
@@ -1769,6 +1770,13 @@
                                     <option value="APB">APB (Auckland Park Bunting Road Campus)</option>
                                 </select>
                                 <p class="text-xs text-gray-500 mt-2">Delivery will be made to your selected campus</p>
+                            </div>
+
+                            <!-- Testing Delivery Section - Shows for Testing Delivery -->
+                            <div id="test-delivery-section" class="hidden mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                                <label class="block mb-3 font-semibold text-lg">Testing Delivery</label>
+                                <p class="text-sm text-gray-600 mb-4">This is a testing delivery option for R1. No actual delivery will be made.</p>
+                                <p class="text-xs text-gray-500 mt-2">Use this option for testing checkout and payment functionality only.</p>
                             </div>
                         </div>
 
@@ -3649,6 +3657,7 @@ function initializeCheckoutPage() {
     } else {
         const addressSection = document.getElementById('address-section');
         const ujCampusSection = document.getElementById('uj-campus-section');
+        const testDeliverySection = document.getElementById('test-delivery-section');
         if (addressSection) {
             addressSection.classList.add('hidden');
             addressSection.style.setProperty('display', 'none', 'important');
@@ -3656,6 +3665,10 @@ function initializeCheckoutPage() {
         if (ujCampusSection) {
             ujCampusSection.classList.add('hidden');
             ujCampusSection.style.setProperty('display', 'none', 'important');
+        }
+        if (testDeliverySection) {
+            testDeliverySection.classList.add('hidden');
+            testDeliverySection.style.setProperty('display', 'none', 'important');
         }
     }
 }
@@ -3713,6 +3726,7 @@ function renderCheckoutCart() {
 function updateCheckoutDeliveryMethodText() {
     const doorOption = document.getElementById('door-option');
     const ujOption = document.getElementById('uj-option');
+    const testOption = document.getElementById('test-option');
     if (!doorOption || !ujOption) return;
     
     let subtotalBeforeDiscount = parseFloat(localStorage.getItem('cartSubtotalBeforeDiscount') || 0);
@@ -3727,6 +3741,11 @@ function updateCheckoutDeliveryMethodText() {
     } else {
         doorOption.textContent = 'Door-to-Door Courier (R130)';
         ujOption.textContent = 'UJ Campus Delivery (R30)';
+    }
+    
+    // Test option always shows (R1)
+    if (testOption) {
+        testOption.textContent = 'Testing Delivery (R1)';
     }
 }
 
@@ -3779,12 +3798,14 @@ function updateCheckoutShipping() {
         localStorage.setItem('cartSubtotalBeforeDiscount', subtotalBeforeDiscount.toFixed(2));
     }
 
-    if (subtotalBeforeDiscount >= 1000) {
+    if (subtotalBeforeDiscount >= 1000 && location !== 'test') {
         checkoutShippingFee = 0;
     } else if (location === 'door') {
         checkoutShippingFee = 130;
     } else if (location === 'uj') {
         checkoutShippingFee = 30;
+    } else if (location === 'test') {
+        checkoutShippingFee = 1;
     } else {
         checkoutShippingFee = 0;
     }
@@ -3793,8 +3814,9 @@ function updateCheckoutShipping() {
 
     const addressSection = document.getElementById('address-section');
     const ujCampusSection = document.getElementById('uj-campus-section');
+    const testDeliverySection = document.getElementById('test-delivery-section');
     
-    // Hide both sections first
+    // Hide all sections first
     if (addressSection) {
         addressSection.classList.add('hidden');
         addressSection.style.setProperty('display', 'none', 'important');
@@ -3803,6 +3825,11 @@ function updateCheckoutShipping() {
     if (ujCampusSection) {
         ujCampusSection.classList.add('hidden');
         ujCampusSection.style.setProperty('display', 'none', 'important');
+    }
+    
+    if (testDeliverySection) {
+        testDeliverySection.classList.add('hidden');
+        testDeliverySection.style.setProperty('display', 'none', 'important');
     }
     
     if (location === 'door') {
@@ -3832,6 +3859,29 @@ function updateCheckoutShipping() {
         }
         
         // Remove required attributes from address fields (not needed for campus delivery)
+        const addressInput = document.getElementById('address-autocomplete');
+        const cityInput = document.getElementById('address-city');
+        const provinceSelect = document.getElementById('address-province');
+        const postalInput = document.getElementById('address-postal');
+        
+        if (addressInput) addressInput.removeAttribute('required');
+        if (cityInput) cityInput.removeAttribute('required');
+        if (provinceSelect) provinceSelect.removeAttribute('required');
+        if (postalInput) postalInput.removeAttribute('required');
+    } else if (location === 'test') {
+        // Show testing delivery section
+        if (testDeliverySection) {
+            testDeliverySection.classList.remove('hidden');
+            testDeliverySection.style.setProperty('display', 'block', 'important');
+        }
+        
+        // Hide address section - not needed for testing delivery
+        if (addressSection) {
+            addressSection.classList.add('hidden');
+            addressSection.style.setProperty('display', 'none', 'important');
+        }
+        
+        // Remove required attributes from address fields (not needed for testing delivery)
         const addressInput = document.getElementById('address-autocomplete');
         const cityInput = document.getElementById('address-city');
         const provinceSelect = document.getElementById('address-province');
@@ -3895,7 +3945,7 @@ async function sendCheckoutEmailNotification(orderDetails) {
             customerName: orderDetails.customerName,
             customerEmail: orderDetails.customerEmail,
             customerPhone: orderDetails.customerPhone,
-            shippingMethod: orderDetails.shippingMethod === 'door' ? 'Door-to-Door Courier' : 'UJ Campus Delivery',
+            shippingMethod: orderDetails.shippingMethod === 'door' ? 'Door-to-Door Courier' : (orderDetails.shippingMethod === 'uj' ? 'UJ Campus Delivery' : 'Testing Delivery'),
             deliveryAddress: orderDetails.deliveryAddress,
             orderItems: orderDetails.orderItems, // Send as array, backend will format it
             subtotal: orderDetails.subtotal,
@@ -4008,6 +4058,14 @@ async function handleCheckout(event) {
         deliveryDetails = {
             type: 'campus',
             campus: campus
+        };
+    } else if (location === 'test') {
+        // Testing delivery option - no address needed
+        deliveryInfo = 'Testing Delivery - No actual delivery will be made';
+        
+        deliveryDetails = {
+            type: 'test',
+            note: 'This is a testing delivery option for checkout and payment testing only'
         };
     }
 
