@@ -505,6 +505,194 @@ app.post('/api/newsletter-subscribe', async (req, res) => {
   }
 });
 
+// Checkout email notification endpoint - sends customer details when they click "Proceed to Payment"
+app.post('/api/send-checkout-email', async (req, res) => {
+  try {
+    const {
+      customerName,
+      customerEmail,
+      customerPhone,
+      shippingMethod,
+      deliveryAddress,
+      orderItems,
+      subtotal,
+      shipping,
+      total,
+      timestamp
+    } = req.body;
+
+    // Validate required fields
+    if (!customerName || !customerEmail) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Customer name and email are required' 
+      });
+    }
+
+    // Format order items for email
+    let itemsText = '';
+    let itemsHtml = '';
+    
+    if (Array.isArray(orderItems)) {
+      // Handle array of order items
+      itemsText = orderItems.map(item => {
+        const sizeText = item.size ? `, Size: ${item.size}` : '';
+        const colorText = item.color ? `, Color: ${item.color}` : '';
+        return `  - ${item.name}${sizeText}${colorText} (Qty: ${item.quantity}) - R${(item.price * item.quantity).toFixed(2)}`;
+      }).join('\n');
+      
+      itemsHtml = orderItems.map(item => {
+        const sizeText = item.size ? `, Size: ${item.size}` : '';
+        const colorText = item.color ? `, Color: ${item.color}` : '';
+        return `<li><strong>${item.name}</strong>${sizeText}${colorText} (Qty: ${item.quantity}) - R${(item.price * item.quantity).toFixed(2)}</li>`;
+      }).join('');
+    } else if (typeof orderItems === 'string') {
+      // Handle string format (backward compatibility)
+      itemsText = orderItems.split('\n').map(item => `  ${item}`).join('\n');
+      itemsHtml = orderItems.split('\n').map(item => `<li>${item}</li>`).join('');
+    } else {
+      itemsText = 'No items listed';
+      itemsHtml = '<li>No items listed</li>';
+    }
+
+    // Format delivery address
+    let deliveryHtml = '';
+    if (deliveryAddress) {
+      deliveryHtml = `<p><strong>Delivery Address:</strong><br>${deliveryAddress.replace(/\n/g, '<br>')}</p>`;
+    }
+
+    // Send email to customer support
+    sendEmail({
+      to: 'customersupport@saintventura.co.za',
+      subject: `New Order Checkout - ${customerName}`,
+      text: `
+New Order Checkout Initiated
+
+Customer Details:
+- Name: ${customerName}
+- Email: ${customerEmail}
+- Phone: ${customerPhone || 'Not provided'}
+
+Shipping Method: ${shippingMethod}
+
+Delivery Address:
+${deliveryAddress || 'Not provided'}
+
+Order Items:
+${itemsText}
+
+Order Summary:
+- Subtotal: R${subtotal.toFixed(2)}
+- Shipping: R${shipping.toFixed(2)}
+- Total: R${total.toFixed(2)}
+
+Timestamp: ${timestamp || new Date().toISOString()}
+
+---
+This is a checkout notification. The customer has clicked "Proceed to Payment" and is being redirected to the payment gateway.
+      `,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #000; border-bottom: 2px solid #000; padding-bottom: 10px;">New Order Checkout</h2>
+          
+          <h3 style="color: #333; margin-top: 20px;">Customer Details</h3>
+          <p><strong>Name:</strong> ${customerName}</p>
+          <p><strong>Email:</strong> ${customerEmail}</p>
+          <p><strong>Phone:</strong> ${customerPhone || 'Not provided'}</p>
+
+          <h3 style="color: #333; margin-top: 20px;">Shipping Information</h3>
+          <p><strong>Shipping Method:</strong> ${shippingMethod}</p>
+          ${deliveryHtml}
+
+          <h3 style="color: #333; margin-top: 20px;">Order Items</h3>
+          <ul>
+            ${itemsHtml}
+          </ul>
+
+          <h3 style="color: #333; margin-top: 20px;">Order Summary</h3>
+          <table style="width: 100%; margin: 20px 0;">
+            <tr>
+              <td style="padding: 5px;"><strong>Subtotal:</strong></td>
+              <td style="padding: 5px; text-align: right;">R${subtotal.toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td style="padding: 5px;"><strong>Shipping:</strong></td>
+              <td style="padding: 5px; text-align: right;">R${shipping.toFixed(2)}</td>
+            </tr>
+            <tr style="font-size: 1.2em; font-weight: bold; border-top: 2px solid #000;">
+              <td style="padding: 10px 5px;"><strong>Total:</strong></td>
+              <td style="padding: 10px 5px; text-align: right;">R${total.toFixed(2)}</td>
+            </tr>
+          </table>
+
+          <p style="margin-top: 30px; color: #666; font-size: 0.9em;">
+            <strong>Timestamp:</strong> ${timestamp || new Date().toISOString()}
+          </p>
+
+          <p style="margin-top: 20px; color: #666; font-size: 0.9em; padding: 15px; background-color: #f5f5f5; border-left: 4px solid #000;">
+            <strong>Note:</strong> This is a checkout notification. The customer has clicked "Proceed to Payment" and is being redirected to the payment gateway.
+          </p>
+        </div>
+      `
+    }).then(result => {
+      if (result.success) {
+        console.log('✅ Checkout email notification SENT successfully to customersupport@saintventura.co.za');
+        console.log('Email details:', { 
+          messageId: result.id || result.info?.messageId,
+          method: result.method,
+          to: 'customersupport@saintventura.co.za',
+          subject: `New Order Checkout - ${customerName}`,
+          customerName: customerName,
+          customerEmail: customerEmail,
+          total: total
+        });
+      }
+    }).catch(error => {
+      console.error('❌ FAILED to send checkout email notification to customersupport@saintventura.co.za');
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        customerName: customerName,
+        customerEmail: customerEmail
+      });
+    });
+
+    // Return success immediately (don't wait for email)
+    res.json({ 
+      success: true,
+      message: 'Checkout email notification sent successfully' 
+    });
+
+  } catch (error) {
+    console.error('Error sending checkout email notification:', error);
+    console.error('Error details:', {
+      code: error.code,
+      command: error.command,
+      response: error.response,
+      message: error.message
+    });
+    
+    // Provide more specific error messages
+    let errorMessage = 'Failed to send checkout email notification';
+    
+    if (error.code === 'EAUTH') {
+      errorMessage = 'Email authentication failed. Please check your Zoho email and password in .env file.';
+      console.error('Authentication error - Check ZOHO_EMAIL and ZOHO_PASSWORD in .env');
+    } else if (error.code === 'ECONNECTION' || error.code === 'ETIMEDOUT') {
+      errorMessage = 'Could not connect to Zoho email server. Please check your internet connection.';
+      console.error('Connection error - Check network and Zoho SMTP settings');
+    } else if (error.message) {
+      errorMessage = `Email error: ${error.message}`;
+    }
+    
+    // Return error to frontend
+    res.status(500).json({ 
+      success: false,
+      error: errorMessage 
+    });
+  }
+});
+
 // Order confirmation email endpoint
 app.post('/api/send-order-confirmation', async (req, res) => {
   try {

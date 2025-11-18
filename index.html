@@ -2176,6 +2176,21 @@
                 colors: ["Black"],
                 availableColors: [{ name: "Black", gradient: "from-gray-900 to-black", image: "https://dl.dropboxusercontent.com/scl/fi/xevb4s1aeggk0fjcwk85e/1-18.png?rlkey=vs9rk6nu79b5nwtdxme114crx&st=6fn852el&dl=1" }]
             },
+            {
+                id: 11,
+                name: "Test Product",
+                price: 1,
+                category: "accessories",
+                description: "Test product for testing checkout and payment functionality. This is a low-cost item for testing purposes only.",
+                details: ["Test item", "For testing only", "Low cost"],
+                gradient: "from-gray-100 to-white",
+                images: [
+                    "https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1"
+                ],
+                sizes: ["One Size Fits All"],
+                colors: ["Test"],
+                availableColors: [{ name: "Test", gradient: "from-gray-100 to-white", image: "https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1" }]
+            },
 
         ];
 
@@ -3866,6 +3881,52 @@ function hideCheckoutLoadingScreen() {
     }
 }
 
+// Send email notification with customer checkout details
+async function sendCheckoutEmailNotification(orderDetails) {
+    try {
+        const backendUrl = getBackendBaseUrl();
+        const emailEndpoint = `${backendUrl}/api/send-checkout-email`;
+        
+        console.log('Sending checkout email notification to:', emailEndpoint);
+        
+        const emailData = {
+            to: 'customersupport@saintventura.co.za',
+            subject: `New Order Checkout - ${orderDetails.customerName}`,
+            customerName: orderDetails.customerName,
+            customerEmail: orderDetails.customerEmail,
+            customerPhone: orderDetails.customerPhone,
+            shippingMethod: orderDetails.shippingMethod === 'door' ? 'Door-to-Door Courier' : 'UJ Campus Delivery',
+            deliveryAddress: orderDetails.deliveryAddress,
+            orderItems: orderDetails.orderItems, // Send as array, backend will format it
+            subtotal: orderDetails.subtotal,
+            shipping: orderDetails.shipping,
+            total: orderDetails.total,
+            timestamp: orderDetails.timestamp
+        };
+        
+        // Send email notification (fire and forget - don't block payment processing)
+        fetch(emailEndpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(emailData)
+        }).then(response => {
+            if (response.ok) {
+                console.log('✅ Checkout email notification sent successfully');
+            } else {
+                console.warn('⚠️ Failed to send checkout email notification:', response.status);
+            }
+        }).catch(error => {
+            console.warn('⚠️ Error sending checkout email notification:', error);
+            // Don't block payment processing if email fails
+        });
+    } catch (error) {
+        console.warn('⚠️ Error preparing checkout email notification:', error);
+        // Don't block payment processing if email fails
+    }
+}
+
 async function handleCheckout(event) {
     event.preventDefault();
     event.stopPropagation();
@@ -3979,6 +4040,9 @@ async function handleCheckout(event) {
         timestamp: new Date().toISOString()
     };
     localStorage.setItem('pendingOrderDetails', JSON.stringify(orderDetails));
+
+    // Send email notification with customer checkout details
+    sendCheckoutEmailNotification(orderDetails);
 
     const orderData = {
         amountInCents: Math.round(finalTotal * 100),
