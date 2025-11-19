@@ -84,13 +84,25 @@ app.get('/keep-alive', (req, res) => {
 // SMTP email function with improved configuration and error handling
 // Using Gmail SMTP service
 async function sendEmail({ to, subject, text, html }) {
-  const email = process.env.EMAIL || '';
-  const password = process.env.EMAIL_PASSWORD || '';
+  const email = process.env.EMAIL?.trim() || '';
+  const password = process.env.EMAIL_PASSWORD?.trim() || '';
   
   if (!email || !password) {
     console.error('❌ EMAIL and EMAIL_PASSWORD must be set in .env file');
-    return { success: false, error: 'Email not configured' };
+    console.error('   Current EMAIL:', email ? 'Set' : 'NOT SET');
+    console.error('   Current EMAIL_PASSWORD:', password ? 'Set' : 'NOT SET');
+    return { success: false, error: 'Email not configured - check .env file' };
   }
+  
+  // Validate email format
+  if (!email.includes('@') || !email.includes('.')) {
+    console.error('❌ Invalid email format:', email);
+    return { success: false, error: 'Invalid email format in .env file' };
+  }
+  
+  console.log('📧 Preparing to send email via Gmail SMTP...');
+  console.log('   From email:', email);
+  console.log('   To email:', to || SUPPORT_EMAIL);
   
   // Gmail SMTP configuration
   const transporter = nodemailer.createTransport({
@@ -105,28 +117,26 @@ async function sendEmail({ to, subject, text, html }) {
       // Do not fail on invalid certs
       rejectUnauthorized: false
     },
-    connectionTimeout: 10000, // 10 seconds
-    greetingTimeout: 10000, // 10 seconds
-    socketTimeout: 10000, // 10 seconds
+    connectionTimeout: 15000, // 15 seconds
+    greetingTimeout: 15000, // 15 seconds
+    socketTimeout: 15000, // 15 seconds
     // Retry configuration
-    pool: true,
+    pool: false, // Don't pool connections for Gmail
     maxConnections: 1,
-    maxMessages: 3
-  });
-  
-  // Verify SMTP connection (non-blocking - just log if it fails)
-  transporter.verify().then(() => {
-    console.log('✅ SMTP server connection verified');
-  }).catch(verifyError => {
-    console.warn('⚠️ SMTP verification failed (will still attempt to send):', verifyError.message);
+    maxMessages: 1
   });
   
   // Send email with retry logic
   let lastError = null;
-  const maxRetries = 2;
+  const maxRetries = 3;
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
+      console.log(`📧 Attempting to send email (attempt ${attempt}/${maxRetries})...`);
+      console.log(`   From: ${email}`);
+      console.log(`   To: ${to || SUPPORT_EMAIL}`);
+      console.log(`   Subject: ${subject}`);
+      
       const info = await transporter.sendMail({
         from: `"Saint Ventura" <${email}>`,
         to: to || SUPPORT_EMAIL,
@@ -137,17 +147,24 @@ async function sendEmail({ to, subject, text, html }) {
         replyTo: email
       });
       
-      console.log('✅ Email sent successfully to', to || SUPPORT_EMAIL);
+      console.log('✅ Email sent successfully!');
+      console.log('   To:', to || SUPPORT_EMAIL);
       console.log('   Message ID:', info.messageId);
-      return { success: true, messageId: info.messageId };
+      console.log('   Response:', info.response);
+      return { success: true, messageId: info.messageId, response: info.response };
     } catch (error) {
       lastError = error;
-      console.error(`❌ Email attempt ${attempt}/${maxRetries} failed:`, error.message);
+      console.error(`❌ Email attempt ${attempt}/${maxRetries} failed:`);
+      console.error('   Error code:', error.code);
+      console.error('   Error message:', error.message);
+      console.error('   Error command:', error.command);
+      console.error('   Error response:', error.response);
       
       // If it's a connection error and we have retries left, wait and retry
-      if (attempt < maxRetries && (error.code === 'ECONNECTION' || error.code === 'ETIMEDOUT')) {
-        console.log(`   Retrying in 2 seconds...`);
-        await new Promise(resolve => setTimeout(resolve, 2000));
+      if (attempt < maxRetries && (error.code === 'ECONNECTION' || error.code === 'ETIMEDOUT' || error.code === 'EAUTH')) {
+        const waitTime = attempt * 2; // Progressive backoff: 2s, 4s
+        console.log(`   Retrying in ${waitTime} seconds...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime * 1000));
         continue;
       }
       
@@ -157,8 +174,22 @@ async function sendEmail({ to, subject, text, html }) {
   }
   
   // All retries failed
-  console.error('❌ Email failed after all retries:', lastError.message);
-  return { success: false, error: lastError.message || 'Email sending failed' };
+  console.error('❌ Email failed after all retries');
+  console.error('   Final error:', lastError?.message);
+  console.error('   Error code:', lastError?.code);
+  console.error('   Full error:', lastError);
+  
+  // Provide more detailed error message
+  let errorMessage = lastError?.message || 'Email sending failed';
+  if (lastError?.code === 'EAUTH') {
+    errorMessage = 'Gmail authentication failed. Please verify your email and app password in .env file.';
+  } else if (lastError?.code === 'ECONNECTION') {
+    errorMessage = 'Could not connect to Gmail SMTP server. Check your internet connection.';
+  } else if (lastError?.code === 'ETIMEDOUT') {
+    errorMessage = 'Connection to Gmail SMTP server timed out.';
+  }
+  
+  return { success: false, error: errorMessage, code: lastError?.code };
 }
 
 // Email test endpoint - test email configuration
@@ -536,14 +567,14 @@ app.post('/api/newsletter-subscribe', async (req, res) => {
     let errorMessage = 'Failed to send subscription request';
     
     if (error.code === 'EAUTH') {
-      errorMessage = 'Email authentication failed. Please check your Zoho email and password in .env file. You may need to use an App Password instead of your regular password.';
-      console.error('Authentication error - Check ZOHO_EMAIL and ZOHO_PASSWORD in .env');
+      errorMessage = 'Email authentication failed. Please check your Gmail email and app password in .env file. Make sure you\'re using a Gmail App Password, not your regular password.';
+      console.error('Authentication error - Check EMAIL and EMAIL_PASSWORD in .env (must be Gmail App Password)');
     } else if (error.code === 'ECONNECTION' || error.code === 'ETIMEDOUT') {
-      errorMessage = 'Could not connect to Zoho email server. Please check your internet connection.';
-      console.error('Connection error - Check network and Zoho SMTP settings');
+      errorMessage = 'Could not connect to Gmail SMTP server. Please check your internet connection.';
+      console.error('Connection error - Check network and Gmail SMTP settings');
     } else if (error.code === 'ESOCKET') {
-      errorMessage = 'Email server connection error. Please verify Zoho SMTP settings.';
-      console.error('Socket error - Check Zoho SMTP configuration');
+      errorMessage = 'Email server connection error. Please verify Gmail SMTP settings.';
+      console.error('Socket error - Check Gmail SMTP configuration');
     } else if (error.response) {
       errorMessage = `Email server error: ${error.response}`;
     } else if (error.message) {
