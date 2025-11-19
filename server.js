@@ -28,6 +28,15 @@ app.use(express.json());
 const YOCO_API_URL = 'https://payments.yoco.com';
 const YOCO_SECRET_KEY = process.env.YOCO_SECRET_KEY?.trim();
 
+// ============================================
+// EMAIL CONFIGURATION
+// ============================================
+// Support email address - set in .env as SUPPORT_EMAIL
+// If not set, defaults to EMAIL (your Gmail address)
+// This is where all order notifications and support emails are sent
+// ============================================
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || process.env.EMAIL || 'customerservice@saintventura.co.za';
+
 // Validate Yoco configuration
 if (!YOCO_SECRET_KEY) {
   console.error('❌ ERROR: YOCO_SECRET_KEY is not set in .env file!');
@@ -73,19 +82,19 @@ app.get('/keep-alive', (req, res) => {
 });
 
 // SMTP email function with improved configuration and error handling
-// Using Migadu.com SMTP service
+// Using Gmail SMTP service
 async function sendEmail({ to, subject, text, html }) {
-  const email = process.env.EMAIL || 'customerservice@saintventura.co.za';
+  const email = process.env.EMAIL || '';
   const password = process.env.EMAIL_PASSWORD || '';
   
-  if (!password) {
-    console.error('❌ EMAIL_PASSWORD not set in .env file');
+  if (!email || !password) {
+    console.error('❌ EMAIL and EMAIL_PASSWORD must be set in .env file');
     return { success: false, error: 'Email not configured' };
   }
   
-  // Migadu SMTP configuration
+  // Gmail SMTP configuration
   const transporter = nodemailer.createTransport({
-    host: 'smtp.migadu.com',
+    host: 'smtp.gmail.com',
     port: 587,
     secure: false, // true for 465, false for other ports (587 uses TLS)
     auth: {
@@ -120,7 +129,7 @@ async function sendEmail({ to, subject, text, html }) {
     try {
       const info = await transporter.sendMail({
         from: `"Saint Ventura" <${email}>`,
-        to: to || 'customerservice@saintventura.co.za',
+        to: to || SUPPORT_EMAIL,
         subject: subject,
         text: text,
         html: html || text,
@@ -128,7 +137,7 @@ async function sendEmail({ to, subject, text, html }) {
         replyTo: email
       });
       
-      console.log('✅ Email sent successfully to', to || 'customerservice@saintventura.co.za');
+      console.log('✅ Email sent successfully to', to || SUPPORT_EMAIL);
       console.log('   Message ID:', info.messageId);
       return { success: true, messageId: info.messageId };
     } catch (error) {
@@ -156,7 +165,7 @@ async function sendEmail({ to, subject, text, html }) {
 app.post('/api/test-email', async (req, res) => {
   try {
     const result = await sendEmail({
-      to: 'customerservice@saintventura.co.za',
+      to: SUPPORT_EMAIL,
       subject: 'Test Email - Saint Ventura Backend',
       text: `This is a test email from your Saint Ventura backend server.\n\nSent at: ${new Date().toISOString()}\nServer: ${process.env.NODE_ENV || 'development'}`,
       html: `
@@ -170,7 +179,7 @@ app.post('/api/test-email', async (req, res) => {
     if (result.success) {
       res.json({ 
         success: true, 
-        message: 'Test email sent successfully to customerservice@saintventura.co.za',
+        message: `Test email sent successfully to ${SUPPORT_EMAIL}`,
         messageId: result.id || result.info?.messageId,
         method: result.method
       });
@@ -414,24 +423,24 @@ app.post('/api/contact-form', async (req, res) => {
 
     // Send email to customer support
     sendEmail({
-      to: 'customerservice@saintventura.co.za',
+      to: SUPPORT_EMAIL,
       subject: `Contact Form: ${subject}`,
       text: `Name: ${name}\nEmail: ${email}\nPhone: ${phone || 'Not provided'}\nSubject: ${subject}\n\nMessage:\n${message}`,
       html: `<p><strong>Name:</strong> ${name}</p><p><strong>Email:</strong> ${email}</p><p><strong>Phone:</strong> ${phone || 'Not provided'}</p><p><strong>Subject:</strong> ${subject}</p><p><strong>Message:</strong> ${message.replace(/\n/g, '<br>')}</p>`
     }).then(result => {
       if (result.success) {
-        console.log('✅ Contact form email SENT successfully to customerservice@saintventura.co.za');
+        console.log(`✅ Contact form email SENT successfully to ${SUPPORT_EMAIL}`);
         console.log('Email details:', { 
           messageId: result.id || result.info?.messageId,
           method: result.method,
-          to: 'customerservice@saintventura.co.za',
+          to: SUPPORT_EMAIL,
           subject: `Contact Form: ${subject}`,
           name: name,
           email: email
         });
       }
     }).catch(error => {
-      console.error('❌ FAILED to send contact form email to customerservice@saintventura.co.za');
+      console.error(`❌ FAILED to send contact form email to ${SUPPORT_EMAIL}`);
       console.error('Error details:', {
         message: error.message,
         stack: error.stack,
@@ -484,23 +493,23 @@ app.post('/api/newsletter-subscribe', async (req, res) => {
 
     // Send email to customer support
     sendEmail({
-      to: 'customerservice@saintventura.co.za',
+      to: SUPPORT_EMAIL,
       subject: 'Newsletter Subscription',
       text: `New newsletter subscription: ${email}`,
       html: `<p><strong>New Newsletter Subscription:</strong> ${email}</p>`
     }).then(result => {
       if (result.success) {
-        console.log('✅ Newsletter subscription email SENT successfully to customerservice@saintventura.co.za');
+        console.log(`✅ Newsletter subscription email SENT successfully to ${SUPPORT_EMAIL}`);
         console.log('Email details:', { 
           messageId: result.id || result.info?.messageId,
           method: result.method,
-          to: 'customerservice@saintventura.co.za',
+          to: SUPPORT_EMAIL,
           subject: 'Newsletter Subscription Request',
           subscriberEmail: email
         });
       }
     }).catch(error => {
-      console.error('❌ FAILED to send newsletter email to customerservice@saintventura.co.za');
+      console.error(`❌ FAILED to send newsletter email to ${SUPPORT_EMAIL}`);
       console.error('Error details:', {
         message: error.message,
         stack: error.stack,
@@ -743,7 +752,7 @@ Thank you for choosing Saint Ventura!
 
     // Send emails to both customer and support (wait for both)
     const supportEmailPromise = sendEmail({
-      to: 'customerservice@saintventura.co.za',
+      to: SUPPORT_EMAIL,
       subject: `New Order Checkout - ${customerName}`,
       text: emailText,
       html: emailHtml
@@ -763,7 +772,7 @@ Thank you for choosing Saint Ventura!
     ]);
 
     if (supportResult.success) {
-      console.log('✅ Checkout email notification SENT successfully to customerservice@saintventura.co.za');
+      console.log(`✅ Checkout email notification SENT successfully to ${SUPPORT_EMAIL}`);
     } else {
       console.error('❌ FAILED to send checkout email to support:', supportResult.error);
     }
@@ -980,7 +989,7 @@ Thank you for choosing Saint Ventura!
 
     // Send emails to both customer and support (wait for both)
     const supportEmailPromise = sendEmail({
-      to: 'customerservice@saintventura.co.za',
+      to: SUPPORT_EMAIL,
       subject: `New Order - ${customerName} - R${total.toFixed(2)}`,
       text: `
 New Order Received
@@ -1070,7 +1079,7 @@ ${deliveryAddress ? `Delivery Address: ${deliveryAddress}` : ''}
     ]);
 
     if (supportResult.success) {
-      console.log('✅ Order confirmation email SENT successfully to customerservice@saintventura.co.za');
+      console.log(`✅ Order confirmation email SENT successfully to ${SUPPORT_EMAIL}`);
     } else {
       console.error('❌ FAILED to send order confirmation email to support:', supportResult.error);
     }
@@ -1171,15 +1180,19 @@ app.get('/api/payment-status/:checkoutId', async (req, res) => {
 });
 
 // Verify email configuration on startup
-const email = process.env.EMAIL || 'customerservice@saintventura.co.za';
+const email = process.env.EMAIL || '';
 const password = process.env.EMAIL_PASSWORD || '';
 
-if (password) {
+if (email && password) {
   console.log(`✅ Email configured: ${email}`);
+  console.log(`✅ Support email: ${SUPPORT_EMAIL} (all notifications will be sent here)`);
 } else {
-  console.warn(`⚠️  EMAIL_PASSWORD not set in .env file`);
-  console.warn(`   Add: EMAIL=customerservice@saintventura.co.za`);
-  console.warn(`   Add: EMAIL_PASSWORD=your_email_password`);
+  console.warn(`⚠️  Email not fully configured in .env file`);
+  console.warn(`   Required:`);
+  console.warn(`   EMAIL=your_gmail@gmail.com`);
+  console.warn(`   EMAIL_PASSWORD=your_gmail_app_password`);
+  console.warn(`   Optional:`);
+  console.warn(`   SUPPORT_EMAIL=your_gmail@gmail.com (if not set, uses EMAIL)`);
 }
 
 // Start server
