@@ -105,10 +105,17 @@ async function sendEmail({ to, subject, text, html }) {
   console.log('   To email:', to || SUPPORT_EMAIL);
   
   // Gmail SMTP configuration
+  // Try port 465 (SSL) first - more commonly allowed through firewalls
+  // If that fails, we can fall back to 587 (TLS)
+  const useSSL = process.env.EMAIL_USE_SSL !== 'false'; // Default to SSL (port 465)
+  const smtpPort = useSSL ? 465 : 587;
+  
+  console.log(`📧 Using Gmail SMTP on port ${smtpPort} (${useSSL ? 'SSL' : 'TLS'})`);
+  
   const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 587,
-    secure: false, // true for 465, false for other ports (587 uses TLS)
+    port: smtpPort,
+    secure: useSSL, // true for 465, false for other ports (587 uses TLS)
     auth: {
       user: email,
       pass: password
@@ -117,9 +124,9 @@ async function sendEmail({ to, subject, text, html }) {
       // Do not fail on invalid certs
       rejectUnauthorized: false
     },
-    connectionTimeout: 15000, // 15 seconds
-    greetingTimeout: 15000, // 15 seconds
-    socketTimeout: 15000, // 15 seconds
+    connectionTimeout: 30000, // 30 seconds (increased for Render)
+    greetingTimeout: 30000, // 30 seconds (increased for Render)
+    socketTimeout: 30000, // 30 seconds (increased for Render)
     // Retry configuration
     pool: false, // Don't pool connections for Gmail
     maxConnections: 1,
