@@ -32,7 +32,7 @@ const YOCO_SECRET_KEY = process.env.YOCO_SECRET_KEY?.trim();
 // EMAIL CONFIGURATION
 // ============================================
 // Support email address - set in .env as SUPPORT_EMAIL
-// If not set, defaults to EMAIL (your Gmail address)
+// If not set, defaults to EMAIL or customerservice@saintventura.co.za
 // This is where all order notifications and support emails are sent
 // ============================================
 const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || process.env.EMAIL || 'customerservice@saintventura.co.za';
@@ -82,16 +82,16 @@ app.get('/keep-alive', (req, res) => {
 });
 
 // SMTP email function with improved configuration and error handling
-// Using Gmail SMTP service
+// Using Migadu.com SMTP service
 async function sendEmail({ to, subject, text, html }) {
-  const email = process.env.EMAIL?.trim() || '';
+  const email = process.env.EMAIL?.trim() || 'customerservice@saintventura.co.za';
   const password = process.env.EMAIL_PASSWORD?.trim() || '';
   
-  if (!email || !password) {
-    console.error('❌ EMAIL and EMAIL_PASSWORD must be set in .env file');
-    console.error('   Current EMAIL:', email ? 'Set' : 'NOT SET');
+  if (!password) {
+    console.error('❌ EMAIL_PASSWORD must be set in .env file');
+    console.error('   Current EMAIL:', email);
     console.error('   Current EMAIL_PASSWORD:', password ? 'Set' : 'NOT SET');
-    return { success: false, error: 'Email not configured - check .env file' };
+    return { success: false, error: 'Email password not configured - check .env file' };
   }
   
   // Validate email format
@@ -100,13 +100,13 @@ async function sendEmail({ to, subject, text, html }) {
     return { success: false, error: 'Invalid email format in .env file' };
   }
   
-  console.log('📧 Preparing to send email via Gmail SMTP...');
+  console.log('📧 Preparing to send email via Migadu SMTP...');
   console.log('   From email:', email);
   console.log('   To email:', to || SUPPORT_EMAIL);
   
-  // Gmail SMTP configuration
+  // Migadu SMTP configuration
   const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
+    host: 'smtp.migadu.com',
     port: 587,
     secure: false, // true for 465, false for other ports (587 uses TLS)
     auth: {
@@ -121,7 +121,7 @@ async function sendEmail({ to, subject, text, html }) {
     greetingTimeout: 15000, // 15 seconds
     socketTimeout: 15000, // 15 seconds
     // Retry configuration
-    pool: false, // Don't pool connections for Gmail
+    pool: false, // Don't pool connections for Migadu
     maxConnections: 1,
     maxMessages: 1
   });
@@ -182,11 +182,11 @@ async function sendEmail({ to, subject, text, html }) {
   // Provide more detailed error message
   let errorMessage = lastError?.message || 'Email sending failed';
   if (lastError?.code === 'EAUTH') {
-    errorMessage = 'Gmail authentication failed. Please verify your email and app password in .env file.';
+    errorMessage = 'Migadu authentication failed. Please verify your email and password in .env file.';
   } else if (lastError?.code === 'ECONNECTION') {
-    errorMessage = 'Could not connect to Gmail SMTP server. Check your internet connection.';
+    errorMessage = 'Could not connect to Migadu SMTP server. Check your internet connection.';
   } else if (lastError?.code === 'ETIMEDOUT') {
-    errorMessage = 'Connection to Gmail SMTP server timed out.';
+    errorMessage = 'Connection to Migadu SMTP server timed out.';
   }
   
   return { success: false, error: errorMessage, code: lastError?.code };
@@ -567,14 +567,14 @@ app.post('/api/newsletter-subscribe', async (req, res) => {
     let errorMessage = 'Failed to send subscription request';
     
     if (error.code === 'EAUTH') {
-      errorMessage = 'Email authentication failed. Please check your Gmail email and app password in .env file. Make sure you\'re using a Gmail App Password, not your regular password.';
-      console.error('Authentication error - Check EMAIL and EMAIL_PASSWORD in .env (must be Gmail App Password)');
+      errorMessage = 'Email authentication failed. Please check your Migadu email and password in .env file.';
+      console.error('Authentication error - Check EMAIL and EMAIL_PASSWORD in .env (Migadu credentials)');
     } else if (error.code === 'ECONNECTION' || error.code === 'ETIMEDOUT') {
-      errorMessage = 'Could not connect to Gmail SMTP server. Please check your internet connection.';
-      console.error('Connection error - Check network and Gmail SMTP settings');
+      errorMessage = 'Could not connect to Migadu SMTP server. Please check your internet connection.';
+      console.error('Connection error - Check network and Migadu SMTP settings');
     } else if (error.code === 'ESOCKET') {
-      errorMessage = 'Email server connection error. Please verify Gmail SMTP settings.';
-      console.error('Socket error - Check Gmail SMTP configuration');
+      errorMessage = 'Email server connection error. Please verify Migadu SMTP settings.';
+      console.error('Socket error - Check Migadu SMTP configuration');
     } else if (error.response) {
       errorMessage = `Email server error: ${error.response}`;
     } else if (error.message) {
@@ -1215,15 +1215,15 @@ const email = process.env.EMAIL || '';
 const password = process.env.EMAIL_PASSWORD || '';
 
 if (email && password) {
-  console.log(`✅ Email configured: ${email}`);
+  console.log(`✅ Email configured: ${email} (Migadu SMTP)`);
   console.log(`✅ Support email: ${SUPPORT_EMAIL} (all notifications will be sent here)`);
 } else {
   console.warn(`⚠️  Email not fully configured in .env file`);
   console.warn(`   Required:`);
-  console.warn(`   EMAIL=your_gmail@gmail.com`);
-  console.warn(`   EMAIL_PASSWORD=your_gmail_app_password`);
+  console.warn(`   EMAIL=customerservice@saintventura.co.za (or leave blank to use default)`);
+  console.warn(`   EMAIL_PASSWORD=your_migadu_password`);
   console.warn(`   Optional:`);
-  console.warn(`   SUPPORT_EMAIL=your_gmail@gmail.com (if not set, uses EMAIL)`);
+  console.warn(`   SUPPORT_EMAIL=customerservice@saintventura.co.za (if not set, uses EMAIL or default)`);
 }
 
 // Start server
