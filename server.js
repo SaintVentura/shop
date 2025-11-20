@@ -32,10 +32,10 @@ const YOCO_SECRET_KEY = process.env.YOCO_SECRET_KEY?.trim();
 // EMAIL CONFIGURATION
 // ============================================
 // Support email address - set in .env as SUPPORT_EMAIL
-// If not set, defaults to EMAIL or admin@saintventura.co.za
+// If not set, defaults to EMAIL or contact.venturacustoms@gmail.com
 // This is where all order notifications and support emails are sent
 // ============================================
-const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || process.env.EMAIL || 'admin@saintventura.co.za';
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || process.env.EMAIL || 'contact.venturacustoms@gmail.com';
 
 // Validate Yoco configuration
 if (!YOCO_SECRET_KEY) {
@@ -82,9 +82,9 @@ app.get('/keep-alive', (req, res) => {
 });
 
 // SMTP email function with improved configuration and error handling
-// Using Migadu.com SMTP service
+// Using Gmail SMTP service
 async function sendEmail({ to, subject, text, html }) {
-  const email = process.env.EMAIL?.trim() || 'admin@saintventura.co.za';
+  const email = process.env.EMAIL?.trim() || 'contact.venturacustoms@gmail.com';
   const password = process.env.EMAIL_PASSWORD?.trim() || '';
   
   if (!password) {
@@ -100,13 +100,13 @@ async function sendEmail({ to, subject, text, html }) {
     return { success: false, error: 'Invalid email format in .env file' };
   }
   
-  console.log('📧 Preparing to send email via Migadu SMTP...');
+  console.log('📧 Preparing to send email via Gmail SMTP...');
   console.log('   From email:', email);
   console.log('   To email:', to || SUPPORT_EMAIL);
   
-  // Migadu SMTP configuration
+  // Gmail SMTP configuration
   const transporter = nodemailer.createTransport({
-    host: 'smtp.migadu.com',
+    host: 'smtp.gmail.com',
     port: 587,
     secure: false, // true for 465, false for other ports (587 uses TLS)
     auth: {
@@ -121,7 +121,7 @@ async function sendEmail({ to, subject, text, html }) {
     greetingTimeout: 15000, // 15 seconds
     socketTimeout: 15000, // 15 seconds
     // Retry configuration
-    pool: false, // Don't pool connections for Migadu
+    pool: false, // Don't pool connections for Gmail
     maxConnections: 1,
     maxMessages: 1
   });
@@ -182,11 +182,11 @@ async function sendEmail({ to, subject, text, html }) {
   // Provide more detailed error message
   let errorMessage = lastError?.message || 'Email sending failed';
   if (lastError?.code === 'EAUTH') {
-    errorMessage = 'Migadu authentication failed. Please verify your email and password in .env file.';
+    errorMessage = 'Gmail authentication failed. Please verify your email and app password in .env file.';
   } else if (lastError?.code === 'ECONNECTION') {
-    errorMessage = 'Could not connect to Migadu SMTP server. Check your internet connection.';
+    errorMessage = 'Could not connect to Gmail SMTP server. Check your internet connection.';
   } else if (lastError?.code === 'ETIMEDOUT') {
-    errorMessage = 'Connection to Migadu SMTP server timed out.';
+    errorMessage = 'Connection to Gmail SMTP server timed out.';
   }
   
   return { success: false, error: errorMessage, code: lastError?.code };
@@ -567,14 +567,14 @@ app.post('/api/newsletter-subscribe', async (req, res) => {
     let errorMessage = 'Failed to send subscription request';
     
     if (error.code === 'EAUTH') {
-      errorMessage = 'Email authentication failed. Please check your Migadu email and password in .env file.';
-      console.error('Authentication error - Check EMAIL and EMAIL_PASSWORD in .env (Migadu credentials)');
+      errorMessage = 'Email authentication failed. Please check your Gmail email and app password in .env file. Make sure you\'re using a Gmail App Password, not your regular password.';
+      console.error('Authentication error - Check EMAIL and EMAIL_PASSWORD in .env (must be Gmail App Password)');
     } else if (error.code === 'ECONNECTION' || error.code === 'ETIMEDOUT') {
-      errorMessage = 'Could not connect to Migadu SMTP server. Please check your internet connection.';
-      console.error('Connection error - Check network and Migadu SMTP settings');
+      errorMessage = 'Could not connect to Gmail SMTP server. Please check your internet connection.';
+      console.error('Connection error - Check network and Gmail SMTP settings');
     } else if (error.code === 'ESOCKET') {
-      errorMessage = 'Email server connection error. Please verify Migadu SMTP settings.';
-      console.error('Socket error - Check Migadu SMTP configuration');
+      errorMessage = 'Email server connection error. Please verify Gmail SMTP settings.';
+      console.error('Socket error - Check Gmail SMTP configuration');
     } else if (error.response) {
       errorMessage = `Email server error: ${error.response}`;
     } else if (error.message) {
@@ -1215,15 +1215,15 @@ const email = process.env.EMAIL || '';
 const password = process.env.EMAIL_PASSWORD || '';
 
 if (email && password) {
-  console.log(`✅ Email configured: ${email} (Migadu SMTP)`);
+  console.log(`✅ Email configured: ${email} (Gmail SMTP)`);
   console.log(`✅ Support email: ${SUPPORT_EMAIL} (all notifications will be sent here)`);
 } else {
   console.warn(`⚠️  Email not fully configured in .env file`);
   console.warn(`   Required:`);
-  console.warn(`   EMAIL=admin@saintventura.co.za (or leave blank to use default)`);
-  console.warn(`   EMAIL_PASSWORD=your_migadu_password`);
+  console.warn(`   EMAIL=contact.venturacustoms@gmail.com (or leave blank to use default)`);
+  console.warn(`   EMAIL_PASSWORD=your_gmail_app_password`);
   console.warn(`   Optional:`);
-  console.warn(`   SUPPORT_EMAIL=admin@saintventura.co.za (if not set, uses EMAIL or default)`);
+  console.warn(`   SUPPORT_EMAIL=contact.venturacustoms@gmail.com (if not set, uses EMAIL or default)`);
 }
 
 // Start server
