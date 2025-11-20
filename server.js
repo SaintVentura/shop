@@ -32,10 +32,10 @@ const YOCO_SECRET_KEY = process.env.YOCO_SECRET_KEY?.trim();
 // EMAIL CONFIGURATION
 // ============================================
 // Support email address - set in .env as SUPPORT_EMAIL
-// If not set, defaults to EMAIL or customerservice@saintventura.co.za
+// If not set, defaults to EMAIL or admin@saintventura.co.za
 // This is where all order notifications and support emails are sent
 // ============================================
-const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || process.env.EMAIL || 'customerservice@saintventura.co.za';
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || process.env.EMAIL || 'admin@saintventura.co.za';
 
 // Validate Yoco configuration
 if (!YOCO_SECRET_KEY) {
@@ -84,7 +84,7 @@ app.get('/keep-alive', (req, res) => {
 // SMTP email function with improved configuration and error handling
 // Using Migadu.com SMTP service
 async function sendEmail({ to, subject, text, html }) {
-  const email = process.env.EMAIL?.trim() || 'customerservice@saintventura.co.za';
+  const email = process.env.EMAIL?.trim() || 'admin@saintventura.co.za';
   const password = process.env.EMAIL_PASSWORD?.trim() || '';
   
   if (!password) {
@@ -1220,10 +1220,10 @@ if (email && password) {
 } else {
   console.warn(`⚠️  Email not fully configured in .env file`);
   console.warn(`   Required:`);
-  console.warn(`   EMAIL=customerservice@saintventura.co.za (or leave blank to use default)`);
+  console.warn(`   EMAIL=admin@saintventura.co.za (or leave blank to use default)`);
   console.warn(`   EMAIL_PASSWORD=your_migadu_password`);
   console.warn(`   Optional:`);
-  console.warn(`   SUPPORT_EMAIL=customerservice@saintventura.co.za (if not set, uses EMAIL or default)`);
+  console.warn(`   SUPPORT_EMAIL=admin@saintventura.co.za (if not set, uses EMAIL or default)`);
 }
 
 // Start server
