@@ -34,9 +34,10 @@ const YOCO_SECRET_KEY = process.env.YOCO_SECRET_KEY?.trim();
 // Telegram Chat ID to receive notifications - set in .env as TELEGRAM_CHAT_ID
 // Telegram Bot Token - set in .env as TELEGRAM_BOT_TOKEN
 // Get both for FREE from @BotFather on Telegram
+// IMPORTANT: You must send a message to your bot first before it can message you!
 // ============================================
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN?.trim();
-const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID?.trim();
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID?.trim() ? String(process.env.TELEGRAM_CHAT_ID.trim()) : null;
 
 // Initialize Telegram Bot (only if token is provided)
 let telegramBot = null;
@@ -114,11 +115,12 @@ async function sendWhatsApp({ message, to }) {
     return { success: false, error: 'Telegram Bot not initialized' };
   }
   
-  // Use provided chat ID or default
-  const chatId = to || TELEGRAM_CHAT_ID;
+  // Use provided chat ID or default (ensure it's a string)
+  const chatId = String(to || TELEGRAM_CHAT_ID);
   
   console.log('📱 Preparing to send Telegram message...');
   console.log('   To Chat ID:', chatId);
+  console.log('   Chat ID type:', typeof chatId);
   console.log('   Message length:', message.length, 'characters');
   
   // Send Telegram message with retry logic
@@ -129,9 +131,17 @@ async function sendWhatsApp({ message, to }) {
     try {
       console.log(`📱 Attempting to send Telegram message (attempt ${attempt}/${maxRetries})...`);
       
-      const messageResult = await telegramBot.sendMessage(chatId, message, {
-        parse_mode: 'Markdown'
-      });
+      // Try sending with Markdown first, fallback to plain text if it fails
+      let messageResult;
+      try {
+        messageResult = await telegramBot.sendMessage(chatId, message, {
+          parse_mode: 'Markdown'
+        });
+      } catch (markdownError) {
+        // If Markdown parsing fails, try without it
+        console.log('   Markdown parse failed, trying plain text...');
+        messageResult = await telegramBot.sendMessage(chatId, message);
+      }
       
       console.log('✅ Telegram message sent successfully!');
       console.log('   To Chat ID:', chatId);
@@ -164,13 +174,26 @@ async function sendWhatsApp({ message, to }) {
   
   // Provide more detailed error message
   let errorMessage = lastError?.message || 'Telegram sending failed';
+  const errorBody = lastError?.response?.body;
+  const errorDescription = errorBody?.description || errorBody?.error_code ? ` (${errorBody.description || errorBody.error_code})` : '';
+  
   if (lastError?.response?.statusCode === 401) {
     errorMessage = 'Telegram Bot token invalid. Please check TELEGRAM_BOT_TOKEN in .env file.';
   } else if (lastError?.response?.statusCode === 400) {
-    errorMessage = 'Invalid chat ID. Please check TELEGRAM_CHAT_ID in .env file.';
+    if (errorBody?.description?.includes('chat not found') || errorBody?.description?.includes('chat_id')) {
+      errorMessage = `Invalid chat ID or bot hasn't received a message from you yet. Please:\n1. Find your bot on Telegram (search for the username you created)\n2. Send it any message (like "Hello")\n3. Then try again. Current chat ID: ${TELEGRAM_CHAT_ID}${errorDescription}`;
+    } else {
+      errorMessage = `Invalid chat ID: ${errorBody?.description || 'Please check TELEGRAM_CHAT_ID in .env file'}${errorDescription}`;
+    }
   } else if (lastError?.response?.statusCode === 429) {
     errorMessage = 'Rate limit exceeded. Please wait before sending more messages.';
   }
+  
+  console.error('   Full error details:', JSON.stringify({
+    statusCode: lastError?.response?.statusCode,
+    body: errorBody,
+    message: lastError?.message
+  }, null, 2));
   
   return { success: false, error: errorMessage, code: lastError?.code };
 }
