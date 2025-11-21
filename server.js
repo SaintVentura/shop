@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
-const nodemailer = require('nodemailer');
+const TelegramBot = require('node-telegram-bot-api');
 require('dotenv').config();
 
 const app = express();
@@ -29,13 +29,30 @@ const YOCO_API_URL = 'https://payments.yoco.com';
 const YOCO_SECRET_KEY = process.env.YOCO_SECRET_KEY?.trim();
 
 // ============================================
-// EMAIL CONFIGURATION
+// TELEGRAM BOT CONFIGURATION (FREE)
 // ============================================
-// Support email address - set in .env as SUPPORT_EMAIL
-// If not set, defaults to EMAIL or contact.venturacustoms@gmail.com
-// This is where all order notifications and support emails are sent
+// Telegram Chat ID to receive notifications - set in .env as TELEGRAM_CHAT_ID
+// Telegram Bot Token - set in .env as TELEGRAM_BOT_TOKEN
+// Get both for FREE from @BotFather on Telegram
 // ============================================
-const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || process.env.EMAIL || 'contact.venturacustoms@gmail.com';
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN?.trim();
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID?.trim();
+
+// Initialize Telegram Bot (only if token is provided)
+let telegramBot = null;
+if (TELEGRAM_BOT_TOKEN) {
+  try {
+    telegramBot = new TelegramBot(TELEGRAM_BOT_TOKEN, { polling: false });
+    console.log('✅ Telegram Bot initialized');
+  } catch (error) {
+    console.error('❌ Failed to initialize Telegram Bot:', error.message);
+  }
+} else {
+  console.warn('⚠️ WARNING: TELEGRAM_BOT_TOKEN is not set in .env file!');
+  console.warn('   Notifications will not work until Telegram Bot is configured.');
+  console.warn('   Get your FREE bot token from: https://t.me/BotFather');
+  console.warn('   Get your chat ID by messaging @userinfobot on Telegram');
+}
 
 // Validate Yoco configuration
 if (!YOCO_SECRET_KEY) {
@@ -81,94 +98,54 @@ app.get('/keep-alive', (req, res) => {
   });
 });
 
-// SMTP email function with improved configuration and error handling
-// Using Gmail SMTP service
-async function sendEmail({ to, subject, text, html }) {
-  const email = process.env.EMAIL?.trim() || 'contact.venturacustoms@gmail.com';
-  const password = process.env.EMAIL_PASSWORD?.trim() || '';
-  
-  if (!password) {
-    console.error('❌ EMAIL_PASSWORD must be set in .env file');
-    console.error('   Current EMAIL:', email);
-    console.error('   Current EMAIL_PASSWORD:', password ? 'Set' : 'NOT SET');
-    return { success: false, error: 'Email password not configured - check .env file' };
+// Telegram messaging function (FREE - no costs!)
+// Sends Telegram messages to the configured chat ID
+async function sendWhatsApp({ message, to }) {
+  // Validate Telegram configuration
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+    console.error('❌ Telegram credentials not configured');
+    console.error('   Please set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in .env file');
+    console.error('   Get FREE bot token from: https://t.me/BotFather');
+    console.error('   Get chat ID from: https://t.me/userinfobot');
+    return { success: false, error: 'Telegram credentials not configured - check .env file' };
   }
   
-  // Validate email format
-  if (!email.includes('@') || !email.includes('.')) {
-    console.error('❌ Invalid email format:', email);
-    return { success: false, error: 'Invalid email format in .env file' };
+  if (!telegramBot) {
+    return { success: false, error: 'Telegram Bot not initialized' };
   }
   
-  console.log('📧 Preparing to send email via Gmail SMTP...');
-  console.log('   From email:', email);
-  console.log('   To email:', to || SUPPORT_EMAIL);
+  // Use provided chat ID or default
+  const chatId = to || TELEGRAM_CHAT_ID;
   
-  // Gmail SMTP configuration
-  // Try port 465 (SSL) first - more commonly allowed through firewalls
-  // If that fails, we can fall back to 587 (TLS)
-  const useSSL = process.env.EMAIL_USE_SSL !== 'false'; // Default to SSL (port 465)
-  const smtpPort = useSSL ? 465 : 587;
+  console.log('📱 Preparing to send Telegram message...');
+  console.log('   To Chat ID:', chatId);
+  console.log('   Message length:', message.length, 'characters');
   
-  console.log(`📧 Using Gmail SMTP on port ${smtpPort} (${useSSL ? 'SSL' : 'TLS'})`);
-  
-  const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: smtpPort,
-    secure: useSSL, // true for 465, false for other ports (587 uses TLS)
-    auth: {
-      user: email,
-      pass: password
-    },
-    tls: {
-      // Do not fail on invalid certs
-      rejectUnauthorized: false
-    },
-    connectionTimeout: 30000, // 30 seconds (increased for Render)
-    greetingTimeout: 30000, // 30 seconds (increased for Render)
-    socketTimeout: 30000, // 30 seconds (increased for Render)
-    // Retry configuration
-    pool: false, // Don't pool connections for Gmail
-    maxConnections: 1,
-    maxMessages: 1
-  });
-  
-  // Send email with retry logic
+  // Send Telegram message with retry logic
   let lastError = null;
   const maxRetries = 3;
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      console.log(`📧 Attempting to send email (attempt ${attempt}/${maxRetries})...`);
-      console.log(`   From: ${email}`);
-      console.log(`   To: ${to || SUPPORT_EMAIL}`);
-      console.log(`   Subject: ${subject}`);
+      console.log(`📱 Attempting to send Telegram message (attempt ${attempt}/${maxRetries})...`);
       
-      const info = await transporter.sendMail({
-        from: `"Saint Ventura" <${email}>`,
-        to: to || SUPPORT_EMAIL,
-        subject: subject,
-        text: text,
-        html: html || text,
-        // Add reply-to
-        replyTo: email
+      const messageResult = await telegramBot.sendMessage(chatId, message, {
+        parse_mode: 'Markdown'
       });
       
-      console.log('✅ Email sent successfully!');
-      console.log('   To:', to || SUPPORT_EMAIL);
-      console.log('   Message ID:', info.messageId);
-      console.log('   Response:', info.response);
-      return { success: true, messageId: info.messageId, response: info.response };
+      console.log('✅ Telegram message sent successfully!');
+      console.log('   To Chat ID:', chatId);
+      console.log('   Message ID:', messageResult.message_id);
+      return { success: true, messageId: messageResult.message_id, status: 'sent' };
     } catch (error) {
       lastError = error;
-      console.error(`❌ Email attempt ${attempt}/${maxRetries} failed:`);
+      console.error(`❌ Telegram attempt ${attempt}/${maxRetries} failed:`);
       console.error('   Error code:', error.code);
       console.error('   Error message:', error.message);
-      console.error('   Error command:', error.command);
       console.error('   Error response:', error.response);
       
-      // If it's a connection error and we have retries left, wait and retry
-      if (attempt < maxRetries && (error.code === 'ECONNECTION' || error.code === 'ETIMEDOUT' || error.code === 'EAUTH')) {
+      // If it's a rate limit or temporary error and we have retries left, wait and retry
+      if (attempt < maxRetries && (error.code === 'ETELEGRAM' || error.response?.statusCode === 429)) {
         const waitTime = attempt * 2; // Progressive backoff: 2s, 4s
         console.log(`   Retrying in ${waitTime} seconds...`);
         await new Promise(resolve => setTimeout(resolve, waitTime * 1000));
@@ -181,58 +158,50 @@ async function sendEmail({ to, subject, text, html }) {
   }
   
   // All retries failed
-  console.error('❌ Email failed after all retries');
+  console.error('❌ Telegram message failed after all retries');
   console.error('   Final error:', lastError?.message);
   console.error('   Error code:', lastError?.code);
-  console.error('   Full error:', lastError);
   
   // Provide more detailed error message
-  let errorMessage = lastError?.message || 'Email sending failed';
-  if (lastError?.code === 'EAUTH') {
-    errorMessage = 'Gmail authentication failed. Please verify your email and app password in .env file.';
-  } else if (lastError?.code === 'ECONNECTION') {
-    errorMessage = 'Could not connect to Gmail SMTP server. Check your internet connection.';
-  } else if (lastError?.code === 'ETIMEDOUT') {
-    errorMessage = 'Connection to Gmail SMTP server timed out.';
+  let errorMessage = lastError?.message || 'Telegram sending failed';
+  if (lastError?.response?.statusCode === 401) {
+    errorMessage = 'Telegram Bot token invalid. Please check TELEGRAM_BOT_TOKEN in .env file.';
+  } else if (lastError?.response?.statusCode === 400) {
+    errorMessage = 'Invalid chat ID. Please check TELEGRAM_CHAT_ID in .env file.';
+  } else if (lastError?.response?.statusCode === 429) {
+    errorMessage = 'Rate limit exceeded. Please wait before sending more messages.';
   }
   
   return { success: false, error: errorMessage, code: lastError?.code };
 }
 
-// Email test endpoint - test email configuration
+// Telegram test endpoint - test Telegram configuration
 app.post('/api/test-email', async (req, res) => {
   try {
-    const result = await sendEmail({
-      to: SUPPORT_EMAIL,
-      subject: 'Test Email - Saint Ventura Backend',
-      text: `This is a test email from your Saint Ventura backend server.\n\nSent at: ${new Date().toISOString()}\nServer: ${process.env.NODE_ENV || 'development'}`,
-      html: `
-        <h2>Test Email</h2>
-        <p>This is a test email from your Saint Ventura backend server.</p>
-        <p><strong>Sent at:</strong> ${new Date().toISOString()}</p>
-        <p><strong>Server:</strong> ${process.env.NODE_ENV || 'development'}</p>
-      `
+    const result = await sendWhatsApp({
+      message: `🧪 *Test Telegram Message - Saint Ventura Backend*\n\nSent at: ${new Date().toISOString()}\nServer: ${process.env.NODE_ENV || 'development'}\n\nThis is a test message to verify Telegram notifications are working.`,
+      to: TELEGRAM_CHAT_ID
     });
     
     if (result.success) {
       res.json({ 
         success: true, 
-        message: `Test email sent successfully to ${SUPPORT_EMAIL}`,
-        messageId: result.id || result.info?.messageId,
-        method: result.method
+        message: `Test Telegram message sent successfully to chat ID ${TELEGRAM_CHAT_ID}`,
+        messageId: result.messageId,
+        status: result.status
       });
     } else {
       res.status(500).json({ 
         success: false,
-        error: 'Failed to send test email',
-        details: result.error?.message || 'Unknown error'
+        error: 'Failed to send test Telegram message',
+        details: result.error || 'Unknown error'
       });
     }
   } catch (error) {
-    console.error('Email test error:', error);
+    console.error('Telegram test error:', error);
     res.status(500).json({ 
       success: false,
-      error: error.message || 'Email test failed',
+      error: error.message || 'Telegram test failed',
       code: error.code
     });
   }
@@ -459,26 +428,25 @@ app.post('/api/contact-form', async (req, res) => {
       });
     }
 
-    // Send email to customer support
-    sendEmail({
-      to: SUPPORT_EMAIL,
-      subject: `Contact Form: ${subject}`,
-      text: `Name: ${name}\nEmail: ${email}\nPhone: ${phone || 'Not provided'}\nSubject: ${subject}\n\nMessage:\n${message}`,
-      html: `<p><strong>Name:</strong> ${name}</p><p><strong>Email:</strong> ${email}</p><p><strong>Phone:</strong> ${phone || 'Not provided'}</p><p><strong>Subject:</strong> ${subject}</p><p><strong>Message:</strong> ${message.replace(/\n/g, '<br>')}</p>`
+    // Send Telegram message to support
+    const telegramMessage = `📧 *New Contact Form Submission*\n\n*Name:* ${name}\n*Email:* ${email}\n*Phone:* ${phone || 'Not provided'}\n*Subject:* ${subject}\n\n*Message:*\n${message}`;
+    
+    sendWhatsApp({
+      message: telegramMessage,
+      to: TELEGRAM_CHAT_ID
     }).then(result => {
       if (result.success) {
-        console.log(`✅ Contact form email SENT successfully to ${SUPPORT_EMAIL}`);
-        console.log('Email details:', { 
-          messageId: result.id || result.info?.messageId,
-          method: result.method,
-          to: SUPPORT_EMAIL,
-          subject: `Contact Form: ${subject}`,
+        console.log(`✅ Contact form Telegram message SENT successfully to chat ID ${TELEGRAM_CHAT_ID}`);
+        console.log('Telegram details:', { 
+          messageId: result.messageId,
+          status: result.status,
+          to: TELEGRAM_CHAT_ID,
           name: name,
           email: email
         });
       }
     }).catch(error => {
-      console.error(`❌ FAILED to send contact form email to ${SUPPORT_EMAIL}`);
+      console.error(`❌ FAILED to send contact form Telegram message to chat ID ${TELEGRAM_CHAT_ID}`);
       console.error('Error details:', {
         message: error.message,
         stack: error.stack,
@@ -499,14 +467,14 @@ app.post('/api/contact-form', async (req, res) => {
     // Provide more specific error messages
     let errorMessage = 'Failed to send contact form';
     
-    if (error.code === 'EAUTH') {
-      errorMessage = 'Email authentication failed. Please check your Zoho email and password in .env file.';
-      console.error('Authentication error - Check ZOHO_EMAIL and ZOHO_PASSWORD in .env');
-    } else if (error.code === 'ECONNECTION' || error.code === 'ETIMEDOUT') {
-      errorMessage = 'Could not connect to Zoho email server. Please check your internet connection.';
-      console.error('Connection error - Check network and Zoho SMTP settings');
+    if (error.response?.statusCode === 401) {
+      errorMessage = 'Telegram Bot token invalid. Please check TELEGRAM_BOT_TOKEN in .env file.';
+      console.error('Authentication error - Check TELEGRAM_BOT_TOKEN in .env');
+    } else if (error.response?.statusCode === 400) {
+      errorMessage = 'Invalid chat ID. Please check TELEGRAM_CHAT_ID in .env file.';
+      console.error('Invalid chat ID - Check TELEGRAM_CHAT_ID in .env');
     } else if (error.message) {
-      errorMessage = `Email error: ${error.message}`;
+      errorMessage = `Telegram error: ${error.message}`;
     }
     
     res.status(500).json({ 
@@ -529,25 +497,24 @@ app.post('/api/newsletter-subscribe', async (req, res) => {
       });
     }
 
-    // Send email to customer support
-    sendEmail({
-      to: SUPPORT_EMAIL,
-      subject: 'Newsletter Subscription',
-      text: `New newsletter subscription: ${email}`,
-      html: `<p><strong>New Newsletter Subscription:</strong> ${email}</p>`
+    // Send Telegram message to support
+    const telegramMessage = `📬 *New Newsletter Subscription*\n\nEmail: ${email}\n\nTime: ${new Date().toLocaleString('en-ZA')}`;
+    
+    sendWhatsApp({
+      message: telegramMessage,
+      to: TELEGRAM_CHAT_ID
     }).then(result => {
       if (result.success) {
-        console.log(`✅ Newsletter subscription email SENT successfully to ${SUPPORT_EMAIL}`);
-        console.log('Email details:', { 
-          messageId: result.id || result.info?.messageId,
-          method: result.method,
-          to: SUPPORT_EMAIL,
-          subject: 'Newsletter Subscription Request',
+        console.log(`✅ Newsletter subscription Telegram message SENT successfully to chat ID ${TELEGRAM_CHAT_ID}`);
+        console.log('Telegram details:', { 
+          messageId: result.messageId,
+          status: result.status,
+          to: TELEGRAM_CHAT_ID,
           subscriberEmail: email
         });
       }
     }).catch(error => {
-      console.error(`❌ FAILED to send newsletter email to ${SUPPORT_EMAIL}`);
+      console.error(`❌ FAILED to send newsletter Telegram message to chat ID ${TELEGRAM_CHAT_ID}`);
       console.error('Error details:', {
         message: error.message,
         stack: error.stack,
@@ -573,19 +540,14 @@ app.post('/api/newsletter-subscribe', async (req, res) => {
     // Provide more specific error messages
     let errorMessage = 'Failed to send subscription request';
     
-    if (error.code === 'EAUTH') {
-      errorMessage = 'Email authentication failed. Please check your Gmail email and app password in .env file. Make sure you\'re using a Gmail App Password, not your regular password.';
-      console.error('Authentication error - Check EMAIL and EMAIL_PASSWORD in .env (must be Gmail App Password)');
-    } else if (error.code === 'ECONNECTION' || error.code === 'ETIMEDOUT') {
-      errorMessage = 'Could not connect to Gmail SMTP server. Please check your internet connection.';
-      console.error('Connection error - Check network and Gmail SMTP settings');
-    } else if (error.code === 'ESOCKET') {
-      errorMessage = 'Email server connection error. Please verify Gmail SMTP settings.';
-      console.error('Socket error - Check Gmail SMTP configuration');
-    } else if (error.response) {
-      errorMessage = `Email server error: ${error.response}`;
+    if (error.response?.statusCode === 401) {
+      errorMessage = 'Telegram Bot token invalid. Please check TELEGRAM_BOT_TOKEN in .env file.';
+      console.error('Authentication error - Check TELEGRAM_BOT_TOKEN in .env');
+    } else if (error.response?.statusCode === 400) {
+      errorMessage = 'Invalid chat ID. Please check TELEGRAM_CHAT_ID in .env file.';
+      console.error('Invalid chat ID - Check TELEGRAM_CHAT_ID in .env');
     } else if (error.message) {
-      errorMessage = `Email error: ${error.message}`;
+      errorMessage = `Telegram error: ${error.message}`;
     }
     
     // Return error to frontend
@@ -652,209 +614,57 @@ app.post('/api/send-checkout-email', async (req, res) => {
       deliveryHtml = `<p><strong>Delivery Address:</strong><br>${deliveryAddress.replace(/\n/g, '<br>')}</p>`;
     }
 
-    // Prepare email content
-    const emailText = `
-New Order Checkout Initiated
+    // Prepare Telegram message for support
+    const supportTelegramMessage = `🛒 *New Order Checkout Initiated*\n\n*Customer Details:*\nName: ${customerName}\nEmail: ${customerEmail}\nPhone: ${customerPhone || 'Not provided'}\n\n*Shipping Method:* ${shippingMethod}\n\n*Delivery Address:*\n${deliveryAddress || 'Not provided'}\n\n*Order Items:*\n${itemsText}\n\n*Order Summary:*\nSubtotal: R${subtotal.toFixed(2)}\nShipping: R${shipping.toFixed(2)}\n*Total: R${total.toFixed(2)}*\n\nTime: ${timestamp || new Date().toLocaleString('en-ZA')}\n\n⚠️ Customer proceeding to payment...`;
 
-Customer Details:
-- Name: ${customerName}
-- Email: ${customerEmail}
-- Phone: ${customerPhone || 'Not provided'}
-
-Shipping Method: ${shippingMethod}
-
-Delivery Address:
-${deliveryAddress || 'Not provided'}
-
-Order Items:
-${itemsText}
-
-Order Summary:
-- Subtotal: R${subtotal.toFixed(2)}
-- Shipping: R${shipping.toFixed(2)}
-- Total: R${total.toFixed(2)}
-
-Timestamp: ${timestamp || new Date().toISOString()}
-
----
-This is a checkout notification. The customer has clicked "Proceed to Payment" and is being redirected to the payment gateway.
-    `;
-
-    const emailHtml = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h2 style="color: #000; border-bottom: 2px solid #000; padding-bottom: 10px;">New Order Checkout</h2>
-        
-        <h3 style="color: #333; margin-top: 20px;">Customer Details</h3>
-        <p><strong>Name:</strong> ${customerName}</p>
-        <p><strong>Email:</strong> ${customerEmail}</p>
-        <p><strong>Phone:</strong> ${customerPhone || 'Not provided'}</p>
-
-        <h3 style="color: #333; margin-top: 20px;">Shipping Information</h3>
-        <p><strong>Shipping Method:</strong> ${shippingMethod}</p>
-        ${deliveryHtml}
-
-        <h3 style="color: #333; margin-top: 20px;">Order Items</h3>
-        <ul>
-          ${itemsHtml}
-        </ul>
-
-        <h3 style="color: #333; margin-top: 20px;">Order Summary</h3>
-        <table style="width: 100%; margin: 20px 0;">
-          <tr>
-            <td style="padding: 5px;"><strong>Subtotal:</strong></td>
-            <td style="padding: 5px; text-align: right;">R${subtotal.toFixed(2)}</td>
-          </tr>
-          <tr>
-            <td style="padding: 5px;"><strong>Shipping:</strong></td>
-            <td style="padding: 5px; text-align: right;">R${shipping.toFixed(2)}</td>
-          </tr>
-          <tr style="font-size: 1.2em; font-weight: bold; border-top: 2px solid #000;">
-            <td style="padding: 10px 5px;"><strong>Total:</strong></td>
-            <td style="padding: 10px 5px; text-align: right;">R${total.toFixed(2)}</td>
-          </tr>
-        </table>
-
-        <p style="margin-top: 30px; color: #666; font-size: 0.9em;">
-          <strong>Timestamp:</strong> ${timestamp || new Date().toISOString()}
-        </p>
-
-        <p style="margin-top: 20px; color: #666; font-size: 0.9em; padding: 15px; background-color: #f5f5f5; border-left: 4px solid #000;">
-          <strong>Note:</strong> This is a checkout notification. The customer has clicked "Proceed to Payment" and is being redirected to the payment gateway.
-        </p>
-      </div>
-    `;
-
-    // Customer email content
-    const customerEmailText = `
-Thank you for your order, ${customerName}!
-
-Your order has been received and you are being redirected to complete payment.
-
-Order Summary:
-${itemsText}
-
-Subtotal: R${subtotal.toFixed(2)}
-Shipping: R${shipping.toFixed(2)}
-Total: R${total.toFixed(2)}
-
-Shipping Method: ${shippingMethod}
-${deliveryAddress ? `Delivery Address: ${deliveryAddress}` : ''}
-
-You will receive an order confirmation email once your payment is successfully processed.
-
-Thank you for choosing Saint Ventura!
-    `;
-
-    const customerEmailHtml = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h2 style="color: #000; border-bottom: 2px solid #000; padding-bottom: 10px;">Order Checkout Confirmation</h2>
-        
-        <p>Thank you for your order, <strong>${customerName}</strong>!</p>
-        
-        <p>Your order has been received and you are being redirected to complete payment.</p>
-
-        <h3 style="color: #333; margin-top: 20px;">Order Items</h3>
-        <ul>
-          ${itemsHtml}
-        </ul>
-
-        <h3 style="color: #333; margin-top: 20px;">Order Summary</h3>
-        <table style="width: 100%; margin: 20px 0;">
-          <tr>
-            <td style="padding: 5px;"><strong>Subtotal:</strong></td>
-            <td style="padding: 5px; text-align: right;">R${subtotal.toFixed(2)}</td>
-          </tr>
-          <tr>
-            <td style="padding: 5px;"><strong>Shipping:</strong></td>
-            <td style="padding: 5px; text-align: right;">R${shipping.toFixed(2)}</td>
-          </tr>
-          <tr style="font-size: 1.2em; font-weight: bold; border-top: 2px solid #000;">
-            <td style="padding: 10px 5px;"><strong>Total:</strong></td>
-            <td style="padding: 10px 5px; text-align: right;">R${total.toFixed(2)}</td>
-          </tr>
-        </table>
-
-        <h3 style="color: #333; margin-top: 20px;">Shipping Information</h3>
-        <p><strong>Shipping Method:</strong> ${shippingMethod}</p>
-        ${deliveryHtml}
-
-        <p style="margin-top: 30px; color: #666; font-size: 0.9em;">
-          You will receive an order confirmation email once your payment is successfully processed.
-        </p>
-
-        <p style="margin-top: 20px; color: #000; font-weight: bold;">
-          Thank you for choosing Saint Ventura!
-        </p>
-      </div>
-    `;
-
-    // Send emails to both customer and support (wait for both)
-    const supportEmailPromise = sendEmail({
-      to: SUPPORT_EMAIL,
-      subject: `New Order Checkout - ${customerName}`,
-      text: emailText,
-      html: emailHtml
+    // Send Telegram message to support (customer doesn't get Telegram, only support)
+    const supportTelegramPromise = sendWhatsApp({
+      message: supportTelegramMessage,
+      to: TELEGRAM_CHAT_ID
     });
 
-    const customerEmailPromise = sendEmail({
-      to: customerEmail,
-      subject: `Order Checkout Confirmation - Saint Ventura`,
-      text: customerEmailText,
-      html: customerEmailHtml
-    });
-
-    // Wait for both emails to be sent
-    const [supportResult, customerResult] = await Promise.all([
-      supportEmailPromise,
-      customerEmailPromise
-    ]);
+    // Wait for Telegram message to be sent
+    const supportResult = await supportTelegramPromise;
 
     if (supportResult.success) {
-      console.log(`✅ Checkout email notification SENT successfully to ${SUPPORT_EMAIL}`);
+      console.log(`✅ Checkout Telegram notification SENT successfully to chat ID ${TELEGRAM_CHAT_ID}`);
     } else {
-      console.error('❌ FAILED to send checkout email to support:', supportResult.error);
+      console.error('❌ FAILED to send checkout Telegram to support:', supportResult.error);
     }
 
-    if (customerResult.success) {
-      console.log('✅ Checkout confirmation email SENT successfully to customer:', customerEmail);
-    } else {
-      console.error('❌ FAILED to send checkout email to customer:', customerResult.error);
-    }
-
-    // Return success only if at least support email was sent
+    // Return success if Telegram was sent
     if (supportResult.success) {
       res.json({ 
         success: true,
-        message: 'Checkout emails sent successfully',
-        customerEmailSent: customerResult.success
+        message: 'Checkout notification sent successfully',
+        telegramSent: supportResult.success
       });
     } else {
       res.status(500).json({ 
         success: false,
-        error: 'Failed to send checkout emails' 
+        error: 'Failed to send checkout notification' 
       });
     }
 
   } catch (error) {
-    console.error('Error sending checkout email notification:', error);
+    console.error('Error sending checkout notification:', error);
     console.error('Error details:', {
       code: error.code,
-      command: error.command,
       response: error.response,
       message: error.message
     });
     
     // Provide more specific error messages
-    let errorMessage = 'Failed to send checkout email notification';
+    let errorMessage = 'Failed to send checkout Telegram notification';
     
-    if (error.code === 'EAUTH') {
-      errorMessage = 'Email authentication failed. Please check your Zoho email and password in .env file.';
-      console.error('Authentication error - Check ZOHO_EMAIL and ZOHO_PASSWORD in .env');
-    } else if (error.code === 'ECONNECTION' || error.code === 'ETIMEDOUT') {
-      errorMessage = 'Could not connect to Zoho email server. Please check your internet connection.';
-      console.error('Connection error - Check network and Zoho SMTP settings');
+    if (error.response?.statusCode === 401) {
+      errorMessage = 'Telegram Bot token invalid. Please check TELEGRAM_BOT_TOKEN in .env file.';
+      console.error('Authentication error - Check TELEGRAM_BOT_TOKEN in .env');
+    } else if (error.response?.statusCode === 400) {
+      errorMessage = 'Invalid chat ID. Please check TELEGRAM_CHAT_ID in .env file.';
+      console.error('Invalid chat ID - Check TELEGRAM_CHAT_ID in .env');
     } else if (error.message) {
-      errorMessage = `Email error: ${error.message}`;
+      errorMessage = `Telegram error: ${error.message}`;
     }
     
     // Return error to frontend
@@ -1025,120 +835,41 @@ Thank you for choosing Saint Ventura!
       </div>
     `;
 
-    // Send emails to both customer and support (wait for both)
-    const supportEmailPromise = sendEmail({
-      to: SUPPORT_EMAIL,
-      subject: `New Order - ${customerName} - R${total.toFixed(2)}`,
-      text: `
-New Order Received
+    // Prepare Telegram message for support
+    const orderItemsText = orderItems.map(item => {
+      const sizeText = item.size ? `, Size: ${item.size}` : '';
+      const colorText = item.color ? `, Color: ${item.color}` : '';
+      return `• ${item.name}${sizeText}${colorText}\n  Qty: ${item.quantity} × R${item.price.toFixed(2)} = R${(item.price * item.quantity).toFixed(2)}`;
+    }).join('\n\n');
 
-Order ${orderId ? `ID: ${orderId}` : 'Details'}:
-Date: ${orderDate}
+    const supportTelegramMessage = `✅ *NEW ORDER CONFIRMED - PAYMENT SUCCESSFUL*\n\n*Order ${orderId ? `ID: ${orderId}` : 'Details'}:*\nDate: ${orderDate}\n\n*Customer Information:*\nName: ${customerName}\nEmail: ${customerEmail}\n\n*Order Items:*\n${orderItemsText}\n\n*Order Summary:*\nSubtotal: R${subtotal.toFixed(2)}\nShipping: R${shipping.toFixed(2)}\n*TOTAL: R${total.toFixed(2)}*\n\n*Delivery Method:*\n${shippingMethod === 'door' ? 'Door-to-Door Courier' : shippingMethod === 'uj' ? 'UJ Campus Delivery' : 'Testing Delivery'}\n${deliveryAddress ? `\n*Delivery Address:*\n${deliveryAddress}` : ''}\n\n🎉 Payment successful! Please process this order.`;
 
-Customer Information:
-Name: ${customerName}
-Email: ${customerEmail}
-
-Order Items:
-${orderItems.map(item => `- ${item.name} (Qty: ${item.quantity}) - R${(item.price * item.quantity).toFixed(2)}`).join('\n')}
-
-Order Summary:
-Subtotal: R${subtotal.toFixed(2)}
-Shipping: R${shipping.toFixed(2)}
-Total: R${total.toFixed(2)}
-
-Delivery Method: ${shippingMethod === 'door' ? 'Door-to-Door Courier' : shippingMethod === 'uj' ? 'UJ Campus Delivery' : 'Testing Delivery'}
-${deliveryAddress ? `Delivery Address: ${deliveryAddress}` : ''}
-      `,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #333; border-bottom: 2px solid #000; padding-bottom: 10px;">New Order Received</h2>
-          
-          <div style="background: #f5f5f5; padding: 15px; margin: 20px 0; border-radius: 5px;">
-            <p style="margin: 5px 0;"><strong>Order ${orderId ? `ID: ${orderId}` : 'Date'}:</strong> ${orderDate}</p>
-          </div>
-
-          <h3 style="color: #333; margin-top: 30px;">Customer Information</h3>
-          <p><strong>Name:</strong> ${customerName}</p>
-          <p><strong>Email:</strong> ${customerEmail}</p>
-
-          <h3 style="color: #333; margin-top: 30px;">Order Items</h3>
-          <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-            <thead>
-              <tr style="background: #f9f9f9;">
-                <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Item</th>
-                <th style="padding: 10px; text-align: center; border-bottom: 2px solid #ddd;">Qty</th>
-                <th style="padding: 10px; text-align: right; border-bottom: 2px solid #ddd;">Price</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${itemsHtml}
-            </tbody>
-          </table>
-
-          <h3 style="color: #333; margin-top: 30px;">Order Summary</h3>
-          <table style="width: 100%; margin: 20px 0;">
-            <tr>
-              <td style="padding: 5px;"><strong>Subtotal:</strong></td>
-              <td style="padding: 5px; text-align: right;">R${subtotal.toFixed(2)}</td>
-            </tr>
-            <tr>
-              <td style="padding: 5px;"><strong>Shipping:</strong></td>
-              <td style="padding: 5px; text-align: right;">R${shipping.toFixed(2)}</td>
-            </tr>
-            <tr style="font-size: 1.2em; font-weight: bold; border-top: 2px solid #000;">
-              <td style="padding: 10px 5px;"><strong>Total:</strong></td>
-              <td style="padding: 10px 5px; text-align: right;">R${total.toFixed(2)}</td>
-            </tr>
-          </table>
-
-          <h3 style="color: #333; margin-top: 30px;">Delivery Information</h3>
-          <p><strong>Delivery Method:</strong> ${shippingMethod === 'door' ? 'Door-to-Door Courier' : shippingMethod === 'uj' ? 'UJ Campus Delivery' : 'Testing Delivery'}</p>
-          ${deliveryHtml}
-
-          <p style="margin-top: 30px; color: #666; font-size: 0.9em;">
-            This is an automated order confirmation email. Please process this order accordingly.
-          </p>
-        </div>
-      `
+    // Send Telegram message to support (customer doesn't get Telegram, only support)
+    const supportTelegramPromise = sendWhatsApp({
+      message: supportTelegramMessage,
+      to: TELEGRAM_CHAT_ID
     });
 
-    const customerEmailPromise = sendEmail({
-      to: customerEmail,
-      subject: `Order Confirmation - Saint Ventura`,
-      text: customerOrderEmailText,
-      html: customerOrderEmailHtml
-    });
-
-    // Wait for both emails to be sent
-    const [supportResult, customerResult] = await Promise.all([
-      supportEmailPromise,
-      customerEmailPromise
-    ]);
+    // Wait for Telegram message to be sent
+    const supportResult = await supportTelegramPromise;
 
     if (supportResult.success) {
-      console.log(`✅ Order confirmation email SENT successfully to ${SUPPORT_EMAIL}`);
+      console.log(`✅ Order confirmation Telegram SENT successfully to chat ID ${TELEGRAM_CHAT_ID}`);
     } else {
-      console.error('❌ FAILED to send order confirmation email to support:', supportResult.error);
+      console.error('❌ FAILED to send order confirmation Telegram to support:', supportResult.error);
     }
 
-    if (customerResult.success) {
-      console.log('✅ Order confirmation email SENT successfully to customer:', customerEmail);
-    } else {
-      console.error('❌ FAILED to send order confirmation email to customer:', customerResult.error);
-    }
-
-    // Return success only if at least support email was sent
+    // Return success if WhatsApp was sent
     if (supportResult.success) {
       res.json({ 
         success: true, 
-        message: 'Order confirmation emails sent successfully',
-        customerEmailSent: customerResult.success
+        message: 'Order confirmation notification sent successfully',
+        whatsappSent: supportResult.success
       });
     } else {
       res.status(500).json({ 
         success: false,
-        error: 'Failed to send order confirmation emails' 
+        error: 'Failed to send order confirmation notification' 
       });
     }
 
@@ -1146,16 +877,16 @@ ${deliveryAddress ? `Delivery Address: ${deliveryAddress}` : ''}
     console.error('Error sending order confirmation email:', error);
     
     // Provide more specific error messages
-    let errorMessage = 'Failed to send order confirmation email';
+    let errorMessage = 'Failed to send order confirmation WhatsApp';
     
-    if (error.code === 'EAUTH') {
-      errorMessage = 'Email authentication failed. Please check your Zoho email and password in .env file.';
-      console.error('Authentication error - Check ZOHO_EMAIL and ZOHO_PASSWORD in .env');
-    } else if (error.code === 'ECONNECTION' || error.code === 'ETIMEDOUT') {
-      errorMessage = 'Could not connect to Zoho email server. Please check your internet connection.';
-      console.error('Connection error - Check network and Zoho SMTP settings');
+    if (error.response?.statusCode === 401) {
+      errorMessage = 'Telegram Bot token invalid. Please check TELEGRAM_BOT_TOKEN in .env file.';
+      console.error('Authentication error - Check TELEGRAM_BOT_TOKEN in .env');
+    } else if (error.response?.statusCode === 400) {
+      errorMessage = 'Invalid chat ID. Please check TELEGRAM_CHAT_ID in .env file.';
+      console.error('Invalid chat ID - Check TELEGRAM_CHAT_ID in .env');
     } else if (error.message) {
-      errorMessage = `Email error: ${error.message}`;
+      errorMessage = `Telegram error: ${error.message}`;
     }
     
     res.status(500).json({ 
@@ -1217,20 +948,20 @@ app.get('/api/payment-status/:checkoutId', async (req, res) => {
   }
 });
 
-// Verify email configuration on startup
-const email = process.env.EMAIL || '';
-const password = process.env.EMAIL_PASSWORD || '';
-
-if (email && password) {
-  console.log(`✅ Email configured: ${email} (Gmail SMTP)`);
-  console.log(`✅ Support email: ${SUPPORT_EMAIL} (all notifications will be sent here)`);
+// Verify Telegram configuration on startup
+if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
+  console.log(`✅ Telegram Bot configured`);
+  console.log(`✅ Chat ID: ${TELEGRAM_CHAT_ID}`);
+  console.log(`✅ All notifications will be sent to your Telegram chat`);
+  console.log(`✅ This is completely FREE - no costs!`);
 } else {
-  console.warn(`⚠️  Email not fully configured in .env file`);
-  console.warn(`   Required:`);
-  console.warn(`   EMAIL=contact.venturacustoms@gmail.com (or leave blank to use default)`);
-  console.warn(`   EMAIL_PASSWORD=your_gmail_app_password`);
-  console.warn(`   Optional:`);
-  console.warn(`   SUPPORT_EMAIL=contact.venturacustoms@gmail.com (if not set, uses EMAIL or default)`);
+  console.warn(`⚠️  Telegram not fully configured in .env file`);
+  console.warn(`   Required (both FREE):`);
+  console.warn(`   TELEGRAM_BOT_TOKEN=your_bot_token`);
+  console.warn(`   TELEGRAM_CHAT_ID=your_chat_id`);
+  console.warn(`   Get FREE bot token from: https://t.me/BotFather`);
+  console.warn(`   Get chat ID from: https://t.me/userinfobot`);
+  console.warn(`   Or message @userinfobot on Telegram to get your chat ID`);
 }
 
 // Start server
