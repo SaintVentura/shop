@@ -1699,6 +1699,108 @@ app.post('/api/admin/notifications/read-all', adminAuth, async (req, res) => {
   }
 });
 
+// Admin Dashboard routes
+app.get('/api/admin/dashboard', adminAuth, async (req, res) => {
+  try {
+    const orders = await readDataFile('orders');
+    const subscribers = await readDataFile('subscribers');
+    const inventory = await readDataFile('inventory');
+    const abandonedCarts = await readDataFile('abandonedCarts');
+    const notifications = await readDataFile('notifications');
+    const inbox = await readDataFile('inbox');
+    
+    // Calculate stats
+    const totalOrders = orders.length;
+    const totalRevenue = orders.reduce((sum, o) => sum + (parseFloat(o.total) || 0), 0);
+    const pendingOrders = orders.filter(o => o.status === 'pending').length;
+    const completedOrders = orders.filter(o => o.status === 'completed').length;
+    const lowStockItems = inventory.filter(i => (i.stock || 0) < 5).length;
+    const unreadNotifications = notifications.filter(n => !n.read).length;
+    const unreadEmails = inbox.filter(e => !e.read).length;
+    
+    // Recent orders (last 10)
+    const recentOrders = orders
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .slice(0, 10);
+    
+    // Revenue by month (last 6 months)
+    const monthlyRevenue = {};
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      monthlyRevenue[monthKey] = 0;
+    }
+    
+    orders.forEach(order => {
+      if (order.date) {
+        const orderDate = new Date(order.date);
+        const monthKey = `${orderDate.getFullYear()}-${String(orderDate.getMonth() + 1).padStart(2, '0')}`;
+        if (monthlyRevenue.hasOwnProperty(monthKey)) {
+          monthlyRevenue[monthKey] += parseFloat(order.total) || 0;
+        }
+      }
+    });
+    
+    res.json({
+      success: true,
+      stats: {
+        totalOrders,
+        totalRevenue,
+        pendingOrders,
+        completedOrders,
+        totalSubscribers: subscribers.length,
+        lowStockItems,
+        unreadNotifications,
+        unreadEmails,
+        abandonedCarts: abandonedCarts.length
+      },
+      recentOrders,
+      monthlyRevenue
+    });
+  } catch (error) {
+    console.error('Error fetching dashboard data:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Get all orders
+app.get('/api/admin/orders', adminAuth, async (req, res) => {
+  try {
+    const orders = await readDataFile('orders');
+    // Sort by date, newest first
+    orders.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+    res.json(orders);
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Update order status
+app.put('/api/admin/orders/:orderId/status', adminAuth, async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { status } = req.body;
+    
+    const orders = await readDataFile('orders');
+    const orderIndex = orders.findIndex(o => o.id === orderId);
+    
+    if (orderIndex === -1) {
+      return res.status(404).json({ success: false, error: 'Order not found' });
+    }
+    
+    orders[orderIndex].status = status;
+    orders[orderIndex].updatedAt = new Date().toISOString();
+    await writeDataFile('orders', orders);
+    
+    res.json({ success: true, order: orders[orderIndex] });
+  } catch (error) {
+    console.error('Error updating order status:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // POS/Sales Dashboard routes
 app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
   try {
