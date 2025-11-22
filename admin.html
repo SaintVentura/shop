@@ -1143,9 +1143,9 @@
                     const variantsHtml = product.variants.map(variant => {
                         const stockClass = variant.stock === 0 ? 'stock-low' : variant.stock < 5 ? 'stock-medium' : 'stock-high';
                         const stockStatus = variant.stock === 0 ? 'Out of Stock' : variant.stock < 5 ? 'Low Stock' : 'In Stock';
-                        const variantId = (variant.id || '').replace(/'/g, "\\'");
-                        const productIdEscaped = (variant.productId || '').replace(/'/g, "\\'");
-                        const variantIdEscaped = (variant.variantId || '').replace(/'/g, "\\'");
+                        const variantId = String(variant.id || '').replace(/'/g, "\\'");
+                        const productIdEscaped = String(variant.productId || '').replace(/'/g, "\\'");
+                        const variantIdEscaped = String(variant.variantId || '').replace(/'/g, "\\'");
                         
                         return `
                             <div class="variant-row">
@@ -1172,7 +1172,7 @@
                     }).join('');
                     
                     const productImage = product.image || 'https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1';
-                    const productNameEscaped = (product.productName || '').replace(/'/g, "\\'");
+                    const productNameEscaped = String(product.productName || '').replace(/'/g, "\\'");
                     
                     return `
                         <div class="product-group">
@@ -1221,9 +1221,9 @@
                     const variantsHtml = product.variants.map(variant => {
                         const stockClass = variant.stock === 0 ? 'stock-low' : variant.stock < 5 ? 'stock-medium' : 'stock-high';
                         const stockStatus = variant.stock === 0 ? 'Out of Stock' : variant.stock < 5 ? 'Low Stock' : 'In Stock';
-                        const variantId = (variant.id || '').replace(/'/g, "\\'");
-                        const productIdEscaped = (variant.productId || '').replace(/'/g, "\\'");
-                        const variantIdEscaped = (variant.variantId || '').replace(/'/g, "\\'");
+                        const variantId = String(variant.id || '').replace(/'/g, "\\'");
+                        const productIdEscaped = String(variant.productId || '').replace(/'/g, "\\'");
+                        const variantIdEscaped = String(variant.variantId || '').replace(/'/g, "\\'");
                         
                         return `
                             <div class="border border-gray-200 rounded-lg p-4 bg-white">
