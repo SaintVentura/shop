@@ -116,6 +116,21 @@
             .inventory-table-desktop {
                 display: table;
             }
+            .orders-table-mobile {
+                display: none;
+            }
+            .orders-table-desktop {
+                display: table;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .orders-table-mobile {
+                display: block;
+            }
+            .orders-table-desktop {
+                display: none;
+            }
         }
         
         .error-message {
@@ -341,16 +356,17 @@
                             </div>
                         </div>
                         <div class="overflow-x-auto">
-                            <table class="w-full">
+                            <!-- Desktop Table -->
+                            <table class="w-full orders-table-desktop">
                                 <thead class="bg-gray-50">
                                     <tr>
-                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700">Order ID</th>
-                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700">Customer</th>
-                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700">Items</th>
-                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700">Total</th>
-                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700">Status</th>
-                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700">Date</th>
-                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700">Actions</th>
+                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700 text-sm md:text-base">Order ID</th>
+                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700 text-sm md:text-base">Customer</th>
+                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700 text-sm md:text-base">Items</th>
+                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700 text-sm md:text-base">Total</th>
+                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700 text-sm md:text-base">Status</th>
+                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700 text-sm md:text-base">Date</th>
+                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700 text-sm md:text-base">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="orders-table" class="divide-y divide-gray-200">
@@ -362,6 +378,16 @@
                                     </td></tr>
                                 </tbody>
                             </table>
+                            
+                            <!-- Mobile Cards -->
+                            <div id="orders-table-mobile" class="orders-table-mobile space-y-4 p-4">
+                                <div class="text-center py-8 text-gray-500">
+                                    <div class="flex items-center justify-center space-x-2">
+                                        <div class="loading-spinner"></div>
+                                        <span>Loading orders...</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
