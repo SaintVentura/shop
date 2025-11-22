@@ -1190,7 +1190,16 @@ async function initializeInventory() {
   }
 }
 
-initializeInventory();
+// Initialize data directory and inventory on startup
+(async () => {
+  try {
+    await ensureDataDir();
+    await initializeInventory();
+    console.log('✅ Inventory initialized successfully');
+  } catch (error) {
+    console.error('❌ Error initializing data:', error);
+  }
+})();
 
 // ============================================
 // ADMIN API ROUTES
