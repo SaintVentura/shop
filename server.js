@@ -1440,6 +1440,12 @@ app.get('/api/admin/products', adminAuth, async (req, res) => {
 app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
   try {
     const { template, subject, message, products } = req.body;
+    
+    // Validate required fields
+    if (!subject || !message) {
+      return res.status(400).json({ success: false, error: 'Subject and message are required' });
+    }
+    
     const subscribers = await readDataFile('subscribers');
     
     if (subscribers.length === 0) {
@@ -1451,16 +1457,20 @@ app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
     let emailBody = message || '';
 
     if (template === 'promotion' && products && products.length > 0) {
-      const selectedProducts = PRODUCTS.filter(p => products.includes(p.id.toString()));
-      emailBody = `Check out our latest products:\n\n${selectedProducts.map(p => `- ${p.name}: R${p.price.toFixed(2)}`).join('\n')}\n\n${message}`;
+      const selectedProducts = PRODUCTS.filter(p => products.includes(p.id.toString()) || products.includes(String(p.id)));
+      if (selectedProducts.length > 0) {
+        emailBody = `Check out our latest products:\n\n${selectedProducts.map(p => `- ${p.name}: R${(p.price || 0).toFixed(2)}`).join('\n')}\n\n${message}`;
+      }
     }
 
     let sent = 0;
+    let errors = [];
+    
     if (emailTransporter) {
       for (const subscriber of subscribers) {
         try {
           await emailTransporter.sendMail({
-            from: process.env.EMAIL_USER,
+            from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'noreply@saintventura.co.za',
             to: subscriber.email,
             subject: emailSubject,
             text: emailBody,
@@ -1469,17 +1479,28 @@ app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
           sent++;
         } catch (error) {
           console.error(`Error sending to ${subscriber.email}:`, error);
+          errors.push(subscriber.email);
         }
       }
     } else {
-      // If email not configured, just log
-      console.log(`Would send broadcast to ${subscribers.length} subscribers`);
-      sent = subscribers.length;
+      // If email not configured, return error
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Email transporter not configured. Please set EMAIL_HOST, EMAIL_USER, and EMAIL_PASS in .env file' 
+      });
     }
 
-    res.json({ success: true, sent });
+    if (sent === 0 && errors.length > 0) {
+      return res.status(500).json({ 
+        success: false, 
+        error: `Failed to send emails. Errors: ${errors.slice(0, 3).join(', ')}${errors.length > 3 ? '...' : ''}` 
+      });
+    }
+
+    res.json({ success: true, sent, total: subscribers.length, errors: errors.length });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Broadcast error:', error);
+    res.status(500).json({ success: false, error: error.message || 'Failed to send broadcast' });
   }
 });
 

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>Admin Dashboard - Saint Ventura</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -30,7 +30,7 @@
             font-weight: bold;
         }
         .sidebar {
-            transition: width 0.3s ease;
+            transition: transform 0.3s ease, width 0.3s ease;
         }
         .sidebar.collapsed {
             width: 80px;
@@ -50,6 +50,72 @@
         }
         .stock-high {
             color: #10b981;
+        }
+        
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                z-index: 50;
+            }
+            .sidebar.mobile-open {
+                transform: translateX(0);
+            }
+            .main-content {
+                margin-left: 0 !important;
+            }
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 45;
+            }
+            .sidebar-overlay.active {
+                display: block;
+            }
+            .inventory-table-mobile {
+                display: block;
+            }
+            .inventory-table-desktop {
+                display: none;
+            }
+        }
+        
+        @media (min-width: 769px) {
+            .inventory-table-mobile {
+                display: none;
+            }
+            .inventory-table-desktop {
+                display: table;
+            }
+        }
+        
+        .error-message {
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #c33;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #000;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -76,15 +142,27 @@
     <div id="admin-dashboard" class="hidden min-h-screen">
         <!-- Header -->
         <header class="bg-white border-b border-gray-200 fixed top-0 left-0 right-0 z-50">
-            <div class="flex items-center justify-between px-6 py-4">
-                <h1 class="text-2xl font-bold">Saint Ventura Admin</h1>
-                <button onclick="logout()" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition">Logout</button>
+            <div class="flex items-center justify-between px-4 md:px-6 py-4">
+                <div class="flex items-center space-x-4">
+                    <button onclick="toggleMobileSidebar()" class="md:hidden p-2 hover:bg-gray-100 rounded-lg">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </button>
+                    <h1 class="text-xl md:text-2xl font-bold">Saint Ventura Admin</h1>
+                </div>
+                <button onclick="logout()" class="px-3 md:px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition text-sm md:text-base">Logout</button>
             </div>
         </header>
 
+        <!-- Mobile Sidebar Overlay -->
+        <div id="sidebar-overlay" class="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
         <div class="flex pt-16">
             <!-- Sidebar -->
-            <aside id="sidebar" class="sidebar w-64 bg-white border-r border-gray-200 min-h-screen fixed left-0 top-16 z-40">
+            <aside id="sidebar" class="sidebar w-64 bg-white border-r border-gray-200 min-h-screen fixed left-0 top-16 z-40 shadow-lg md:shadow-none">
                 <div class="p-4 border-b border-gray-200">
                     <button onclick="toggleSidebar()" class="w-full flex items-center justify-between px-4 py-2 hover:bg-gray-100 rounded-lg transition">
                         <span class="font-semibold sidebar-text">Menu</span>
@@ -129,12 +207,12 @@
             </aside>
 
             <!-- Main Content -->
-            <main id="main-content" class="main-content flex-1 ml-64 p-6">
+            <main id="main-content" class="main-content flex-1 ml-0 md:ml-64 p-4 md:p-6">
                 <!-- Stock Inventory Section -->
                 <div id="inventory-section" class="section hidden">
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-3xl font-bold">Stock Inventory</h2>
-                        <button onclick="refreshInventory()" class="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 flex items-center space-x-2">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-6 space-y-3 md:space-y-0">
+                        <h2 class="text-2xl md:text-3xl font-bold">Stock Inventory</h2>
+                        <button onclick="refreshInventory()" class="w-full md:w-auto px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 flex items-center justify-center space-x-2">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="23,4 23,10 17,10"></polyline>
                                 <polyline points="1,20 1,14 7,14"></polyline>
@@ -144,12 +222,12 @@
                         </button>
                     </div>
                     <div class="bg-white rounded-lg shadow-lg border border-gray-200">
-                        <div class="p-6 border-b border-gray-200">
-                            <div class="flex items-center space-x-4">
+                        <div class="p-4 md:p-6 border-b border-gray-200">
+                            <div class="flex flex-col md:flex-row items-stretch md:items-center space-y-3 md:space-y-0 md:space-x-4">
                                 <div class="flex-1">
-                                    <input type="text" id="inventory-search" placeholder="Search products, variants..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black">
+                                    <input type="text" id="inventory-search" placeholder="Search products, variants..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black text-sm md:text-base">
                                 </div>
-                                <select id="inventory-filter-category" class="px-4 py-2 border border-gray-300 rounded-lg">
+                                <select id="inventory-filter-category" class="w-full md:w-auto px-4 py-2 border border-gray-300 rounded-lg text-sm md:text-base">
                                     <option value="">All Categories</option>
                                     <option value="tops">Tops</option>
                                     <option value="bottoms">Bottoms</option>
@@ -158,32 +236,48 @@
                             </div>
                         </div>
                         <div class="overflow-x-auto">
-                            <table class="w-full">
+                            <!-- Desktop Table -->
+                            <table class="w-full inventory-table-desktop">
                                 <thead class="bg-gray-50">
                                     <tr>
-                                        <th class="text-left py-4 px-6 font-semibold text-gray-700">Product</th>
-                                        <th class="text-left py-4 px-6 font-semibold text-gray-700">Variant</th>
-                                        <th class="text-left py-4 px-6 font-semibold text-gray-700">Price</th>
-                                        <th class="text-left py-4 px-6 font-semibold text-gray-700">Stock</th>
-                                        <th class="text-left py-4 px-6 font-semibold text-gray-700">Status</th>
-                                        <th class="text-left py-4 px-6 font-semibold text-gray-700">Actions</th>
+                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700 text-sm md:text-base">Product</th>
+                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700 text-sm md:text-base">Variant</th>
+                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700 text-sm md:text-base">Price</th>
+                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700 text-sm md:text-base">Stock</th>
+                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700 text-sm md:text-base">Status</th>
+                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700 text-sm md:text-base">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="inventory-table" class="divide-y divide-gray-200">
-                                    <tr><td colspan="6" class="text-center py-12 text-gray-500">Loading inventory...</td></tr>
+                                    <tr><td colspan="6" class="text-center py-12 text-gray-500">
+                                        <div class="flex items-center justify-center space-x-2">
+                                            <div class="loading-spinner"></div>
+                                            <span>Loading inventory...</span>
+                                        </div>
+                                    </td></tr>
                                 </tbody>
                             </table>
+                            
+                            <!-- Mobile Cards -->
+                            <div id="inventory-table-mobile" class="inventory-table-mobile space-y-4 p-4">
+                                <div class="text-center py-8 text-gray-500">
+                                    <div class="flex items-center justify-center space-x-2">
+                                        <div class="loading-spinner"></div>
+                                        <span>Loading inventory...</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Email Inbox Section -->
                 <div id="inbox-section" class="section hidden">
-                    <h2 class="text-3xl font-bold mb-6">Email Inbox</h2>
-                    <div class="bg-white rounded-lg shadow p-6">
-                        <div class="mb-4 flex justify-between items-center">
-                            <input type="text" id="inbox-search" placeholder="Search emails..." class="px-4 py-2 border border-gray-300 rounded-lg w-64">
-                            <button onclick="refreshInbox()" class="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800">Refresh</button>
+                    <h2 class="text-2xl md:text-3xl font-bold mb-4 md:mb-6">Email Inbox</h2>
+                    <div class="bg-white rounded-lg shadow p-4 md:p-6">
+                        <div class="mb-4 flex flex-col md:flex-row justify-between items-stretch md:items-center space-y-3 md:space-y-0 md:space-x-4">
+                            <input type="text" id="inbox-search" placeholder="Search emails..." class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm md:text-base">
+                            <button onclick="refreshInbox()" class="w-full md:w-auto px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 text-sm md:text-base">Refresh</button>
                         </div>
                         <div id="inbox-list" class="space-y-2">
                             <div class="text-center py-8 text-gray-500">Loading emails...</div>
@@ -193,8 +287,8 @@
 
                 <!-- Broadcast Section -->
                 <div id="broadcast-section" class="section hidden">
-                    <h2 class="text-3xl font-bold mb-6">Email Broadcast</h2>
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <h2 class="text-2xl md:text-3xl font-bold mb-4 md:mb-6">Email Broadcast</h2>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
                         <div class="bg-white rounded-lg shadow p-6">
                             <h3 class="text-xl font-semibold mb-4">Subscribers</h3>
                             <div class="mb-4">
@@ -240,11 +334,11 @@
 
                 <!-- Abandoned Carts Section -->
                 <div id="abandoned-carts-section" class="section hidden">
-                    <h2 class="text-3xl font-bold mb-6">Abandoned Carts</h2>
-                    <div class="bg-white rounded-lg shadow p-6">
-                        <div class="mb-4 flex justify-between items-center">
-                            <button onclick="sendAbandonedCartEmails()" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Send Reminder Emails</button>
-                            <button onclick="refreshAbandonedCarts()" class="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800">Refresh</button>
+                    <h2 class="text-2xl md:text-3xl font-bold mb-4 md:mb-6">Abandoned Carts</h2>
+                    <div class="bg-white rounded-lg shadow p-4 md:p-6">
+                        <div class="mb-4 flex flex-col md:flex-row justify-between items-stretch md:items-center space-y-3 md:space-y-0 md:space-x-4">
+                            <button onclick="sendAbandonedCartEmails()" class="w-full md:w-auto px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm md:text-base">Send Reminder Emails</button>
+                            <button onclick="refreshAbandonedCarts()" class="w-full md:w-auto px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 text-sm md:text-base">Refresh</button>
                         </div>
                         <div id="abandoned-carts-list" class="space-y-4">
                             <div class="text-center py-8 text-gray-500">Loading abandoned carts...</div>
@@ -286,11 +380,11 @@
 
                 <!-- Notifications Section -->
                 <div id="notifications-section" class="section hidden">
-                    <h2 class="text-3xl font-bold mb-6">Website Notifications</h2>
-                    <div class="bg-white rounded-lg shadow p-6">
-                        <div class="mb-4 flex justify-between items-center">
-                            <button onclick="markAllRead()" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">Mark All as Read</button>
-                            <button onclick="refreshNotifications()" class="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800">Refresh</button>
+                    <h2 class="text-2xl md:text-3xl font-bold mb-4 md:mb-6">Website Notifications</h2>
+                    <div class="bg-white rounded-lg shadow p-4 md:p-6">
+                        <div class="mb-4 flex flex-col md:flex-row justify-between items-stretch md:items-center space-y-3 md:space-y-0 md:space-x-4">
+                            <button onclick="markAllRead()" class="w-full md:w-auto px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm md:text-base">Mark All as Read</button>
+                            <button onclick="refreshNotifications()" class="w-full md:w-auto px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 text-sm md:text-base">Refresh</button>
                         </div>
                         <div id="notifications-list" class="space-y-2">
                             <div class="text-center py-8 text-gray-500">Loading notifications...</div>
@@ -300,8 +394,8 @@
 
                 <!-- Sale Dashboard Section -->
                 <div id="sales-section" class="section hidden">
-                    <h2 class="text-3xl font-bold mb-6">Sale Dashboard (Yoco POS)</h2>
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <h2 class="text-2xl md:text-3xl font-bold mb-4 md:mb-6">Sale Dashboard (Yoco POS)</h2>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
                         <div class="lg:col-span-2 bg-white rounded-lg shadow p-6">
                             <h3 class="text-xl font-semibold mb-4">Create Order</h3>
                             <div class="mb-4">
@@ -389,6 +483,10 @@
         let sidebarCollapsed = false;
         
         function toggleSidebar() {
+            if (window.innerWidth <= 768) {
+                toggleMobileSidebar();
+                return;
+            }
             const sidebar = document.getElementById('sidebar');
             const mainContent = document.getElementById('main-content');
             const icon = document.getElementById('sidebar-toggle-icon');
@@ -409,6 +507,44 @@
                 mainContent.classList.add('ml-64');
                 icon.style.transform = 'rotate(0deg)';
             }
+        }
+        
+        function toggleMobileSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            sidebar.classList.toggle('mobile-open');
+            overlay.classList.toggle('active');
+        }
+        
+        function closeMobileSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            sidebar.classList.remove('mobile-open');
+            overlay.classList.remove('active');
+        }
+        
+        // Close mobile sidebar when clicking a menu item
+        function showSection(section) {
+            if (window.innerWidth <= 768) {
+                closeMobileSidebar();
+            }
+            // Hide all sections
+            document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+            document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
+            
+            // Show selected section
+            document.getElementById(`${section}-section`).classList.remove('hidden');
+            document.querySelector(`[data-section="${section}"]`).classList.add('active');
+            currentSection = section;
+            
+            // Load section data
+            if (section === 'inventory') loadInventory();
+            else if (section === 'inbox') loadInbox();
+            else if (section === 'broadcast') loadBroadcast();
+            else if (section === 'abandoned-carts') loadAbandonedCarts();
+            else if (section === 'fulfillers') loadFulfillers();
+            else if (section === 'notifications') loadNotifications();
+            else if (section === 'sales') loadSales();
         }
 
         // Login
@@ -439,25 +575,6 @@
             document.getElementById('admin-dashboard').classList.add('hidden');
         }
 
-        function showSection(section) {
-            // Hide all sections
-            document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
-            document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
-            
-            // Show selected section
-            document.getElementById(`${section}-section`).classList.remove('hidden');
-            document.querySelector(`[data-section="${section}"]`).classList.add('active');
-            currentSection = section;
-            
-            // Load section data
-            if (section === 'inventory') loadInventory();
-            else if (section === 'inbox') loadInbox();
-            else if (section === 'broadcast') loadBroadcast();
-            else if (section === 'abandoned-carts') loadAbandonedCarts();
-            else if (section === 'fulfillers') loadFulfillers();
-            else if (section === 'notifications') loadNotifications();
-            else if (section === 'sales') loadSales();
-        }
 
         function loadDashboard() {
             showSection('inventory');
@@ -495,32 +612,72 @@
         function adminFetch(url, options = {}) {
             options.headers = options.headers || {};
             options.headers['x-admin-password'] = ADMIN_PASSWORD;
-            return fetch(url, options);
+            return fetch(url, options).catch(err => {
+                console.error('Fetch error:', err);
+                throw new Error('Network error: ' + err.message);
+            });
+        }
+        
+        // Error handling helper
+        function showError(containerId, message) {
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.innerHTML = `<div class="error-message">${message}</div>`;
+            }
         }
 
         // Inventory functions
         let allInventoryData = [];
         
         function loadInventory() {
+            const tbody = document.getElementById('inventory-table');
+            const mobileContainer = document.getElementById('inventory-table-mobile');
+            
+            // Show loading state
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-12 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading inventory...</span></div></td></tr>';
+            }
+            if (mobileContainer) {
+                mobileContainer.innerHTML = '<div class="text-center py-8 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading inventory...</span></div></div>';
+            }
+            
             adminFetch(`${BACKEND_URL}/api/admin/inventory`)
-                .then(r => r.json())
+                .then(r => {
+                    if (!r.ok) {
+                        throw new Error(`HTTP error! status: ${r.status}`);
+                    }
+                    return r.json();
+                })
                 .then(data => {
+                    if (!Array.isArray(data)) {
+                        throw new Error('Invalid data format received');
+                    }
                     allInventoryData = data;
                     renderInventory(data);
                 })
                 .catch(err => {
-                    document.getElementById('inventory-table').innerHTML = 
-                        '<tr><td colspan="6" class="text-center py-12 text-red-500">Error loading inventory</td></tr>';
+                    console.error('Inventory loading error:', err);
+                    const errorMsg = `Error loading inventory: ${err.message}. Please check your connection and try again.`;
+                    if (tbody) {
+                        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-12"><div class="error-message">${errorMsg}</div></td></tr>`;
+                    }
+                    if (mobileContainer) {
+                        mobileContainer.innerHTML = `<div class="error-message">${errorMsg}</div>`;
+                    }
                 });
         }
         
         function renderInventory(data) {
             const tbody = document.getElementById('inventory-table');
+            const mobileContainer = document.getElementById('inventory-table-mobile');
+            
             if (data.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="6" class="text-center py-12 text-gray-500">No products found</td></tr>';
+                if (mobileContainer) mobileContainer.innerHTML = '<div class="text-center py-8 text-gray-500">No products found</div>';
                 return;
             }
             
+            // Desktop table
             tbody.innerHTML = data.map(item => {
                 const stockClass = item.stock === 0 ? 'stock-low' : item.stock < 5 ? 'stock-medium' : 'stock-high';
                 const stockStatus = item.stock === 0 ? 'Out of Stock' : item.stock < 5 ? 'Low Stock' : 'In Stock';
@@ -528,36 +685,76 @@
                 
                 return `
                     <tr class="hover:bg-gray-50 transition">
-                        <td class="py-4 px-6">
-                            <div class="flex items-center space-x-4">
-                                <img src="${productImage}" alt="${item.productName || item.name}" class="w-16 h-16 object-cover rounded-lg border border-gray-200" onerror="this.src='https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1'">
+                        <td class="py-4 px-4 md:px-6">
+                            <div class="flex items-center space-x-3 md:space-x-4">
+                                <img src="${productImage}" alt="${item.productName || item.name}" class="w-12 h-12 md:w-16 md:h-16 object-cover rounded-lg border border-gray-200" onerror="this.src='https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1'">
                                 <div>
-                                    <p class="font-semibold text-gray-900">${item.productName || item.name}</p>
-                                    <p class="text-sm text-gray-500">${item.category || 'N/A'}</p>
+                                    <p class="font-semibold text-gray-900 text-sm md:text-base">${item.productName || item.name}</p>
+                                    <p class="text-xs md:text-sm text-gray-500">${item.category || 'N/A'}</p>
                                 </div>
                             </div>
                         </td>
-                        <td class="py-4 px-6">
-                            <span class="px-3 py-1 bg-gray-100 rounded-full text-sm font-medium">${item.variant || 'N/A'}</span>
+                        <td class="py-4 px-4 md:px-6">
+                            <span class="px-2 md:px-3 py-1 bg-gray-100 rounded-full text-xs md:text-sm font-medium">${item.variant || 'N/A'}</span>
                         </td>
-                        <td class="py-4 px-6">
-                            <span class="font-semibold">R${(item.price || 0).toFixed(2)}</span>
+                        <td class="py-4 px-4 md:px-6">
+                            <span class="font-semibold text-sm md:text-base">R${(item.price || 0).toFixed(2)}</span>
                         </td>
-                        <td class="py-4 px-6">
+                        <td class="py-4 px-4 md:px-6">
                             <input type="number" value="${item.stock}" data-id="${item.id}" data-product-id="${item.productId}" data-variant="${item.variantId || ''}" 
-                                class="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black font-semibold ${stockClass}" 
+                                class="w-20 md:w-24 px-2 md:px-3 py-1 md:py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black font-semibold text-sm ${stockClass}" 
                                 min="0" onchange="updateStockInput(this)">
                         </td>
-                        <td class="py-4 px-6">
-                            <span class="px-3 py-1 rounded-full text-xs font-semibold ${item.stock === 0 ? 'bg-red-100 text-red-800' : item.stock < 5 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}">${stockStatus}</span>
+                        <td class="py-4 px-4 md:px-6">
+                            <span class="px-2 md:px-3 py-1 rounded-full text-xs font-semibold ${item.stock === 0 ? 'bg-red-100 text-red-800' : item.stock < 5 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}">${stockStatus}</span>
                         </td>
-                        <td class="py-4 px-6">
+                        <td class="py-4 px-4 md:px-6">
                             <button onclick="saveStock('${item.id}', '${item.productId}', '${item.variantId || ''}')" 
-                                class="px-4 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition">Save</button>
+                                class="px-3 md:px-4 py-1 md:py-2 bg-black text-white rounded-lg text-xs md:text-sm font-medium hover:bg-gray-800 transition">Save</button>
                         </td>
                     </tr>
                 `;
             }).join('');
+            
+            // Mobile cards
+            if (mobileContainer) {
+                mobileContainer.innerHTML = data.map(item => {
+                    const stockClass = item.stock === 0 ? 'stock-low' : item.stock < 5 ? 'stock-medium' : 'stock-high';
+                    const stockStatus = item.stock === 0 ? 'Out of Stock' : item.stock < 5 ? 'Low Stock' : 'In Stock';
+                    const productImage = item.image || 'https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1';
+                    
+                    return `
+                        <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                            <div class="flex items-start space-x-4 mb-4">
+                                <img src="${productImage}" alt="${item.productName || item.name}" class="w-20 h-20 object-cover rounded-lg border border-gray-200" onerror="this.src='https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1'">
+                                <div class="flex-1">
+                                    <p class="font-semibold text-gray-900 mb-1">${item.productName || item.name}</p>
+                                    <p class="text-xs text-gray-500 mb-2">${item.category || 'N/A'}</p>
+                                    <span class="px-2 py-1 bg-gray-100 rounded-full text-xs font-medium">${item.variant || 'N/A'}</span>
+                                </div>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">Price:</span>
+                                    <span class="font-semibold">R${(item.price || 0).toFixed(2)}</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">Stock:</span>
+                                    <input type="number" value="${item.stock}" data-id="${item.id}" data-product-id="${item.productId}" data-variant="${item.variantId || ''}" 
+                                        class="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black font-semibold text-sm ${stockClass}" 
+                                        min="0" onchange="updateStockInput(this)">
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">Status:</span>
+                                    <span class="px-3 py-1 rounded-full text-xs font-semibold ${item.stock === 0 ? 'bg-red-100 text-red-800' : item.stock < 5 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}">${stockStatus}</span>
+                                </div>
+                                <button onclick="saveStock('${item.id}', '${item.productId}', '${item.variantId || ''}')" 
+                                    class="w-full px-4 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition">Save Stock</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
         }
         
         function updateStockInput(input) {
@@ -695,9 +892,16 @@
 
         // Broadcast functions
         function loadBroadcast() {
+            // Load subscribers
             adminFetch(`${BACKEND_URL}/api/admin/subscribers`)
-                .then(r => r.json())
+                .then(r => {
+                    if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
+                    return r.json();
+                })
                 .then(data => {
+                    if (!Array.isArray(data)) {
+                        throw new Error('Invalid subscribers data format');
+                    }
                     document.getElementById('subscriber-count').textContent = data.length;
                     const list = document.getElementById('subscribers-list');
                     if (data.length === 0) {
@@ -706,43 +910,88 @@
                     }
                     list.innerHTML = data.map(sub => `
                         <div class="flex justify-between items-center p-2 border border-gray-200 rounded">
-                            <span>${sub.email}</span>
+                            <span class="text-sm">${sub.email}</span>
                             <span class="text-xs text-gray-500">${new Date(sub.date).toLocaleDateString()}</span>
                         </div>
                     `).join('');
+                })
+                .catch(err => {
+                    console.error('Error loading subscribers:', err);
+                    document.getElementById('subscribers-list').innerHTML = 
+                        `<div class="error-message">Error loading subscribers: ${err.message}</div>`;
                 });
 
+            // Load products
             adminFetch(`${BACKEND_URL}/api/admin/products`)
-                .then(r => r.json())
+                .then(r => {
+                    if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
+                    return r.json();
+                })
                 .then(data => {
+                    if (!Array.isArray(data)) {
+                        throw new Error('Invalid products data format');
+                    }
                     const select = document.getElementById('broadcast-products');
-                    select.innerHTML = '<option value="">Select products...</option>' +
-                        data.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+                    if (select) {
+                        select.innerHTML = '<option value="">Select products...</option>' +
+                            data.map(p => `<option value="${p.id}">${p.name} - R${(p.price || 0).toFixed(2)}</option>`).join('');
+                    }
+                })
+                .catch(err => {
+                    console.error('Error loading products:', err);
+                    const select = document.getElementById('broadcast-products');
+                    if (select) {
+                        select.innerHTML = `<option value="">Error loading products</option>`;
+                    }
                 });
         }
 
         document.getElementById('broadcast-form').addEventListener('submit', (e) => {
             e.preventDefault();
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Sending...';
+            
             const template = document.getElementById('broadcast-template').value;
             const subject = document.getElementById('broadcast-subject').value;
             const message = document.getElementById('broadcast-message').value;
             const products = Array.from(document.getElementById('broadcast-products').selectedOptions).map(o => o.value);
+
+            if (!subject || !message) {
+                alert('Please fill in subject and message');
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+                return;
+            }
 
             adminFetch(`${BACKEND_URL}/api/admin/broadcast`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ template, subject, message, products })
             })
-            .then(r => r.json())
+            .then(r => {
+                if (!r.ok) {
+                    return r.json().then(err => { throw new Error(err.error || `HTTP error! status: ${r.status}`); });
+                }
+                return r.json();
+            })
             .then(data => {
                 if (data.success) {
                     alert(`Email sent to ${data.sent} subscribers`);
                     document.getElementById('broadcast-form').reset();
                 } else {
-                    alert('Error: ' + data.error);
+                    alert('Error: ' + (data.error || 'Unknown error'));
                 }
             })
-            .catch(err => alert('Error sending broadcast'));
+            .catch(err => {
+                console.error('Broadcast error:', err);
+                alert('Error sending broadcast: ' + err.message);
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            });
         });
 
         // Abandoned carts functions
