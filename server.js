@@ -2,6 +2,9 @@ const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const TelegramBot = require('node-telegram-bot-api');
+const fs = require('fs').promises;
+const path = require('path');
+const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const app = express();
@@ -430,7 +433,7 @@ app.post('/api/create-yoco-checkout', async (req, res) => {
   }
 });
 
-// Contact form email endpoint
+// Contact form email endpoint (updated to store in inbox)
 app.post('/api/contact-form', async (req, res) => {
   try {
     const { name, email, phone, subject, message } = req.body;
@@ -449,6 +452,36 @@ app.post('/api/contact-form', async (req, res) => {
         success: false,
         error: 'Valid email address is required' 
       });
+    }
+
+    // Store in inbox
+    try {
+      const inbox = await readDataFile('inbox');
+      inbox.push({
+        id: Date.now().toString(),
+        from: email,
+        name: name,
+        phone: phone || '',
+        subject: subject,
+        body: message,
+        date: new Date().toISOString(),
+        read: false
+      });
+      await writeDataFile('inbox', inbox);
+
+      // Create notification
+      const notifications = await readDataFile('notifications');
+      notifications.push({
+        id: Date.now().toString(),
+        type: 'contact',
+        title: 'New Contact Form Submission',
+        message: `${name} (${email}): ${subject}`,
+        date: new Date().toISOString(),
+        read: false
+      });
+      await writeDataFile('notifications', notifications);
+    } catch (error) {
+      console.error('Error storing contact form in inbox:', error);
     }
 
     // Send Telegram message to support
@@ -635,6 +668,22 @@ app.post('/api/send-checkout-email', async (req, res) => {
     let deliveryHtml = '';
     if (deliveryAddress) {
       deliveryHtml = `<p><strong>Delivery Address:</strong><br>${deliveryAddress.replace(/\n/g, '<br>')}</p>`;
+    }
+
+    // Create notification for new checkout
+    try {
+      const notifications = await readDataFile('notifications');
+      notifications.push({
+        id: Date.now().toString(),
+        type: 'checkout',
+        title: 'New Checkout Initiated',
+        message: `${customerName} (${customerEmail}) - R${total.toFixed(2)}`,
+        date: new Date().toISOString(),
+        read: false
+      });
+      await writeDataFile('notifications', notifications);
+    } catch (error) {
+      console.error('Error creating checkout notification:', error);
     }
 
     // Prepare Telegram message for support
@@ -858,6 +907,22 @@ Thank you for choosing Saint Ventura!
       </div>
     `;
 
+    // Create notification for completed order
+    try {
+      const notifications = await readDataFile('notifications');
+      notifications.push({
+        id: Date.now().toString(),
+        type: 'order',
+        title: 'Order Completed',
+        message: `${customerName} (${customerEmail}) - R${total.toFixed(2)}`,
+        date: new Date().toISOString(),
+        read: false
+      });
+      await writeDataFile('notifications', notifications);
+    } catch (error) {
+      console.error('Error creating order notification:', error);
+    }
+
     // Prepare Telegram message for support
     const orderItemsText = orderItems.map(item => {
       const sizeText = item.size ? `, Size: ${item.size}` : '';
@@ -968,6 +1033,700 @@ app.get('/api/payment-status/:checkoutId', async (req, res) => {
       success: false,
       error: error.response?.data?.message || 'Failed to fetch payment status'
     });
+  }
+});
+
+// ============================================
+// ADMIN DASHBOARD CONFIGURATION
+// ============================================
+const ADMIN_PASSWORD = 'WEAR3+H3$@!N+$*';
+const DATA_DIR = path.join(__dirname, 'data');
+const ADMIN_DATA_FILES = {
+  inventory: path.join(DATA_DIR, 'inventory.json'),
+  inbox: path.join(DATA_DIR, 'inbox.json'),
+  subscribers: path.join(DATA_DIR, 'subscribers.json'),
+  abandonedCarts: path.join(DATA_DIR, 'abandoned-carts.json'),
+  fulfillers: path.join(DATA_DIR, 'fulfillers.json'),
+  notifications: path.join(DATA_DIR, 'notifications.json'),
+  orders: path.join(DATA_DIR, 'orders.json')
+};
+
+// Ensure data directory exists
+async function ensureDataDir() {
+  try {
+    await fs.mkdir(DATA_DIR, { recursive: true });
+    // Initialize empty files if they don't exist
+    for (const [key, filePath] of Object.entries(ADMIN_DATA_FILES)) {
+      try {
+        await fs.access(filePath);
+      } catch {
+        await fs.writeFile(filePath, JSON.stringify(key === 'inventory' ? [] : key === 'subscribers' ? [] : key === 'fulfillers' ? [] : key === 'notifications' ? [] : key === 'abandonedCarts' ? [] : key === 'inbox' ? [] : []));
+      }
+    }
+  } catch (error) {
+    console.error('Error setting up data directory:', error);
+  }
+}
+ensureDataDir();
+
+// Email transporter setup (using nodemailer)
+let emailTransporter = null;
+if (process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+  emailTransporter = nodemailer.createTransport({
+    host: process.env.EMAIL_HOST,
+    port: process.env.EMAIL_PORT || 587,
+    secure: process.env.EMAIL_PORT == 465,
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS
+    }
+  });
+  console.log('✅ Email transporter configured');
+} else {
+  console.warn('⚠️  Email not configured - broadcast and email features will be limited');
+}
+
+// Admin authentication middleware
+function adminAuth(req, res, next) {
+  const password = req.headers['x-admin-password'] || req.body.password;
+  if (password === ADMIN_PASSWORD) {
+    next();
+  } else {
+    res.status(401).json({ success: false, error: 'Unauthorized' });
+  }
+}
+
+// Helper functions for data management
+async function readDataFile(fileKey) {
+  try {
+    const filePath = ADMIN_DATA_FILES[fileKey];
+    const data = await fs.readFile(filePath, 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    console.error(`Error reading ${fileKey}:`, error);
+    return [];
+  }
+}
+
+async function writeDataFile(fileKey, data) {
+  try {
+    const filePath = ADMIN_DATA_FILES[fileKey];
+    await fs.writeFile(filePath, JSON.stringify(data, null, 2));
+    return true;
+  } catch (error) {
+    console.error(`Error writing ${fileKey}:`, error);
+    return false;
+  }
+}
+
+// Product data (from checkout.html)
+const PRODUCTS = [
+  { id: 1, name: "The Saints Club Tee", price: 550, sizes: ["XS", "S", "M", "L", "XL", "XXL"], colors: ["White"] },
+  { id: 2, name: "SV Till I R.I.P Tee", price: 500, sizes: ["XS", "S", "M", "L", "XL", "XXL"], colors: ["Black"] },
+  { id: 3, name: "Visionaries by SV", price: 200, sizes: ["One Size Fits All"], colors: ["Black"] },
+  { id: 4, name: "SV Creators Hat", price: 200, sizes: ["One Size Fits All"], colors: ["Red", "Black"] },
+  { id: 5, name: "Hood* of The Saints", price: 400, sizes: ["XS", "S", "M", "L", "XL", "XXL"], colors: ["Baby Blue", "Black"] },
+  { id: 6, name: "SV Utility Shirt", price: 400, sizes: ["XS", "S", "M", "L", "XL", "XXL"], colors: ["Black"] },
+  { id: 7, name: "SV Cargo Pants", price: 300, sizes: ["XS", "S", "M", "L", "XL", "XXL"], colors: ["Black"] },
+  { id: 8, name: "Ventura Crop Tank", price: 300, sizes: ["XS", "S", "M", "L", "XL", "XXL"], colors: ["Black", "Army Green", "White", "Red"] },
+  { id: 9, name: "Essential Beanie", price: 200, sizes: ["One Size Fits All"], colors: ["Black"] },
+  { id: 10, name: "Onyx Bracelet By SV", price: 60, sizes: ["13cm", "14cm", "15cm", "16cm", "17cm", "18cm"], colors: ["Black"] }
+];
+
+// Initialize inventory from products
+async function initializeInventory() {
+  const inventory = await readDataFile('inventory');
+  if (inventory.length === 0) {
+    const newInventory = [];
+    PRODUCTS.forEach(product => {
+      if (product.sizes.length === 1 && product.sizes[0] === "One Size Fits All") {
+        product.colors.forEach(color => {
+          newInventory.push({
+            id: `${product.id}-${color}`,
+            productId: product.id,
+            variantId: color,
+            name: product.name,
+            variant: color,
+            stock: 10 // Default stock
+          });
+        });
+      } else {
+        product.sizes.forEach(size => {
+          product.colors.forEach(color => {
+            newInventory.push({
+              id: `${product.id}-${size}-${color}`,
+              productId: product.id,
+              variantId: `${size}-${color}`,
+              name: product.name,
+              variant: `${size} / ${color}`,
+              stock: 10 // Default stock
+            });
+          });
+        });
+      }
+    });
+    await writeDataFile('inventory', newInventory);
+  }
+}
+
+initializeInventory();
+
+// ============================================
+// ADMIN API ROUTES
+// ============================================
+
+// Badges endpoint
+app.get('/api/admin/badges', async (req, res) => {
+  try {
+    const inbox = await readDataFile('inbox');
+    const carts = await readDataFile('abandonedCarts');
+    const notifications = await readDataFile('notifications');
+    
+    const unreadInbox = inbox.filter(e => !e.read).length;
+    const recentCarts = carts.filter(c => {
+      const cartDate = new Date(c.date);
+      const daysAgo = (Date.now() - cartDate.getTime()) / (1000 * 60 * 60 * 24);
+      return daysAgo <= 7; // Carts from last 7 days
+    }).length;
+    const unreadNotifications = notifications.filter(n => !n.read).length;
+    
+    res.json({ inbox: unreadInbox, carts: recentCarts, notifications: unreadNotifications });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Inventory routes
+app.get('/api/admin/inventory', adminAuth, async (req, res) => {
+  try {
+    const inventory = await readDataFile('inventory');
+    res.json(inventory);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/admin/inventory/update', adminAuth, async (req, res) => {
+  try {
+    const { productId, variantId, stock } = req.body;
+    const inventory = await readDataFile('inventory');
+    const item = inventory.find(i => 
+      i.productId == productId && (variantId ? i.variantId === variantId : !i.variantId)
+    );
+    if (item) {
+      item.stock = parseInt(stock);
+      await writeDataFile('inventory', inventory);
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ success: false, error: 'Item not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Inbox routes
+app.get('/api/admin/inbox', adminAuth, async (req, res) => {
+  try {
+    const inbox = await readDataFile('inbox');
+    res.json(inbox.sort((a, b) => new Date(b.date) - new Date(a.date)));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/admin/inbox/read', adminAuth, async (req, res) => {
+  try {
+    const { emailId } = req.body;
+    const inbox = await readDataFile('inbox');
+    const email = inbox.find(e => e.id === emailId);
+    if (email) {
+      email.read = true;
+      await writeDataFile('inbox', inbox);
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ success: false, error: 'Email not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Store contact form emails in inbox
+app.post('/api/contact-form', async (req, res) => {
+  try {
+    const { name, email, phone, subject, message } = req.body;
+
+    // Validate required fields
+    if (!name || !email || !subject || !message) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Name, email, subject, and message are required' 
+      });
+    }
+
+    // Validate email
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Valid email address is required' 
+      });
+    }
+
+    // Store in inbox
+    const inbox = await readDataFile('inbox');
+    inbox.push({
+      id: Date.now().toString(),
+      from: email,
+      name: name,
+      phone: phone || '',
+      subject: subject,
+      body: message,
+      date: new Date().toISOString(),
+      read: false
+    });
+    await writeDataFile('inbox', inbox);
+
+    // Create notification
+    const notifications = await readDataFile('notifications');
+    notifications.push({
+      id: Date.now().toString(),
+      type: 'contact',
+      title: 'New Contact Form Submission',
+      message: `${name} (${email}): ${subject}`,
+      date: new Date().toISOString(),
+      read: false
+    });
+    await writeDataFile('notifications', notifications);
+
+    // Send Telegram message to support
+    const telegramMessage = `📧 *New Contact Form Submission*\n\n*Name:* ${name}\n*Email:* ${email}\n*Phone:* ${phone || 'Not provided'}\n*Subject:* ${subject}\n\n*Message:*\n${message}`;
+    
+    sendWhatsApp({
+      message: telegramMessage,
+      to: TELEGRAM_CHAT_ID
+    }).then(result => {
+      if (result.success) {
+        console.log(`✅ Contact form Telegram message SENT successfully to chat ID ${TELEGRAM_CHAT_ID}`);
+      }
+    }).catch(error => {
+      console.error(`❌ FAILED to send contact form Telegram message`);
+    });
+    
+    // Return success immediately
+    res.json({ 
+      success: true, 
+      message: 'Contact form submitted successfully' 
+    });
+
+  } catch (error) {
+    console.error('Error sending contact form email:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
+  }
+});
+
+// Subscribers routes
+app.get('/api/admin/subscribers', adminAuth, async (req, res) => {
+  try {
+    const subscribers = await readDataFile('subscribers');
+    res.json(subscribers);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Store newsletter subscriptions
+app.post('/api/newsletter-subscribe', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    // Validate email
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Valid email address is required' 
+      });
+    }
+
+    // Store subscriber
+    const subscribers = await readDataFile('subscribers');
+    if (!subscribers.find(s => s.email === email)) {
+      subscribers.push({
+        id: Date.now().toString(),
+        email: email,
+        date: new Date().toISOString()
+      });
+      await writeDataFile('subscribers', subscribers);
+
+      // Create notification
+      const notifications = await readDataFile('notifications');
+      notifications.push({
+        id: Date.now().toString(),
+        type: 'subscriber',
+        title: 'New Newsletter Subscription',
+        message: email,
+        date: new Date().toISOString(),
+        read: false
+      });
+      await writeDataFile('notifications', notifications);
+    }
+
+    // Send Telegram message to support
+    const telegramMessage = `📬 *New Newsletter Subscription*\n\nEmail: ${email}\n\nTime: ${new Date().toLocaleString('en-ZA')}`;
+    
+    sendWhatsApp({
+      message: telegramMessage,
+      to: TELEGRAM_CHAT_ID
+    }).then(result => {
+      if (result.success) {
+        console.log(`✅ Newsletter subscription Telegram message SENT successfully`);
+      }
+    }).catch(error => {
+      console.error(`❌ FAILED to send newsletter Telegram message`);
+    });
+    
+    // Return success immediately
+    res.json({ 
+      success: true, 
+      message: 'Subscription request sent successfully' 
+    });
+
+  } catch (error) {
+    console.error('Error sending newsletter subscription email:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
+  }
+});
+
+// Broadcast routes
+app.get('/api/admin/products', adminAuth, async (req, res) => {
+  try {
+    res.json(PRODUCTS);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
+  try {
+    const { template, subject, message, products } = req.body;
+    const subscribers = await readDataFile('subscribers');
+    
+    if (subscribers.length === 0) {
+      return res.json({ success: false, error: 'No subscribers found' });
+    }
+
+    // Build email content based on template
+    let emailSubject = subject || 'Saint Ventura Update';
+    let emailBody = message || '';
+
+    if (template === 'promotion' && products && products.length > 0) {
+      const selectedProducts = PRODUCTS.filter(p => products.includes(p.id.toString()));
+      emailBody = `Check out our latest products:\n\n${selectedProducts.map(p => `- ${p.name}: R${p.price.toFixed(2)}`).join('\n')}\n\n${message}`;
+    }
+
+    let sent = 0;
+    if (emailTransporter) {
+      for (const subscriber of subscribers) {
+        try {
+          await emailTransporter.sendMail({
+            from: process.env.EMAIL_USER,
+            to: subscriber.email,
+            subject: emailSubject,
+            text: emailBody,
+            html: emailBody.replace(/\n/g, '<br>')
+          });
+          sent++;
+        } catch (error) {
+          console.error(`Error sending to ${subscriber.email}:`, error);
+        }
+      }
+    } else {
+      // If email not configured, just log
+      console.log(`Would send broadcast to ${subscribers.length} subscribers`);
+      sent = subscribers.length;
+    }
+
+    res.json({ success: true, sent });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Abandoned carts routes
+app.get('/api/admin/abandoned-carts', adminAuth, async (req, res) => {
+  try {
+    const carts = await readDataFile('abandonedCarts');
+    res.json(carts.sort((a, b) => new Date(b.date) - new Date(a.date)));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/admin/abandoned-carts/remind', adminAuth, async (req, res) => {
+  try {
+    const { cartId } = req.body;
+    const carts = await readDataFile('abandonedCarts');
+    const cart = carts.find(c => c.id === cartId);
+    
+    if (!cart || !cart.email) {
+      return res.json({ success: false, error: 'Cart not found or no email' });
+    }
+
+    if (emailTransporter) {
+      await emailTransporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: cart.email,
+        subject: 'Complete Your Purchase - Saint Ventura',
+        text: `Hi,\n\nYou left items in your cart. Complete your purchase now!\n\nItems: ${cart.items.map(i => i.name).join(', ')}\nTotal: R${cart.total.toFixed(2)}\n\nVisit our website to complete your order.`,
+        html: `<p>Hi,</p><p>You left items in your cart. Complete your purchase now!</p><p><strong>Items:</strong> ${cart.items.map(i => i.name).join(', ')}<br><strong>Total:</strong> R${cart.total.toFixed(2)}</p><p>Visit our website to complete your order.</p>`
+      });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/admin/abandoned-carts/remind-all', adminAuth, async (req, res) => {
+  try {
+    const carts = await readDataFile('abandonedCarts');
+    const cartsWithEmail = carts.filter(c => c.email);
+    let sent = 0;
+
+    if (emailTransporter) {
+      for (const cart of cartsWithEmail) {
+        try {
+          await emailTransporter.sendMail({
+            from: process.env.EMAIL_USER,
+            to: cart.email,
+            subject: 'Complete Your Purchase - Saint Ventura',
+            text: `Hi,\n\nYou left items in your cart. Complete your purchase now!\n\nItems: ${cart.items.map(i => i.name).join(', ')}\nTotal: R${cart.total.toFixed(2)}\n\nVisit our website to complete your order.`,
+            html: `<p>Hi,</p><p>You left items in your cart. Complete your purchase now!</p><p><strong>Items:</strong> ${cart.items.map(i => i.name).join(', ')}<br><strong>Total:</strong> R${cart.total.toFixed(2)}</p><p>Visit our website to complete your order.</p>`
+          });
+          sent++;
+        } catch (error) {
+          console.error(`Error sending to ${cart.email}:`, error);
+        }
+      }
+    } else {
+      sent = cartsWithEmail.length;
+    }
+
+    res.json({ success: true, sent });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Track abandoned carts (called from frontend)
+app.post('/api/track-abandoned-cart', async (req, res) => {
+  try {
+    const { email, items, total } = req.body;
+    const carts = await readDataFile('abandonedCarts');
+    
+    // Remove old cart for this email if exists
+    const filteredCarts = carts.filter(c => c.email !== email);
+    
+    filteredCarts.push({
+      id: Date.now().toString(),
+      email: email,
+      items: items,
+      total: total,
+      date: new Date().toISOString()
+    });
+    
+    await writeDataFile('abandonedCarts', filteredCarts);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Fulfillers routes
+app.get('/api/admin/fulfillers', adminAuth, async (req, res) => {
+  try {
+    const fulfillers = await readDataFile('fulfillers');
+    res.json(fulfillers);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/admin/fulfillers', adminAuth, async (req, res) => {
+  try {
+    const { name, email, phone } = req.body;
+    const fulfillers = await readDataFile('fulfillers');
+    fulfillers.push({
+      id: Date.now().toString(),
+      name: name,
+      email: email,
+      phone: phone,
+      date: new Date().toISOString()
+    });
+    await writeDataFile('fulfillers', fulfillers);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/admin/fulfillers/:id', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const fulfillers = await readDataFile('fulfillers');
+    const filtered = fulfillers.filter(f => f.id !== id);
+    await writeDataFile('fulfillers', filtered);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/admin/fulfillers/notify', adminAuth, async (req, res) => {
+  try {
+    const { fulfillerId, orderDetails } = req.body;
+    const fulfillers = await readDataFile('fulfillers');
+    const fulfiller = fulfillers.find(f => f.id === fulfillerId);
+    
+    if (!fulfiller) {
+      return res.json({ success: false, error: 'Fulfiller not found' });
+    }
+
+    if (emailTransporter) {
+      await emailTransporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: fulfiller.email,
+        subject: 'New Order to Fulfill - Saint Ventura',
+        text: `Hi ${fulfiller.name},\n\nYou have a new order to fulfill:\n\n${orderDetails}\n\nPlease process this order as soon as possible.`,
+        html: `<p>Hi ${fulfiller.name},</p><p>You have a new order to fulfill:</p><p>${orderDetails.replace(/\n/g, '<br>')}</p><p>Please process this order as soon as possible.</p>`
+      });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Notifications routes
+app.get('/api/admin/notifications', adminAuth, async (req, res) => {
+  try {
+    const notifications = await readDataFile('notifications');
+    res.json(notifications.sort((a, b) => new Date(b.date) - new Date(a.date)));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/admin/notifications/read', adminAuth, async (req, res) => {
+  try {
+    const { notificationId } = req.body;
+    const notifications = await readDataFile('notifications');
+    const notif = notifications.find(n => n.id === notificationId);
+    if (notif) {
+      notif.read = true;
+      await writeDataFile('notifications', notifications);
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ success: false, error: 'Notification not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/admin/notifications/read-all', adminAuth, async (req, res) => {
+  try {
+    const notifications = await readDataFile('notifications');
+    notifications.forEach(n => n.read = true);
+    await writeDataFile('notifications', notifications);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POS/Sales Dashboard routes
+app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
+  try {
+    const { customerName, customerEmail, customerPhone, paymentMethod, items, total } = req.body;
+    
+    // Store order
+    const orders = await readDataFile('orders');
+    const orderId = `POS-${Date.now()}`;
+    orders.push({
+      id: orderId,
+      customerName,
+      customerEmail,
+      customerPhone,
+      paymentMethod,
+      items,
+      total,
+      date: new Date().toISOString(),
+      status: paymentMethod === 'yoco' ? 'pending' : 'completed'
+    });
+    await writeDataFile('orders', orders);
+
+    // Create notification
+    const notifications = await readDataFile('notifications');
+    notifications.push({
+      id: Date.now().toString(),
+      type: 'order',
+      title: 'New POS Order',
+      message: `${customerName} - R${total.toFixed(2)} (${paymentMethod})`,
+      date: new Date().toISOString(),
+      read: false
+    });
+    await writeDataFile('notifications', notifications);
+
+    // If Yoco payment, create checkout
+    if (paymentMethod === 'yoco') {
+      const amountInCents = Math.round(total * 100);
+      const baseUrl = req.headers.origin || 'https://saintventura.co.za';
+      
+      const checkoutData = {
+        amount: amountInCents,
+        currency: 'ZAR',
+        successUrl: `${baseUrl}/checkout-success.html?orderId=${orderId}`,
+        cancelUrl: `${baseUrl}/admin.html`,
+        metadata: {
+          orderId: orderId,
+          customerName: customerName,
+          customerEmail: customerEmail
+        }
+      };
+
+      try {
+        const response = await axios.post(
+          `${YOCO_API_URL}/api/checkouts`,
+          checkoutData,
+          {
+            headers: {
+              'Authorization': `Bearer ${YOCO_SECRET_KEY}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        const checkoutId = response.data?.id;
+        const redirectUrl = response.data?.redirectUrl || `https://payments.yoco.com/checkout/${checkoutId}`;
+        
+        res.json({ success: true, orderId, paymentUrl: redirectUrl });
+      } catch (error) {
+        res.status(500).json({ success: false, error: 'Failed to create Yoco checkout' });
+      }
+    } else {
+      res.json({ success: true, orderId });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Saint Ventura</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .sidebar-item.active {
+            background-color: #000;
+            color: #fff;
+        }
+        .notification-badge {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            background: #ef4444;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Login Screen -->
+    <div id="login-screen" class="min-h-screen flex items-center justify-center bg-black">
+        <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold mb-2">Saint Ventura</h1>
+                <p class="text-gray-600">Admin Dashboard</p>
+            </div>
+            <form id="login-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Password</label>
+                    <input type="password" id="admin-password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black" placeholder="Enter admin password" required>
+                </div>
+                <button type="submit" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition">Login</button>
+                <p id="login-error" class="text-red-500 text-sm text-center hidden"></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard -->
+    <div id="admin-dashboard" class="hidden min-h-screen">
+        <!-- Header -->
+        <header class="bg-white border-b border-gray-200 fixed top-0 left-0 right-0 z-50">
+            <div class="flex items-center justify-between px-6 py-4">
+                <h1 class="text-2xl font-bold">Saint Ventura Admin</h1>
+                <button onclick="logout()" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition">Logout</button>
+            </div>
+        </header>
+
+        <div class="flex pt-16">
+            <!-- Sidebar -->
+            <aside class="w-64 bg-white border-r border-gray-200 min-h-screen fixed left-0 top-16">
+                <nav class="p-4 space-y-2">
+                    <a href="#" onclick="showSection('inventory')" class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition" data-section="inventory">
+                        <span>📦</span>
+                        <span>Stock Inventory</span>
+                    </a>
+                    <a href="#" onclick="showSection('inbox')" class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition relative" data-section="inbox">
+                        <span>📧</span>
+                        <span>Email Inbox</span>
+                        <span id="inbox-badge" class="notification-badge hidden">0</span>
+                    </a>
+                    <a href="#" onclick="showSection('broadcast')" class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition" data-section="broadcast">
+                        <span>📢</span>
+                        <span>Broadcast</span>
+                    </a>
+                    <a href="#" onclick="showSection('abandoned-carts')" class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition relative" data-section="abandoned-carts">
+                        <span>🛒</span>
+                        <span>Abandoned Carts</span>
+                        <span id="carts-badge" class="notification-badge hidden">0</span>
+                    </a>
+                    <a href="#" onclick="showSection('fulfillers')" class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition" data-section="fulfillers">
+                        <span>👥</span>
+                        <span>Order Fulfillers</span>
+                    </a>
+                    <a href="#" onclick="showSection('notifications')" class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition relative" data-section="notifications">
+                        <span>🔔</span>
+                        <span>Notifications</span>
+                        <span id="notifications-badge" class="notification-badge hidden">0</span>
+                    </a>
+                    <a href="#" onclick="showSection('sales')" class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition" data-section="sales">
+                        <span>💰</span>
+                        <span>Sale Dashboard</span>
+                    </a>
+                </nav>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="flex-1 ml-64 p-6">
+                <!-- Stock Inventory Section -->
+                <div id="inventory-section" class="section hidden">
+                    <h2 class="text-3xl font-bold mb-6">Stock Inventory</h2>
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="mb-4 flex justify-between items-center">
+                            <input type="text" id="inventory-search" placeholder="Search products..." class="px-4 py-2 border border-gray-300 rounded-lg w-64">
+                            <button onclick="refreshInventory()" class="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800">Refresh</button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead>
+                                    <tr class="border-b border-gray-200">
+                                        <th class="text-left py-3 px-4">Product</th>
+                                        <th class="text-left py-3 px-4">Size/Color</th>
+                                        <th class="text-left py-3 px-4">Current Stock</th>
+                                        <th class="text-left py-3 px-4">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="inventory-table">
+                                    <tr><td colspan="4" class="text-center py-8 text-gray-500">Loading inventory...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Email Inbox Section -->
+                <div id="inbox-section" class="section hidden">
+                    <h2 class="text-3xl font-bold mb-6">Email Inbox</h2>
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="mb-4 flex justify-between items-center">
+                            <input type="text" id="inbox-search" placeholder="Search emails..." class="px-4 py-2 border border-gray-300 rounded-lg w-64">
+                            <button onclick="refreshInbox()" class="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800">Refresh</button>
+                        </div>
+                        <div id="inbox-list" class="space-y-2">
+                            <div class="text-center py-8 text-gray-500">Loading emails...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Broadcast Section -->
+                <div id="broadcast-section" class="section hidden">
+                    <h2 class="text-3xl font-bold mb-6">Email Broadcast</h2>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <h3 class="text-xl font-semibold mb-4">Subscribers</h3>
+                            <div class="mb-4">
+                                <p class="text-gray-600">Total Subscribers: <span id="subscriber-count" class="font-bold">0</span></p>
+                            </div>
+                            <div class="max-h-96 overflow-y-auto">
+                                <div id="subscribers-list" class="space-y-2">
+                                    <div class="text-center py-4 text-gray-500">Loading subscribers...</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <h3 class="text-xl font-semibold mb-4">Send Broadcast</h3>
+                            <form id="broadcast-form" class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Template</label>
+                                    <select id="broadcast-template" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                                        <option value="promotion">Product Promotion</option>
+                                        <option value="sale">Sale Announcement</option>
+                                        <option value="new-arrival">New Arrival</option>
+                                        <option value="custom">Custom Message</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Subject</label>
+                                    <input type="text" id="broadcast-subject" class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="Email subject">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Message</label>
+                                    <textarea id="broadcast-message" rows="8" class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="Email message"></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Select Products (for promotion template)</label>
+                                    <select id="broadcast-products" multiple class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                                        <option value="">Loading products...</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition">Send to All Subscribers</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Abandoned Carts Section -->
+                <div id="abandoned-carts-section" class="section hidden">
+                    <h2 class="text-3xl font-bold mb-6">Abandoned Carts</h2>
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="mb-4 flex justify-between items-center">
+                            <button onclick="sendAbandonedCartEmails()" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Send Reminder Emails</button>
+                            <button onclick="refreshAbandonedCarts()" class="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800">Refresh</button>
+                        </div>
+                        <div id="abandoned-carts-list" class="space-y-4">
+                            <div class="text-center py-8 text-gray-500">Loading abandoned carts...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Order Fulfillers Section -->
+                <div id="fulfillers-section" class="section hidden">
+                    <h2 class="text-3xl font-bold mb-6">Order Fulfillers</h2>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <h3 class="text-xl font-semibold mb-4">Fulfiller List</h3>
+                            <div class="mb-4">
+                                <button onclick="showAddFulfillerModal()" class="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800">Add Fulfiller</button>
+                            </div>
+                            <div id="fulfillers-list" class="space-y-2">
+                                <div class="text-center py-4 text-gray-500">Loading fulfillers...</div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <h3 class="text-xl font-semibold mb-4">Send Order Notification</h3>
+                            <form id="fulfiller-email-form" class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Select Fulfiller</label>
+                                    <select id="fulfiller-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                                        <option value="">Select a fulfiller...</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Order Details</label>
+                                    <textarea id="fulfiller-order-details" rows="6" class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="Enter order details..."></textarea>
+                                </div>
+                                <button type="submit" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition">Send Email</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notifications Section -->
+                <div id="notifications-section" class="section hidden">
+                    <h2 class="text-3xl font-bold mb-6">Website Notifications</h2>
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="mb-4 flex justify-between items-center">
+                            <button onclick="markAllRead()" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">Mark All as Read</button>
+                            <button onclick="refreshNotifications()" class="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800">Refresh</button>
+                        </div>
+                        <div id="notifications-list" class="space-y-2">
+                            <div class="text-center py-8 text-gray-500">Loading notifications...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sale Dashboard Section -->
+                <div id="sales-section" class="section hidden">
+                    <h2 class="text-3xl font-bold mb-6">Sale Dashboard (Yoco POS)</h2>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-2 bg-white rounded-lg shadow p-6">
+                            <h3 class="text-xl font-semibold mb-4">Create Order</h3>
+                            <div class="mb-4">
+                                <input type="text" id="pos-search" placeholder="Search products..." class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                            </div>
+                            <div id="pos-products" class="grid grid-cols-2 gap-4 mb-6">
+                                <!-- Products will be loaded here -->
+                            </div>
+                            <div class="border-t pt-4">
+                                <h4 class="font-semibold mb-2">Order Items</h4>
+                                <div id="pos-cart" class="space-y-2 mb-4">
+                                    <p class="text-gray-500 text-sm">No items added</p>
+                                </div>
+                                <div class="flex justify-between font-bold text-lg">
+                                    <span>Total:</span>
+                                    <span id="pos-total">R0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-lg shadow p-6">
+                            <h3 class="text-xl font-semibold mb-4">Customer Details</h3>
+                            <form id="pos-order-form" class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Customer Name</label>
+                                    <input type="text" id="pos-customer-name" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Email</label>
+                                    <input type="email" id="pos-customer-email" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Phone</label>
+                                    <input type="tel" id="pos-customer-phone" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Payment Method</label>
+                                    <select id="pos-payment-method" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                                        <option value="yoco">Yoco Payment</option>
+                                        <option value="cash">Cash</option>
+                                        <option value="eft">EFT</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition">Process Order</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Add Fulfiller Modal -->
+    <div id="add-fulfiller-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 class="text-xl font-semibold mb-4">Add Order Fulfiller</h3>
+            <form id="add-fulfiller-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Name</label>
+                    <input type="text" id="fulfiller-name" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Email</label>
+                    <input type="email" id="fulfiller-email" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Phone</label>
+                    <input type="tel" id="fulfiller-phone" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required>
+                </div>
+                <div class="flex space-x-2">
+                    <button type="submit" class="flex-1 bg-black text-white py-2 rounded-lg hover:bg-gray-800">Add</button>
+                    <button type="button" onclick="closeAddFulfillerModal()" class="flex-1 bg-gray-300 text-black py-2 rounded-lg hover:bg-gray-400">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const ADMIN_PASSWORD = 'WEAR3+H3$@!N+$*';
+        const BACKEND_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+            ? 'http://localhost:3000' 
+            : 'https://saint-ventura-backend.onrender.com';
+        
+        let currentSection = 'inventory';
+        let posCart = [];
+
+        // Login
+        document.getElementById('login-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const password = document.getElementById('admin-password').value;
+            if (password === ADMIN_PASSWORD) {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('admin-dashboard').classList.remove('hidden');
+                localStorage.setItem('adminLoggedIn', 'true');
+                loadDashboard();
+            } else {
+                document.getElementById('login-error').textContent = 'Invalid password';
+                document.getElementById('login-error').classList.remove('hidden');
+            }
+        });
+
+        // Check if already logged in
+        if (localStorage.getItem('adminLoggedIn') === 'true') {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('admin-dashboard').classList.remove('hidden');
+            loadDashboard();
+        }
+
+        function logout() {
+            localStorage.removeItem('adminLoggedIn');
+            document.getElementById('login-screen').classList.remove('hidden');
+            document.getElementById('admin-dashboard').classList.add('hidden');
+        }
+
+        function showSection(section) {
+            // Hide all sections
+            document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+            document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
+            
+            // Show selected section
+            document.getElementById(`${section}-section`).classList.remove('hidden');
+            document.querySelector(`[data-section="${section}"]`).classList.add('active');
+            currentSection = section;
+            
+            // Load section data
+            if (section === 'inventory') loadInventory();
+            else if (section === 'inbox') loadInbox();
+            else if (section === 'broadcast') loadBroadcast();
+            else if (section === 'abandoned-carts') loadAbandonedCarts();
+            else if (section === 'fulfillers') loadFulfillers();
+            else if (section === 'notifications') loadNotifications();
+            else if (section === 'sales') loadSales();
+        }
+
+        function loadDashboard() {
+            showSection('inventory');
+            updateBadges();
+            setInterval(updateBadges, 30000); // Update badges every 30 seconds
+        }
+
+        function updateBadges() {
+            adminFetch(`${BACKEND_URL}/api/admin/badges`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.inbox > 0) {
+                        document.getElementById('inbox-badge').textContent = data.inbox;
+                        document.getElementById('inbox-badge').classList.remove('hidden');
+                    } else {
+                        document.getElementById('inbox-badge').classList.add('hidden');
+                    }
+                    if (data.carts > 0) {
+                        document.getElementById('carts-badge').textContent = data.carts;
+                        document.getElementById('carts-badge').classList.remove('hidden');
+                    } else {
+                        document.getElementById('carts-badge').classList.add('hidden');
+                    }
+                    if (data.notifications > 0) {
+                        document.getElementById('notifications-badge').textContent = data.notifications;
+                        document.getElementById('notifications-badge').classList.remove('hidden');
+                    } else {
+                        document.getElementById('notifications-badge').classList.add('hidden');
+                    }
+                })
+                .catch(err => console.error('Error updating badges:', err));
+        }
+
+        // Helper function to add admin auth header
+        function adminFetch(url, options = {}) {
+            options.headers = options.headers || {};
+            options.headers['x-admin-password'] = ADMIN_PASSWORD;
+            return fetch(url, options);
+        }
+
+        // Inventory functions
+        function loadInventory() {
+            adminFetch(`${BACKEND_URL}/api/admin/inventory`)
+                .then(r => r.json())
+                .then(data => {
+                    const tbody = document.getElementById('inventory-table');
+                    if (data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500">No products found</td></tr>';
+                        return;
+                    }
+                    tbody.innerHTML = data.map(item => `
+                        <tr class="border-b border-gray-100">
+                            <td class="py-3 px-4">${item.name}</td>
+                            <td class="py-3 px-4">${item.variant || 'N/A'}</td>
+                            <td class="py-3 px-4">
+                                <input type="number" value="${item.stock}" data-id="${item.id}" data-variant="${item.variantId || ''}" 
+                                    class="w-20 px-2 py-1 border border-gray-300 rounded" onchange="updateStock(this)">
+                            </td>
+                            <td class="py-3 px-4">
+                                <button onclick="saveStock('${item.id}', '${item.variantId || ''}')" 
+                                    class="px-3 py-1 bg-black text-white rounded text-sm hover:bg-gray-800">Save</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                })
+                .catch(err => {
+                    document.getElementById('inventory-table').innerHTML = 
+                        '<tr><td colspan="4" class="text-center py-8 text-red-500">Error loading inventory</td></tr>';
+                });
+        }
+
+        function updateStock(input) {
+            // Stock value updated, will be saved when Save is clicked
+        }
+
+        function saveStock(productId, variantId) {
+            const input = document.querySelector(`input[data-id="${productId}"][data-variant="${variantId || ''}"]`);
+            const stock = parseInt(input.value);
+            
+            adminFetch(`${BACKEND_URL}/api/admin/inventory/update`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ productId, variantId, stock })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Stock updated successfully');
+                    loadInventory();
+                } else {
+                    alert('Error updating stock: ' + data.error);
+                }
+            })
+            .catch(err => alert('Error updating stock'));
+        }
+
+        function refreshInventory() {
+            loadInventory();
+        }
+
+        // Inbox functions
+        function loadInbox() {
+            adminFetch(`${BACKEND_URL}/api/admin/inbox`)
+                .then(r => r.json())
+                .then(data => {
+                    const list = document.getElementById('inbox-list');
+                    if (data.length === 0) {
+                        list.innerHTML = '<div class="text-center py-8 text-gray-500">No emails</div>';
+                        return;
+                    }
+                    list.innerHTML = data.map(email => `
+                        <div class="border border-gray-200 rounded-lg p-4 ${email.read ? 'bg-gray-50' : 'bg-white'}">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <p class="font-semibold">${email.from}</p>
+                                    <p class="text-sm text-gray-600">${email.subject}</p>
+                                </div>
+                                <span class="text-xs text-gray-500">${new Date(email.date).toLocaleString()}</span>
+                            </div>
+                            <p class="text-sm text-gray-700">${email.body.substring(0, 200)}...</p>
+                            <button onclick="markEmailRead('${email.id}')" class="mt-2 text-sm text-blue-600 hover:underline">Mark as Read</button>
+                        </div>
+                    `).join('');
+                })
+                .catch(err => {
+                    document.getElementById('inbox-list').innerHTML = 
+                        '<div class="text-center py-8 text-red-500">Error loading emails</div>';
+                });
+        }
+
+        function markEmailRead(emailId) {
+            adminFetch(`${BACKEND_URL}/api/admin/inbox/read`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ emailId })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    loadInbox();
+                    updateBadges();
+                }
+            });
+        }
+
+        function refreshInbox() {
+            loadInbox();
+        }
+
+        // Broadcast functions
+        function loadBroadcast() {
+            adminFetch(`${BACKEND_URL}/api/admin/subscribers`)
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('subscriber-count').textContent = data.length;
+                    const list = document.getElementById('subscribers-list');
+                    if (data.length === 0) {
+                        list.innerHTML = '<div class="text-center py-4 text-gray-500">No subscribers</div>';
+                        return;
+                    }
+                    list.innerHTML = data.map(sub => `
+                        <div class="flex justify-between items-center p-2 border border-gray-200 rounded">
+                            <span>${sub.email}</span>
+                            <span class="text-xs text-gray-500">${new Date(sub.date).toLocaleDateString()}</span>
+                        </div>
+                    `).join('');
+                });
+
+            adminFetch(`${BACKEND_URL}/api/admin/products`)
+                .then(r => r.json())
+                .then(data => {
+                    const select = document.getElementById('broadcast-products');
+                    select.innerHTML = '<option value="">Select products...</option>' +
+                        data.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+                });
+        }
+
+        document.getElementById('broadcast-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const template = document.getElementById('broadcast-template').value;
+            const subject = document.getElementById('broadcast-subject').value;
+            const message = document.getElementById('broadcast-message').value;
+            const products = Array.from(document.getElementById('broadcast-products').selectedOptions).map(o => o.value);
+
+            adminFetch(`${BACKEND_URL}/api/admin/broadcast`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ template, subject, message, products })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Email sent to ${data.sent} subscribers`);
+                    document.getElementById('broadcast-form').reset();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(err => alert('Error sending broadcast'));
+        });
+
+        // Abandoned carts functions
+        function loadAbandonedCarts() {
+            adminFetch(`${BACKEND_URL}/api/admin/abandoned-carts`)
+                .then(r => r.json())
+                .then(data => {
+                    const list = document.getElementById('abandoned-carts-list');
+                    if (data.length === 0) {
+                        list.innerHTML = '<div class="text-center py-8 text-gray-500">No abandoned carts</div>';
+                        return;
+                    }
+                    list.innerHTML = data.map(cart => `
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <p class="font-semibold">${cart.email || 'Guest'}</p>
+                                    <p class="text-sm text-gray-600">${cart.items.length} items</p>
+                                </div>
+                                <span class="text-xs text-gray-500">${new Date(cart.date).toLocaleString()}</span>
+                            </div>
+                            <p class="text-sm font-semibold">Total: R${cart.total.toFixed(2)}</p>
+                            <button onclick="sendCartReminder('${cart.id}')" class="mt-2 px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600">Send Reminder</button>
+                        </div>
+                    `).join('');
+                });
+        }
+
+        function sendCartReminder(cartId) {
+            adminFetch(`${BACKEND_URL}/api/admin/abandoned-carts/remind`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cartId })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Reminder email sent');
+                    loadAbandonedCarts();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            });
+        }
+
+        function sendAbandonedCartEmails() {
+            if (!confirm('Send reminder emails to all customers with abandoned carts?')) return;
+            adminFetch(`${BACKEND_URL}/api/admin/abandoned-carts/remind-all`, {
+                method: 'POST'
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Reminder emails sent to ${data.sent} customers`);
+                    loadAbandonedCarts();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            });
+        }
+
+        function refreshAbandonedCarts() {
+            loadAbandonedCarts();
+        }
+
+        // Fulfillers functions
+        function loadFulfillers() {
+            adminFetch(`${BACKEND_URL}/api/admin/fulfillers`)
+                .then(r => r.json())
+                .then(data => {
+                    const list = document.getElementById('fulfillers-list');
+                    const select = document.getElementById('fulfiller-select');
+                    if (data.length === 0) {
+                        list.innerHTML = '<div class="text-center py-4 text-gray-500">No fulfillers added</div>';
+                        select.innerHTML = '<option value="">No fulfillers available</option>';
+                        return;
+                    }
+                    list.innerHTML = data.map(f => `
+                        <div class="flex justify-between items-center p-2 border border-gray-200 rounded">
+                            <div>
+                                <p class="font-semibold">${f.name}</p>
+                                <p class="text-sm text-gray-600">${f.email}</p>
+                            </div>
+                            <button onclick="deleteFulfiller('${f.id}')" class="px-2 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600">Delete</button>
+                        </div>
+                    `).join('');
+                    select.innerHTML = '<option value="">Select a fulfiller...</option>' +
+                        data.map(f => `<option value="${f.id}">${f.name} (${f.email})</option>`).join('');
+                });
+        }
+
+        function showAddFulfillerModal() {
+            document.getElementById('add-fulfiller-modal').classList.remove('hidden');
+        }
+
+        function closeAddFulfillerModal() {
+            document.getElementById('add-fulfiller-modal').classList.add('hidden');
+            document.getElementById('add-fulfiller-form').reset();
+        }
+
+        document.getElementById('add-fulfiller-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('fulfiller-name').value;
+            const email = document.getElementById('fulfiller-email').value;
+            const phone = document.getElementById('fulfiller-phone').value;
+
+            adminFetch(`${BACKEND_URL}/api/admin/fulfillers`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, phone })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    closeAddFulfillerModal();
+                    loadFulfillers();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            });
+        });
+
+        function deleteFulfiller(id) {
+            if (!confirm('Delete this fulfiller?')) return;
+            adminFetch(`${BACKEND_URL}/api/admin/fulfillers/${id}`, {
+                method: 'DELETE'
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    loadFulfillers();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            });
+        }
+
+        document.getElementById('fulfiller-email-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const fulfillerId = document.getElementById('fulfiller-select').value;
+            const orderDetails = document.getElementById('fulfiller-order-details').value;
+
+            if (!fulfillerId || !orderDetails) {
+                alert('Please select a fulfiller and enter order details');
+                return;
+            }
+
+            adminFetch(`${BACKEND_URL}/api/admin/fulfillers/notify`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fulfillerId, orderDetails })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Email sent to fulfiller');
+                    document.getElementById('fulfiller-email-form').reset();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            });
+        });
+
+        // Notifications functions
+        function loadNotifications() {
+            adminFetch(`${BACKEND_URL}/api/admin/notifications`)
+                .then(r => r.json())
+                .then(data => {
+                    const list = document.getElementById('notifications-list');
+                    if (data.length === 0) {
+                        list.innerHTML = '<div class="text-center py-8 text-gray-500">No notifications</div>';
+                        return;
+                    }
+                    list.innerHTML = data.map(notif => `
+                        <div class="border border-gray-200 rounded-lg p-4 ${notif.read ? 'bg-gray-50' : 'bg-white'}">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="font-semibold">${notif.title}</p>
+                                    <p class="text-sm text-gray-600">${notif.message}</p>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-xs text-gray-500">${new Date(notif.date).toLocaleString()}</span>
+                                    ${!notif.read ? '<button onclick="markNotificationRead(\'' + notif.id + '\')" class="ml-2 text-sm text-blue-600 hover:underline">Mark Read</button>' : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                });
+        }
+
+        function markNotificationRead(notifId) {
+            adminFetch(`${BACKEND_URL}/api/admin/notifications/read`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notificationId: notifId })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    loadNotifications();
+                    updateBadges();
+                }
+            });
+        }
+
+        function markAllRead() {
+            adminFetch(`${BACKEND_URL}/api/admin/notifications/read-all`, {
+                method: 'POST'
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    loadNotifications();
+                    updateBadges();
+                }
+            });
+        }
+
+        function refreshNotifications() {
+            loadNotifications();
+        }
+
+        // Sales/POS functions
+        function loadSales() {
+            adminFetch(`${BACKEND_URL}/api/admin/products`)
+                .then(r => r.json())
+                .then(data => {
+                    const container = document.getElementById('pos-products');
+                    container.innerHTML = data.map(p => `
+                        <div class="border border-gray-200 rounded-lg p-4 cursor-pointer hover:bg-gray-50" onclick="addToPOSCart(${p.id}, '${p.name}', ${p.price})">
+                            <p class="font-semibold">${p.name}</p>
+                            <p class="text-gray-600">R${p.price.toFixed(2)}</p>
+                        </div>
+                    `).join('');
+                });
+        }
+
+        function addToPOSCart(id, name, price) {
+            const existing = posCart.find(item => item.id === id);
+            if (existing) {
+                existing.quantity++;
+            } else {
+                posCart.push({ id, name, price, quantity: 1 });
+            }
+            updatePOSCart();
+        }
+
+        function updatePOSCart() {
+            const container = document.getElementById('pos-cart');
+            if (posCart.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-sm">No items added</p>';
+                document.getElementById('pos-total').textContent = 'R0.00';
+                return;
+            }
+            container.innerHTML = posCart.map(item => `
+                <div class="flex justify-between items-center p-2 border border-gray-200 rounded">
+                    <div>
+                        <p class="font-semibold">${item.name}</p>
+                        <p class="text-sm text-gray-600">R${item.price.toFixed(2)} × ${item.quantity}</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="updatePOSQuantity(${item.id}, -1)" class="px-2 py-1 bg-gray-200 rounded">-</button>
+                        <span>${item.quantity}</span>
+                        <button onclick="updatePOSQuantity(${item.id}, 1)" class="px-2 py-1 bg-gray-200 rounded">+</button>
+                        <button onclick="removeFromPOSCart(${item.id})" class="ml-2 px-2 py-1 bg-red-500 text-white rounded text-sm">Remove</button>
+                    </div>
+                </div>
+            `).join('');
+            const total = posCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            document.getElementById('pos-total').textContent = 'R' + total.toFixed(2);
+        }
+
+        function updatePOSQuantity(id, change) {
+            const item = posCart.find(i => i.id === id);
+            if (item) {
+                item.quantity += change;
+                if (item.quantity <= 0) {
+                    posCart = posCart.filter(i => i.id !== id);
+                }
+                updatePOSCart();
+            }
+        }
+
+        function removeFromPOSCart(id) {
+            posCart = posCart.filter(item => item.id !== id);
+            updatePOSCart();
+        }
+
+        document.getElementById('pos-order-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (posCart.length === 0) {
+                alert('Please add items to cart');
+                return;
+            }
+            const customerName = document.getElementById('pos-customer-name').value;
+            const customerEmail = document.getElementById('pos-customer-email').value;
+            const customerPhone = document.getElementById('pos-customer-phone').value;
+            const paymentMethod = document.getElementById('pos-payment-method').value;
+            const total = posCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+            adminFetch(`${BACKEND_URL}/api/admin/pos/order`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    customerName,
+                    customerEmail,
+                    customerPhone,
+                    paymentMethod,
+                    items: posCart,
+                    total
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Order created successfully');
+                    posCart = [];
+                    updatePOSCart();
+                    document.getElementById('pos-order-form').reset();
+                    if (paymentMethod === 'yoco') {
+                        window.open(data.paymentUrl, '_blank');
+                    }
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(err => alert('Error creating order'));
+        });
+    </script>
+</body>
+</html>
+
