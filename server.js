@@ -1055,19 +1055,22 @@ const ADMIN_DATA_FILES = {
 async function ensureDataDir() {
   try {
     await fs.mkdir(DATA_DIR, { recursive: true });
+    console.log('✅ Data directory created/verified:', DATA_DIR);
     // Initialize empty files if they don't exist
     for (const [key, filePath] of Object.entries(ADMIN_DATA_FILES)) {
       try {
         await fs.access(filePath);
+        console.log(`✅ ${key}.json exists`);
       } catch {
-        await fs.writeFile(filePath, JSON.stringify(key === 'inventory' ? [] : key === 'subscribers' ? [] : key === 'fulfillers' ? [] : key === 'notifications' ? [] : key === 'abandonedCarts' ? [] : key === 'inbox' ? [] : []));
+        await fs.writeFile(filePath, JSON.stringify([]));
+        console.log(`✅ Created ${key}.json`);
       }
     }
   } catch (error) {
-    console.error('Error setting up data directory:', error);
+    console.error('❌ Error setting up data directory:', error);
+    throw error;
   }
 }
-ensureDataDir();
 
 // Email transporter setup (using nodemailer)
 let emailTransporter = null;
@@ -1100,10 +1103,27 @@ function adminAuth(req, res, next) {
 async function readDataFile(fileKey) {
   try {
     const filePath = ADMIN_DATA_FILES[fileKey];
+    // Ensure file exists before reading
+    try {
+      await fs.access(filePath);
+    } catch {
+      // File doesn't exist, create it with empty array
+      await fs.writeFile(filePath, JSON.stringify([]));
+      console.log(`✅ Created missing file: ${fileKey}.json`);
+      return [];
+    }
     const data = await fs.readFile(filePath, 'utf8');
     return JSON.parse(data);
   } catch (error) {
     console.error(`Error reading ${fileKey}:`, error);
+    // If read fails, try to create the file
+    try {
+      const filePath = ADMIN_DATA_FILES[fileKey];
+      await fs.writeFile(filePath, JSON.stringify([]));
+      console.log(`✅ Created ${fileKey}.json after read error`);
+    } catch (writeError) {
+      console.error(`Error creating ${fileKey}.json:`, writeError);
+    }
     return [];
   }
 }
