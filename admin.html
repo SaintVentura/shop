@@ -664,10 +664,32 @@
     <script>
         const ADMIN_PASSWORD = 'WEAR3+H3$@!N+$*';
         
-        // Determine backend URL - always use production for admin dashboard
+        // Auto-detect backend URL based on environment (same as index.html)
         function getBackendUrl() {
-            // Always use production backend for admin
-            return 'https://saint-ventura-backend.onrender.com';
+            const hostname = window.location.hostname;
+            const origin = window.location.origin;
+            
+            console.log('Admin Dashboard - Detecting backend URL for hostname:', hostname, 'origin:', origin);
+            
+            // Local development
+            if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '' || hostname === '0.0.0.0') {
+                console.log('Using localhost backend');
+                return 'http://localhost:3000';
+            }
+            
+            // GitHub Pages (production)
+            // Backend deployed on Render
+            const PRODUCTION_BACKEND_URL = 'https://saint-ventura-backend.onrender.com';
+            
+            // If you're on GitHub Pages, use production backend
+            if (hostname.includes('github.io') || hostname.includes('github.com') || origin.includes('github.io') || origin.includes('github.com')) {
+                console.log('Detected GitHub Pages, using production backend:', PRODUCTION_BACKEND_URL);
+                return PRODUCTION_BACKEND_URL;
+            }
+            
+            // Default to production for any other domain
+            console.log('Using production backend:', PRODUCTION_BACKEND_URL);
+            return PRODUCTION_BACKEND_URL;
         }
         
         const BACKEND_URL = getBackendUrl();
@@ -876,33 +898,58 @@
             options.headers = options.headers || {};
             options.headers['x-admin-password'] = ADMIN_PASSWORD;
             options.headers['Content-Type'] = 'application/json';
+            options.headers['Accept'] = 'application/json';
             
             // Add credentials for CORS
             options.credentials = 'omit';
             options.mode = 'cors';
             
-            console.log('Fetching:', url, 'with headers:', options.headers);
+            console.log('Admin Fetch:', url);
+            console.log('Headers:', { ...options.headers, 'x-admin-password': '***' });
             
             return fetch(url, options)
                 .then(response => {
-                    console.log('Response status:', response.status, 'for URL:', url);
+                    console.log('Response status:', response.status, response.statusText, 'for URL:', url);
+                    
+                    // Check if response is ok
                     if (!response.ok) {
+                        // Try to parse error response
                         return response.text().then(text => {
+                            console.error('Error response text:', text);
                             let errorData;
                             try {
                                 errorData = JSON.parse(text);
                             } catch {
                                 errorData = { error: text || `HTTP ${response.status} ${response.statusText}` };
                             }
-                            throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+                            const errorMsg = errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`;
+                            throw new Error(errorMsg);
                         });
                     }
-                    return response.json();
+                    
+                    // Check content type
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        return response.json();
+                    } else {
+                        // If not JSON, return text
+                        return response.text().then(text => {
+                            console.warn('Non-JSON response received:', text);
+                            try {
+                                return JSON.parse(text);
+                            } catch {
+                                throw new Error('Invalid JSON response from server');
+                            }
+                        });
+                    }
                 })
                 .catch(err => {
                     console.error('Fetch error for', url, ':', err);
-                    if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
-                        throw new Error('Cannot connect to server. Please check your internet connection and ensure the backend is running.');
+                    if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError') || err.message.includes('Network request failed')) {
+                        throw new Error(`Cannot connect to server at ${url}. Please check your internet connection and ensure the backend is running at ${BACKEND_URL}`);
+                    }
+                    if (err.message.includes('CORS')) {
+                        throw new Error(`CORS error: The backend at ${BACKEND_URL} may not be allowing requests from this origin.`);
                     }
                     throw err;
                 });
