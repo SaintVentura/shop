@@ -13,20 +13,23 @@
             overflow-x: hidden;
             background: #ffffff;
         }
-        .sidebar-item.active {
-            background-color: #000 !important;
-            color: #fff !important;
-        }
         .sidebar-item {
             background-color: transparent;
             color: #000;
+            border: 2px solid transparent;
+        }
+        .sidebar-item.active {
+            background-color: transparent !important;
+            color: #000 !important;
+            border: 2px solid #000 !important;
         }
         .sidebar-item:hover:not(.active) {
             background-color: #f3f4f6;
         }
         .sidebar-item.active:hover {
-            background-color: #000 !important;
-            color: #fff !important;
+            background-color: transparent !important;
+            color: #000 !important;
+            border: 2px solid #000 !important;
         }
         .notification-badge {
             position: absolute;
@@ -728,9 +731,10 @@
             const activeItem = document.querySelector(`[data-section="${section}"]`);
             if (activeItem) {
                 activeItem.classList.add('active');
-                // Ensure black background for active item
-                activeItem.style.backgroundColor = '#000';
-                activeItem.style.color = '#fff';
+                // Ensure black border for active item, black text
+                activeItem.style.backgroundColor = 'transparent';
+                activeItem.style.color = '#000';
+                activeItem.style.border = '2px solid #000';
             }
             currentSection = section;
             
