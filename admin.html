@@ -114,7 +114,7 @@
                 display: none;
             }
             .inventory-table-desktop {
-                display: table;
+                display: block;
             }
             .orders-table-mobile {
                 display: none;
@@ -125,12 +125,85 @@
         }
         
         @media (max-width: 768px) {
+            .inventory-table-desktop {
+                display: none;
+            }
+            .inventory-table-mobile {
+                display: block;
+            }
             .orders-table-mobile {
                 display: block;
             }
             .orders-table-desktop {
                 display: none;
             }
+        }
+        
+        .product-group {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .product-group:hover {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .product-header {
+            background: #f9fafb;
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background 0.2s ease;
+        }
+        
+        .product-header:hover {
+            background: #f3f4f6;
+        }
+        
+        .product-header.expanded {
+            background: #ffffff;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .product-variants {
+            display: none;
+            background: #ffffff;
+        }
+        
+        .product-variants.show {
+            display: block;
+        }
+        
+        .variant-row {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #f3f4f6;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+            gap: 1rem;
+            align-items: center;
+        }
+        
+        .variant-row:last-child {
+            border-bottom: none;
+        }
+        
+        @media (max-width: 768px) {
+            .variant-row {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+        }
+        
+        .expand-icon {
+            transition: transform 0.3s ease;
+        }
+        
+        .expand-icon.expanded {
+            transform: rotate(90deg);
         }
         
         .error-message {
@@ -450,31 +523,19 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="overflow-x-auto">
-                            <!-- Desktop Table -->
-                            <table class="w-full inventory-table-desktop">
-                                <thead class="bg-gray-50">
-                                    <tr>
-                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700 text-sm md:text-base">Product</th>
-                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700 text-sm md:text-base">Variant</th>
-                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700 text-sm md:text-base">Price</th>
-                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700 text-sm md:text-base">Stock</th>
-                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700 text-sm md:text-base">Status</th>
-                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700 text-sm md:text-base">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="inventory-table" class="divide-y divide-gray-200">
-                                    <tr><td colspan="6" class="text-center py-12 text-gray-500">
-                                        <div class="flex items-center justify-center space-x-2">
-                                            <div class="loading-spinner"></div>
-                                            <span>Loading inventory...</span>
-                                        </div>
-                                    </td></tr>
-                                </tbody>
-                            </table>
+                        <div class="p-6">
+                            <!-- Desktop Product Tree -->
+                            <div id="inventory-table" class="inventory-table-desktop space-y-4">
+                                <div class="text-center py-12 text-gray-500">
+                                    <div class="flex items-center justify-center space-x-2">
+                                        <div class="loading-spinner"></div>
+                                        <span>Loading inventory...</span>
+                                    </div>
+                                </div>
+                            </div>
                             
-                            <!-- Mobile Cards -->
-                            <div id="inventory-table-mobile" class="inventory-table-mobile space-y-6 p-6">
+                            <!-- Mobile Product Tree -->
+                            <div id="inventory-table-mobile" class="inventory-table-mobile space-y-4">
                                 <div class="text-center py-8 text-gray-500">
                                     <div class="flex items-center justify-center space-x-2">
                                         <div class="loading-spinner"></div>
@@ -1045,92 +1106,186 @@
         }
         
         function renderInventory(data) {
-            const tbody = document.getElementById('inventory-table');
+            const desktopContainer = document.getElementById('inventory-table');
             const mobileContainer = document.getElementById('inventory-table-mobile');
             
             if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-12 text-gray-500">No products found</td></tr>';
+                if (desktopContainer) desktopContainer.innerHTML = '<div class="text-center py-12 text-gray-500">No products found</div>';
                 if (mobileContainer) mobileContainer.innerHTML = '<div class="text-center py-8 text-gray-500">No products found</div>';
                 return;
             }
             
-            // Desktop table
-            tbody.innerHTML = data.map(item => {
-                const stockClass = item.stock === 0 ? 'stock-low' : item.stock < 5 ? 'stock-medium' : 'stock-high';
-                const stockStatus = item.stock === 0 ? 'Out of Stock' : item.stock < 5 ? 'Low Stock' : 'In Stock';
-                const productImage = item.image || 'https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1';
-                
-                return `
-                    <tr class="hover:bg-gray-50 transition">
-                        <td class="py-4 px-4 md:px-6">
-                            <div class="flex items-center space-x-3 md:space-x-4">
-                                <img src="${productImage}" alt="${item.productName || item.name}" class="w-12 h-12 md:w-16 md:h-16 object-cover rounded-lg border border-gray-200" onerror="this.src='https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1'">
-                                <div>
-                                    <p class="font-semibold text-gray-900 text-sm md:text-base">${item.productName || item.name}</p>
-                                    <p class="text-xs md:text-sm text-gray-500">${item.category || 'N/A'}</p>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="py-4 px-4 md:px-6">
-                            <span class="px-2 md:px-3 py-1 bg-gray-100 rounded-full text-xs md:text-sm font-medium">${item.variant || 'N/A'}</span>
-                        </td>
-                        <td class="py-4 px-4 md:px-6">
-                            <span class="font-semibold text-sm md:text-base">R${(item.price || 0).toFixed(2)}</span>
-                        </td>
-                        <td class="py-4 px-4 md:px-6">
-                            <input type="number" value="${item.stock}" data-id="${item.id}" data-product-id="${item.productId}" data-variant="${item.variantId || ''}" 
-                                class="w-20 md:w-24 px-2 md:px-3 py-1 md:py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black font-semibold text-sm ${stockClass}" 
-                                min="0" onchange="updateStockInput(this)">
-                        </td>
-                        <td class="py-4 px-4 md:px-6">
-                            <span class="px-2 md:px-3 py-1 rounded-full text-xs font-semibold ${item.stock === 0 ? 'bg-red-100 text-red-800' : item.stock < 5 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}">${stockStatus}</span>
-                        </td>
-                        <td class="py-4 px-4 md:px-6">
-                            <button onclick="saveStock('${item.id}', '${item.productId}', '${item.variantId || ''}')" 
-                                class="px-3 md:px-4 py-1 md:py-2 bg-black text-white rounded-lg text-xs md:text-sm font-medium hover:bg-gray-800 transition">Save</button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
+            // Group inventory by product
+            const productGroups = {};
+            data.forEach(item => {
+                const productId = item.productId || item.id.split('-')[0];
+                if (!productGroups[productId]) {
+                    productGroups[productId] = {
+                        productId: productId,
+                        productName: item.productName || item.name,
+                        category: item.category,
+                        price: item.price,
+                        image: item.image || item.productImage,
+                        variants: []
+                    };
+                }
+                productGroups[productId].variants.push(item);
+            });
             
-            // Mobile cards
-            if (mobileContainer) {
-                mobileContainer.innerHTML = data.map(item => {
-                    const stockClass = item.stock === 0 ? 'stock-low' : item.stock < 5 ? 'stock-medium' : 'stock-high';
-                    const stockStatus = item.stock === 0 ? 'Out of Stock' : item.stock < 5 ? 'Low Stock' : 'In Stock';
-                    const productImage = item.image || 'https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1';
+            // Render desktop view
+            if (desktopContainer) {
+                desktopContainer.innerHTML = Object.values(productGroups).map((product, index) => {
+                    const productId = product.productId;
+                    const totalStock = product.variants.reduce((sum, v) => sum + (parseInt(v.stock) || 0), 0);
+                    const lowStockCount = product.variants.filter(v => (parseInt(v.stock) || 0) < 5).length;
+                    const outOfStockCount = product.variants.filter(v => (parseInt(v.stock) || 0) === 0).length;
                     
-                    return `
-                        <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                            <div class="flex items-start space-x-4 mb-4">
-                                <img src="${productImage}" alt="${item.productName || item.name}" class="w-20 h-20 object-cover rounded-lg border border-gray-200" onerror="this.src='https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1'">
-                                <div class="flex-1">
-                                    <p class="font-semibold text-gray-900 mb-1">${item.productName || item.name}</p>
-                                    <p class="text-xs text-gray-500 mb-2">${item.category || 'N/A'}</p>
-                                    <span class="px-2 py-1 bg-gray-100 rounded-full text-xs font-medium">${item.variant || 'N/A'}</span>
+                    const variantsHtml = product.variants.map(variant => {
+                        const stockClass = variant.stock === 0 ? 'stock-low' : variant.stock < 5 ? 'stock-medium' : 'stock-high';
+                        const stockStatus = variant.stock === 0 ? 'Out of Stock' : variant.stock < 5 ? 'Low Stock' : 'In Stock';
+                        const variantId = (variant.id || '').replace(/'/g, "\\'");
+                        const productIdEscaped = (variant.productId || '').replace(/'/g, "\\'");
+                        const variantIdEscaped = (variant.variantId || '').replace(/'/g, "\\'");
+                        
+                        return `
+                            <div class="variant-row">
+                                <div>
+                                    <span class="px-3 py-1 bg-gray-100 rounded-full text-sm font-medium">${variant.variant || 'N/A'}</span>
                                 </div>
-                            </div>
-                            <div class="space-y-3">
-                                <div class="flex justify-between items-center">
-                                    <span class="text-sm text-gray-600">Price:</span>
-                                    <span class="font-semibold">R${(item.price || 0).toFixed(2)}</span>
+                                <div>
+                                    <span class="font-semibold text-sm">R${(variant.price || product.price || 0).toFixed(2)}</span>
                                 </div>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-sm text-gray-600">Stock:</span>
-                                    <input type="number" value="${item.stock}" data-id="${item.id}" data-product-id="${item.productId}" data-variant="${item.variantId || ''}" 
-                                        class="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black font-semibold text-sm ${stockClass}" 
+                                <div>
+                                    <input type="number" value="${variant.stock}" data-id="${variantId}" data-product-id="${productIdEscaped}" data-variant="${variantIdEscaped}" 
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black font-semibold text-sm ${stockClass}" 
                                         min="0" onchange="updateStockInput(this)">
                                 </div>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-sm text-gray-600">Status:</span>
-                                    <span class="px-3 py-1 rounded-full text-xs font-semibold ${item.stock === 0 ? 'bg-red-100 text-red-800' : item.stock < 5 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}">${stockStatus}</span>
+                                <div>
+                                    <span class="px-3 py-1 rounded-full text-xs font-semibold ${variant.stock === 0 ? 'bg-red-100 text-red-800' : variant.stock < 5 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}">${stockStatus}</span>
                                 </div>
-                                <button onclick="saveStock('${item.id}', '${item.productId}', '${item.variantId || ''}')" 
-                                    class="w-full px-4 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition">Save Stock</button>
+                                <div>
+                                    <button onclick="saveStock('${variantId}', '${productIdEscaped}', '${variantIdEscaped}')" 
+                                        class="px-4 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition">Save</button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                    
+                    const productImage = product.image || 'https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1';
+                    const productNameEscaped = (product.productName || '').replace(/'/g, "\\'");
+                    
+                    return `
+                        <div class="product-group">
+                            <div class="product-header" onclick="toggleProduct('product-${productId}')" id="header-product-${productId}">
+                                <div class="flex items-center space-x-4 flex-1">
+                                    <img src="${productImage}" alt="${product.productName}" class="w-16 h-16 object-cover rounded-lg border border-gray-200" onerror="this.src='https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1'">
+                                    <div class="flex-1">
+                                        <p class="font-semibold text-lg">${product.productName}</p>
+                                        <div class="flex items-center space-x-4 mt-1">
+                                            <p class="text-sm text-gray-500">${product.category || 'N/A'}</p>
+                                            <p class="text-sm font-semibold">R${(product.price || 0).toFixed(2)}</p>
+                                            <span class="text-sm text-gray-600">${product.variants.length} variant${product.variants.length !== 1 ? 's' : ''}</span>
+                                            <span class="text-sm font-semibold">Total Stock: ${totalStock}</span>
+                                            ${lowStockCount > 0 ? `<span class="text-sm text-yellow-600">⚠️ ${lowStockCount} low stock</span>` : ''}
+                                            ${outOfStockCount > 0 ? `<span class="text-sm text-red-600">❌ ${outOfStockCount} out of stock</span>` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                                <svg class="expand-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="9,18 15,12 9,6"></polyline>
+                                </svg>
+                            </div>
+                            <div class="product-variants" id="product-${productId}">
+                                <div class="p-4 bg-gray-50 border-b border-gray-200">
+                                    <div class="grid grid-cols-5 gap-4 text-sm font-semibold text-gray-700">
+                                        <div>Variant</div>
+                                        <div>Price</div>
+                                        <div>Stock</div>
+                                        <div>Status</div>
+                                        <div>Action</div>
+                                    </div>
+                                </div>
+                                ${variantsHtml}
                             </div>
                         </div>
                     `;
                 }).join('');
+            }
+            
+            // Render mobile view
+            if (mobileContainer) {
+                mobileContainer.innerHTML = Object.values(productGroups).map((product) => {
+                    const productId = product.productId;
+                    const totalStock = product.variants.reduce((sum, v) => sum + (parseInt(v.stock) || 0), 0);
+                    
+                    const variantsHtml = product.variants.map(variant => {
+                        const stockClass = variant.stock === 0 ? 'stock-low' : variant.stock < 5 ? 'stock-medium' : 'stock-high';
+                        const stockStatus = variant.stock === 0 ? 'Out of Stock' : variant.stock < 5 ? 'Low Stock' : 'In Stock';
+                        const variantId = (variant.id || '').replace(/'/g, "\\'");
+                        const productIdEscaped = (variant.productId || '').replace(/'/g, "\\'");
+                        const variantIdEscaped = (variant.variantId || '').replace(/'/g, "\\'");
+                        
+                        return `
+                            <div class="border border-gray-200 rounded-lg p-4 bg-white">
+                                <div class="flex justify-between items-center mb-3">
+                                    <span class="px-3 py-1 bg-gray-100 rounded-full text-sm font-medium">${variant.variant || 'N/A'}</span>
+                                    <span class="px-3 py-1 rounded-full text-xs font-semibold ${variant.stock === 0 ? 'bg-red-100 text-red-800' : variant.stock < 5 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}">${stockStatus}</span>
+                                </div>
+                                <div class="space-y-3">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-sm text-gray-600">Price:</span>
+                                        <span class="font-semibold">R${(variant.price || product.price || 0).toFixed(2)}</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-sm text-gray-600">Stock:</span>
+                                        <input type="number" value="${variant.stock}" data-id="${variantId}" data-product-id="${productIdEscaped}" data-variant="${variantIdEscaped}" 
+                                            class="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black font-semibold text-sm ${stockClass}" 
+                                            min="0" onchange="updateStockInput(this)">
+                                    </div>
+                                    <button onclick="saveStock('${variantId}', '${productIdEscaped}', '${variantIdEscaped}')" 
+                                        class="w-full px-4 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition">Save Stock</button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                    
+                    const productImage = product.image || 'https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1';
+                    
+                    return `
+                        <div class="product-group">
+                            <div class="product-header" onclick="toggleProduct('mobile-product-${productId}')" id="mobile-header-product-${productId}">
+                                <div class="flex items-center space-x-4 flex-1">
+                                    <img src="${productImage}" alt="${product.productName}" class="w-16 h-16 object-cover rounded-lg border border-gray-200" onerror="this.src='https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1'">
+                                    <div class="flex-1">
+                                        <p class="font-semibold text-base">${product.productName}</p>
+                                        <p class="text-xs text-gray-500 mt-1">${product.category || 'N/A'} • ${product.variants.length} variants • Stock: ${totalStock}</p>
+                                    </div>
+                                </div>
+                                <svg class="expand-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="9,18 15,12 9,6"></polyline>
+                                </svg>
+                            </div>
+                            <div class="product-variants space-y-3 p-4" id="mobile-product-${productId}">
+                                ${variantsHtml}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+        
+        function toggleProduct(productId) {
+            const variantsDiv = document.getElementById(productId);
+            const headerId = productId.includes('mobile-') ? `mobile-header-${productId.replace('mobile-', '')}` : `header-${productId}`;
+            const header = document.getElementById(headerId);
+            const icon = header?.querySelector('.expand-icon');
+            
+            if (variantsDiv) {
+                variantsDiv.classList.toggle('show');
+                header?.classList.toggle('expanded');
+                if (icon) {
+                    icon.classList.toggle('expanded');
+                }
             }
         }
         
