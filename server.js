@@ -1119,18 +1119,18 @@ async function writeDataFile(fileKey, data) {
   }
 }
 
-// Product data (from checkout.html)
+// Product data (from checkout.html) - Full details with images
 const PRODUCTS = [
-  { id: 1, name: "The Saints Club Tee", price: 550, sizes: ["XS", "S", "M", "L", "XL", "XXL"], colors: ["White"] },
-  { id: 2, name: "SV Till I R.I.P Tee", price: 500, sizes: ["XS", "S", "M", "L", "XL", "XXL"], colors: ["Black"] },
-  { id: 3, name: "Visionaries by SV", price: 200, sizes: ["One Size Fits All"], colors: ["Black"] },
-  { id: 4, name: "SV Creators Hat", price: 200, sizes: ["One Size Fits All"], colors: ["Red", "Black"] },
-  { id: 5, name: "Hood* of The Saints", price: 400, sizes: ["XS", "S", "M", "L", "XL", "XXL"], colors: ["Baby Blue", "Black"] },
-  { id: 6, name: "SV Utility Shirt", price: 400, sizes: ["XS", "S", "M", "L", "XL", "XXL"], colors: ["Black"] },
-  { id: 7, name: "SV Cargo Pants", price: 300, sizes: ["XS", "S", "M", "L", "XL", "XXL"], colors: ["Black"] },
-  { id: 8, name: "Ventura Crop Tank", price: 300, sizes: ["XS", "S", "M", "L", "XL", "XXL"], colors: ["Black", "Army Green", "White", "Red"] },
-  { id: 9, name: "Essential Beanie", price: 200, sizes: ["One Size Fits All"], colors: ["Black"] },
-  { id: 10, name: "Onyx Bracelet By SV", price: 60, sizes: ["13cm", "14cm", "15cm", "16cm", "17cm", "18cm"], colors: ["Black"] }
+  { id: 1, name: "The Saints Club Tee", price: 550, category: "tops", sizes: ["XS", "S", "M", "L", "XL", "XXL"], colors: ["White"], images: ["https://dl.dropboxusercontent.com/scl/fi/j0pgw2egryb9f0470f3p3/1-2.png?rlkey=xaw4k5w0yhwswfae3pi1n0g2r&st=vnlwftci&dl=1"], availableColors: [{ name: "White", image: "https://dl.dropboxusercontent.com/scl/fi/j0pgw2egryb9f0470f3p3/1-2.png?rlkey=xaw4k5w0yhwswfae3pi1n0g2r&st=vnlwftci&dl=1" }] },
+  { id: 2, name: "SV Till I R.I.P Tee", price: 500, category: "tops", sizes: ["XS", "S", "M", "L", "XL", "XXL"], colors: ["Black"], images: ["https://dl.dropboxusercontent.com/scl/fi/6ribhwbytdqfqva6jgf3s/1-16.png?rlkey=s61uev3dxmsmo4coifrqtozge&st=z3y4nuri&dl=1"], availableColors: [{ name: "Black", image: "https://dl.dropboxusercontent.com/scl/fi/6ribhwbytdqfqva6jgf3s/1-16.png?rlkey=s61uev3dxmsmo4coifrqtozge&st=z3y4nuri&dl=1" }] },
+  { id: 3, name: "Visionaries by SV", price: 200, category: "accessories", sizes: ["One Size Fits All"], colors: ["Black"], images: ["https://dl.dropboxusercontent.com/scl/fi/qs6id9xzrvfp8dctj2lqf/1-15.png?rlkey=shaa8t54va6ap95kulvvk1jee&st=tpwythhm&dl=1"], availableColors: [{ name: "Black", image: "https://dl.dropboxusercontent.com/scl/fi/qs6id9xzrvfp8dctj2lqf/1-15.png?rlkey=shaa8t54va6ap95kulvvk1jee&st=tpwythhm&dl=1" }] },
+  { id: 4, name: "SV Creators Hat", price: 200, category: "accessories", sizes: ["One Size Fits All"], colors: ["Red", "Black"], images: ["https://dl.dropboxusercontent.com/scl/fi/16j1629tb9ces8c4vruvh/1-4.png?rlkey=myve0lk7x9zdn6xfen7mah640&st=d0j0b6nb&dl=1"], availableColors: [{ name: "Red", image: "https://dl.dropboxusercontent.com/scl/fi/16j1629tb9ces8c4vruvh/1-4.png?rlkey=myve0lk7x9zdn6xfen7mah640&st=d0j0b6nb&dl=1" }, { name: "Black", image: "https://dl.dropboxusercontent.com/scl/fi/5h9lftt1bidmqijpmpxll/1-3.png?rlkey=501zjd9pkgf9w5yhrparmm5rd&st=uhhf8qul&dl=1" }] },
+  { id: 5, name: "Hood* of The Saints", price: 400, category: "tops", sizes: ["XS", "S", "M", "L", "XL", "XXL"], colors: ["Baby Blue", "Black"], images: ["https://dl.dropboxusercontent.com/scl/fi/tv6xmtknl5e93s4q2rxvr/1-7.png?rlkey=6y8szp285r72rby6k6jkw8038&st=n6gbin36&dl=1"], availableColors: [{ name: "Baby Blue", image: "https://dl.dropboxusercontent.com/scl/fi/tv6xmtknl5e93s4q2rxvr/1-7.png?rlkey=6y8szp285r72rby6k6jkw8038&st=n6gbin36&dl=1" }, { name: "Black", image: "https://dl.dropboxusercontent.com/scl/fi/mtvek2orgliosk1e5w0zg/1-5.png?rlkey=akio0f1ps0tumeghs50q10blr&st=ktcib4de&dl=1" }] },
+  { id: 6, name: "SV Utility Shirt", price: 400, category: "tops", sizes: ["XS", "S", "M", "L", "XL", "XXL"], colors: ["Black"], images: ["https://dl.dropboxusercontent.com/scl/fi/tg8jpo7hxksb5fmiyivo7/1-9.png?rlkey=wlaat82bhy29xpcyuyme0b1mi&st=p7wbg6k7&dl=1"], availableColors: [{ name: "Black", image: "https://dl.dropboxusercontent.com/scl/fi/tg8jpo7hxksb5fmiyivo7/1-9.png?rlkey=wlaat82bhy29xpcyuyme0b1mi&st=p7wbg6k7&dl=1" }] },
+  { id: 7, name: "SV Cargo Pants", price: 300, category: "bottoms", sizes: ["XS", "S", "M", "L", "XL", "XXL"], colors: ["Black"], images: ["https://dl.dropboxusercontent.com/scl/fi/q82xmvf10v3bfth0yb9tb/1-17.png?rlkey=86y3k3tbqdqgs63h2gzs86d81&st=brqjs51u&dl=1"], availableColors: [{ name: "Black", image: "https://dl.dropboxusercontent.com/scl/fi/q82xmvf10v3bfth0yb9tb/1-17.png?rlkey=86y3k3tbqdqgs63h2gzs86d81&st=brqjs51u&dl=1" }] },
+  { id: 8, name: "Ventura Crop Tank", price: 300, category: "tops", sizes: ["XS", "S", "M", "L", "XL", "XXL"], colors: ["Black", "Army Green", "White", "Red"], images: ["https://dl.dropboxusercontent.com/scl/fi/j22zx7qt5efevtqmbki5a/1-10.png?rlkey=w1m9xosbjx5jiihn45l1o7hj7&st=9whfbavz&dl=1"], availableColors: [{ name: "Army Green", image: "https://dl.dropboxusercontent.com/scl/fi/j22zx7qt5efevtqmbki5a/1-10.png?rlkey=w1m9xosbjx5jiihn45l1o7hj7&st=9whfbavz&dl=1" }, { name: "Black", image: "https://dl.dropboxusercontent.com/scl/fi/mud785w0gso758kjl8d0y/1-6.PNG?rlkey=wj0x9hpnflobqndsak1drzpxt&st=bvmxst4j&dl=1" }, { name: "White", image: "https://dl.dropboxusercontent.com/scl/fi/0izhvhpqgv7ym8o53dfk6/3-1.PNG?rlkey=34wr7bf7w9qr4aqcx8em9puv7&st=5xbyxbt1&dl=1" }, { name: "Red", image: "https://dl.dropboxusercontent.com/scl/fi/z3oln893v1j2mkue7um1v/3-2.PNG?rlkey=88buym8r1h4e9m75y076te10w&st=dc7dor6q&dl=1" }] },
+  { id: 9, name: "Essential Beanie", price: 200, category: "accessories", sizes: ["One Size Fits All"], colors: ["Black"], images: ["https://dl.dropboxusercontent.com/scl/fi/sw3imbzsqend0zigd3yww/1-13.png?rlkey=iolsj7x1ryqxxh2t4okvw46zp&st=nryoy8dl&dl=1"], availableColors: [{ name: "Black", image: "https://dl.dropboxusercontent.com/scl/fi/sw3imbzsqend0zigd3yww/1-13.png?rlkey=iolsj7x1ryqxxh2t4okvw46zp&st=nryoy8dl&dl=1" }] },
+  { id: 10, name: "Onyx Bracelet By SV", price: 60, category: "accessories", sizes: ["13cm", "14cm", "15cm", "16cm", "17cm", "18cm"], colors: ["Black"], images: ["https://dl.dropboxusercontent.com/scl/fi/xevb4s1aeggk0fjcwk85e/1-18.png?rlkey=vs9rk6nu79b5nwtdxme114crx&st=6fn852el&dl=1"], availableColors: [{ name: "Black", image: "https://dl.dropboxusercontent.com/scl/fi/xevb4s1aeggk0fjcwk85e/1-18.png?rlkey=vs9rk6nu79b5nwtdxme114crx&st=6fn852el&dl=1" }] }
 ];
 
 // Initialize inventory from products
@@ -1141,6 +1141,7 @@ async function initializeInventory() {
     PRODUCTS.forEach(product => {
       if (product.sizes.length === 1 && product.sizes[0] === "One Size Fits All") {
         product.colors.forEach(color => {
+          const colorInfo = product.availableColors?.find(c => c.name === color);
           newInventory.push({
             id: `${product.id}-${color}`,
             productId: product.id,
@@ -1196,11 +1197,35 @@ app.get('/api/admin/badges', async (req, res) => {
   }
 });
 
-// Inventory routes
+// Inventory routes - Returns inventory with product details
 app.get('/api/admin/inventory', adminAuth, async (req, res) => {
   try {
     const inventory = await readDataFile('inventory');
-    res.json(inventory);
+    // Enrich inventory with product details
+    const enrichedInventory = inventory.map(item => {
+      const product = PRODUCTS.find(p => p.id == item.productId);
+      if (product) {
+        // Find the color variant image
+        let variantImage = product.images[0];
+        if (item.variantId && product.availableColors) {
+          const colorMatch = product.availableColors.find(c => 
+            item.variantId.includes(c.name) || item.variantId === c.name
+          );
+          if (colorMatch) variantImage = colorMatch.image;
+        }
+        return {
+          ...item,
+          productName: product.name,
+          price: product.price,
+          category: product.category,
+          image: variantImage,
+          sizes: product.sizes,
+          colors: product.colors
+        };
+      }
+      return item;
+    });
+    res.json(enrichedInventory);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

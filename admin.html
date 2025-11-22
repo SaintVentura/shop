@@ -29,6 +29,28 @@
             font-size: 12px;
             font-weight: bold;
         }
+        .sidebar {
+            transition: width 0.3s ease;
+        }
+        .sidebar.collapsed {
+            width: 80px;
+        }
+        .sidebar.collapsed .sidebar-text {
+            display: none;
+        }
+        .main-content {
+            transition: margin-left 0.3s ease;
+        }
+        .stock-low {
+            color: #ef4444;
+            font-weight: bold;
+        }
+        .stock-medium {
+            color: #f59e0b;
+        }
+        .stock-high {
+            color: #10b981;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -62,64 +84,93 @@
 
         <div class="flex pt-16">
             <!-- Sidebar -->
-            <aside class="w-64 bg-white border-r border-gray-200 min-h-screen fixed left-0 top-16">
+            <aside id="sidebar" class="sidebar w-64 bg-white border-r border-gray-200 min-h-screen fixed left-0 top-16 z-40">
+                <div class="p-4 border-b border-gray-200">
+                    <button onclick="toggleSidebar()" class="w-full flex items-center justify-between px-4 py-2 hover:bg-gray-100 rounded-lg transition">
+                        <span class="font-semibold sidebar-text">Menu</span>
+                        <svg id="sidebar-toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="15,18 9,12 15,6"></polyline>
+                        </svg>
+                    </button>
+                </div>
                 <nav class="p-4 space-y-2">
                     <a href="#" onclick="showSection('inventory')" class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition" data-section="inventory">
                         <span>📦</span>
-                        <span>Stock Inventory</span>
+                        <span class="sidebar-text">Stock Inventory</span>
                     </a>
                     <a href="#" onclick="showSection('inbox')" class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition relative" data-section="inbox">
                         <span>📧</span>
-                        <span>Email Inbox</span>
+                        <span class="sidebar-text">Email Inbox</span>
                         <span id="inbox-badge" class="notification-badge hidden">0</span>
                     </a>
                     <a href="#" onclick="showSection('broadcast')" class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition" data-section="broadcast">
                         <span>📢</span>
-                        <span>Broadcast</span>
+                        <span class="sidebar-text">Broadcast</span>
                     </a>
                     <a href="#" onclick="showSection('abandoned-carts')" class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition relative" data-section="abandoned-carts">
                         <span>🛒</span>
-                        <span>Abandoned Carts</span>
+                        <span class="sidebar-text">Abandoned Carts</span>
                         <span id="carts-badge" class="notification-badge hidden">0</span>
                     </a>
                     <a href="#" onclick="showSection('fulfillers')" class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition" data-section="fulfillers">
                         <span>👥</span>
-                        <span>Order Fulfillers</span>
+                        <span class="sidebar-text">Order Fulfillers</span>
                     </a>
                     <a href="#" onclick="showSection('notifications')" class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition relative" data-section="notifications">
                         <span>🔔</span>
-                        <span>Notifications</span>
+                        <span class="sidebar-text">Notifications</span>
                         <span id="notifications-badge" class="notification-badge hidden">0</span>
                     </a>
                     <a href="#" onclick="showSection('sales')" class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition" data-section="sales">
                         <span>💰</span>
-                        <span>Sale Dashboard</span>
+                        <span class="sidebar-text">Sale Dashboard</span>
                     </a>
                 </nav>
             </aside>
 
             <!-- Main Content -->
-            <main class="flex-1 ml-64 p-6">
+            <main id="main-content" class="main-content flex-1 ml-64 p-6">
                 <!-- Stock Inventory Section -->
                 <div id="inventory-section" class="section hidden">
-                    <h2 class="text-3xl font-bold mb-6">Stock Inventory</h2>
-                    <div class="bg-white rounded-lg shadow p-6">
-                        <div class="mb-4 flex justify-between items-center">
-                            <input type="text" id="inventory-search" placeholder="Search products..." class="px-4 py-2 border border-gray-300 rounded-lg w-64">
-                            <button onclick="refreshInventory()" class="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800">Refresh</button>
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-3xl font-bold">Stock Inventory</h2>
+                        <button onclick="refreshInventory()" class="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 flex items-center space-x-2">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="23,4 23,10 17,10"></polyline>
+                                <polyline points="1,20 1,14 7,14"></polyline>
+                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                            </svg>
+                            <span>Refresh</span>
+                        </button>
+                    </div>
+                    <div class="bg-white rounded-lg shadow-lg border border-gray-200">
+                        <div class="p-6 border-b border-gray-200">
+                            <div class="flex items-center space-x-4">
+                                <div class="flex-1">
+                                    <input type="text" id="inventory-search" placeholder="Search products, variants..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black">
+                                </div>
+                                <select id="inventory-filter-category" class="px-4 py-2 border border-gray-300 rounded-lg">
+                                    <option value="">All Categories</option>
+                                    <option value="tops">Tops</option>
+                                    <option value="bottoms">Bottoms</option>
+                                    <option value="accessories">Accessories</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="overflow-x-auto">
                             <table class="w-full">
-                                <thead>
-                                    <tr class="border-b border-gray-200">
-                                        <th class="text-left py-3 px-4">Product</th>
-                                        <th class="text-left py-3 px-4">Size/Color</th>
-                                        <th class="text-left py-3 px-4">Current Stock</th>
-                                        <th class="text-left py-3 px-4">Actions</th>
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="text-left py-4 px-6 font-semibold text-gray-700">Product</th>
+                                        <th class="text-left py-4 px-6 font-semibold text-gray-700">Variant</th>
+                                        <th class="text-left py-4 px-6 font-semibold text-gray-700">Price</th>
+                                        <th class="text-left py-4 px-6 font-semibold text-gray-700">Stock</th>
+                                        <th class="text-left py-4 px-6 font-semibold text-gray-700">Status</th>
+                                        <th class="text-left py-4 px-6 font-semibold text-gray-700">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody id="inventory-table">
-                                    <tr><td colspan="4" class="text-center py-8 text-gray-500">Loading inventory...</td></tr>
+                                <tbody id="inventory-table" class="divide-y divide-gray-200">
+                                    <tr><td colspan="6" class="text-center py-12 text-gray-500">Loading inventory...</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -335,6 +386,30 @@
         
         let currentSection = 'inventory';
         let posCart = [];
+        let sidebarCollapsed = false;
+        
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            const icon = document.getElementById('sidebar-toggle-icon');
+            
+            sidebarCollapsed = !sidebarCollapsed;
+            if (sidebarCollapsed) {
+                sidebar.classList.add('collapsed');
+                sidebar.classList.remove('w-64');
+                sidebar.classList.add('w-20');
+                mainContent.classList.remove('ml-64');
+                mainContent.classList.add('ml-20');
+                icon.style.transform = 'rotate(180deg)';
+            } else {
+                sidebar.classList.remove('collapsed');
+                sidebar.classList.remove('w-20');
+                sidebar.classList.add('w-64');
+                mainContent.classList.remove('ml-20');
+                mainContent.classList.add('ml-64');
+                icon.style.transform = 'rotate(0deg)';
+            }
+        }
 
         // Login
         document.getElementById('login-form').addEventListener('submit', (e) => {
@@ -424,43 +499,117 @@
         }
 
         // Inventory functions
+        let allInventoryData = [];
+        
         function loadInventory() {
             adminFetch(`${BACKEND_URL}/api/admin/inventory`)
                 .then(r => r.json())
                 .then(data => {
-                    const tbody = document.getElementById('inventory-table');
-                    if (data.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500">No products found</td></tr>';
-                        return;
-                    }
-                    tbody.innerHTML = data.map(item => `
-                        <tr class="border-b border-gray-100">
-                            <td class="py-3 px-4">${item.name}</td>
-                            <td class="py-3 px-4">${item.variant || 'N/A'}</td>
-                            <td class="py-3 px-4">
-                                <input type="number" value="${item.stock}" data-id="${item.id}" data-variant="${item.variantId || ''}" 
-                                    class="w-20 px-2 py-1 border border-gray-300 rounded" onchange="updateStock(this)">
-                            </td>
-                            <td class="py-3 px-4">
-                                <button onclick="saveStock('${item.id}', '${item.variantId || ''}')" 
-                                    class="px-3 py-1 bg-black text-white rounded text-sm hover:bg-gray-800">Save</button>
-                            </td>
-                        </tr>
-                    `).join('');
+                    allInventoryData = data;
+                    renderInventory(data);
                 })
                 .catch(err => {
                     document.getElementById('inventory-table').innerHTML = 
-                        '<tr><td colspan="4" class="text-center py-8 text-red-500">Error loading inventory</td></tr>';
+                        '<tr><td colspan="6" class="text-center py-12 text-red-500">Error loading inventory</td></tr>';
                 });
+        }
+        
+        function renderInventory(data) {
+            const tbody = document.getElementById('inventory-table');
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-12 text-gray-500">No products found</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = data.map(item => {
+                const stockClass = item.stock === 0 ? 'stock-low' : item.stock < 5 ? 'stock-medium' : 'stock-high';
+                const stockStatus = item.stock === 0 ? 'Out of Stock' : item.stock < 5 ? 'Low Stock' : 'In Stock';
+                const productImage = item.image || 'https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1';
+                
+                return `
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="py-4 px-6">
+                            <div class="flex items-center space-x-4">
+                                <img src="${productImage}" alt="${item.productName || item.name}" class="w-16 h-16 object-cover rounded-lg border border-gray-200" onerror="this.src='https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1'">
+                                <div>
+                                    <p class="font-semibold text-gray-900">${item.productName || item.name}</p>
+                                    <p class="text-sm text-gray-500">${item.category || 'N/A'}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-4 px-6">
+                            <span class="px-3 py-1 bg-gray-100 rounded-full text-sm font-medium">${item.variant || 'N/A'}</span>
+                        </td>
+                        <td class="py-4 px-6">
+                            <span class="font-semibold">R${(item.price || 0).toFixed(2)}</span>
+                        </td>
+                        <td class="py-4 px-6">
+                            <input type="number" value="${item.stock}" data-id="${item.id}" data-product-id="${item.productId}" data-variant="${item.variantId || ''}" 
+                                class="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black font-semibold ${stockClass}" 
+                                min="0" onchange="updateStockInput(this)">
+                        </td>
+                        <td class="py-4 px-6">
+                            <span class="px-3 py-1 rounded-full text-xs font-semibold ${item.stock === 0 ? 'bg-red-100 text-red-800' : item.stock < 5 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}">${stockStatus}</span>
+                        </td>
+                        <td class="py-4 px-6">
+                            <button onclick="saveStock('${item.id}', '${item.productId}', '${item.variantId || ''}')" 
+                                class="px-4 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition">Save</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        function updateStockInput(input) {
+            // Visual feedback when stock is updated
+            input.classList.add('ring-2', 'ring-black');
+            setTimeout(() => {
+                input.classList.remove('ring-2', 'ring-black');
+            }, 500);
+        }
+        
+        // Search and filter functionality
+        document.getElementById('inventory-search')?.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const category = document.getElementById('inventory-filter-category')?.value || '';
+            filterInventory(searchTerm, category);
+        });
+        
+        document.getElementById('inventory-filter-category')?.addEventListener('change', (e) => {
+            const searchTerm = document.getElementById('inventory-search')?.value.toLowerCase() || '';
+            filterInventory(searchTerm, e.target.value);
+        });
+        
+        function filterInventory(searchTerm, category) {
+            let filtered = allInventoryData;
+            
+            if (searchTerm) {
+                filtered = filtered.filter(item => 
+                    (item.productName || item.name).toLowerCase().includes(searchTerm) ||
+                    (item.variant || '').toLowerCase().includes(searchTerm) ||
+                    (item.category || '').toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            if (category) {
+                filtered = filtered.filter(item => (item.category || '').toLowerCase() === category.toLowerCase());
+            }
+            
+            renderInventory(filtered);
         }
 
         function updateStock(input) {
             // Stock value updated, will be saved when Save is clicked
         }
 
-        function saveStock(productId, variantId) {
-            const input = document.querySelector(`input[data-id="${productId}"][data-variant="${variantId || ''}"]`);
+        function saveStock(itemId, productId, variantId) {
+            const input = document.querySelector(`input[data-id="${itemId}"]`);
             const stock = parseInt(input.value);
+            
+            if (isNaN(stock) || stock < 0) {
+                alert('Please enter a valid stock number');
+                return;
+            }
             
             adminFetch(`${BACKEND_URL}/api/admin/inventory/update`, {
                 method: 'POST',
@@ -470,13 +619,25 @@
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    alert('Stock updated successfully');
+                    // Show success notification
+                    const button = event.target;
+                    const originalText = button.textContent;
+                    button.textContent = 'Saved!';
+                    button.classList.add('bg-green-600');
+                    button.classList.remove('bg-black');
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                        button.classList.remove('bg-green-600');
+                        button.classList.add('bg-black');
+                    }, 2000);
                     loadInventory();
                 } else {
                     alert('Error updating stock: ' + data.error);
                 }
             })
-            .catch(err => alert('Error updating stock'));
+            .catch(err => {
+                alert('Error updating stock: ' + err.message);
+            });
         }
 
         function refreshInventory() {
