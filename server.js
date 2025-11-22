@@ -104,9 +104,28 @@ app.get('/keep-alive', (req, res) => {
   });
 });
 
+// Helper function to create admin notification
+async function createNotification(title, message, type = 'info') {
+  try {
+    const notifications = await readDataFile('notifications');
+    notifications.push({
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      type: type,
+      title: title,
+      message: message,
+      date: new Date().toISOString(),
+      read: false
+    });
+    await writeDataFile('notifications', notifications);
+    console.log('✅ Notification created:', title);
+  } catch (error) {
+    console.error('❌ Error creating notification:', error);
+  }
+}
+
 // Telegram messaging function (FREE - no costs!)
-// Sends Telegram messages to the configured chat ID
-async function sendWhatsApp({ message, to }) {
+// Sends Telegram messages to the configured chat ID and creates admin notification
+async function sendWhatsApp({ message, to, notificationTitle, notificationType }) {
   // Validate Telegram configuration
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
     console.error('❌ Telegram credentials not configured');
@@ -151,6 +170,14 @@ async function sendWhatsApp({ message, to }) {
       console.log('✅ Telegram message sent successfully!');
       console.log('   To Chat ID:', chatId);
       console.log('   Message ID:', messageResult.message_id);
+      
+      // Create notification in admin dashboard
+      if (notificationTitle) {
+        // Extract plain text from message (remove markdown)
+        const plainMessage = message.replace(/\*|\_|`/g, '').substring(0, 200);
+        await createNotification(notificationTitle, plainMessage, notificationType || 'info');
+      }
+      
       return { success: true, messageId: messageResult.message_id, status: 'sent' };
     } catch (error) {
       lastError = error;
@@ -555,12 +582,54 @@ app.post('/api/newsletter-subscribe', async (req, res) => {
       });
     }
 
+    // Save to subscriber list
+    try {
+      const subscribers = await readDataFile('subscribers');
+      const emailLower = email.toLowerCase().trim();
+      
+      // Check if email already exists
+      const existingSubscriber = subscribers.find(s => s.email.toLowerCase().trim() === emailLower);
+      
+      if (!existingSubscriber) {
+        subscribers.push({
+          id: Date.now().toString(),
+          email: emailLower,
+          date: new Date().toISOString()
+        });
+        await writeDataFile('subscribers', subscribers);
+        console.log(`✅ Subscriber added to list: ${emailLower}`);
+      } else {
+        console.log(`ℹ️  Subscriber already exists: ${emailLower}`);
+      }
+    } catch (error) {
+      console.error('Error saving subscriber:', error);
+      // Continue even if saving fails - don't block the subscription
+    }
+
+    // Create notification for new subscription
+    try {
+      const notifications = await readDataFile('notifications');
+      notifications.push({
+        id: Date.now().toString(),
+        type: 'subscription',
+        title: 'New Newsletter Subscription',
+        message: email,
+        date: new Date().toISOString(),
+        read: false
+      });
+      await writeDataFile('notifications', notifications);
+    } catch (error) {
+      console.error('Error creating subscription notification:', error);
+    }
+
     // Send Telegram message to support
     const telegramMessage = `📬 *New Newsletter Subscription*\n\nEmail: ${email}\n\nTime: ${new Date().toLocaleString('en-ZA')}`;
     
     sendWhatsApp({
       message: telegramMessage,
-      to: TELEGRAM_CHAT_ID
+      to: TELEGRAM_CHAT_ID,
+      notificationTitle: 'New Newsletter Subscription',
+      notificationType: 'subscription'
     }).then(result => {
       if (result.success) {
         console.log(`✅ Newsletter subscription Telegram message SENT successfully to chat ID ${TELEGRAM_CHAT_ID}`);
