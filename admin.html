@@ -11,8 +11,19 @@
             font-family: 'Inter', sans-serif;
         }
         .sidebar-item.active {
-            background-color: #000;
-            color: #fff;
+            background-color: #000 !important;
+            color: #fff !important;
+        }
+        .sidebar-item {
+            background-color: transparent;
+            color: #000;
+        }
+        .sidebar-item:hover:not(.active) {
+            background-color: #f3f4f6;
+        }
+        .sidebar-item.active:hover {
+            background-color: #000 !important;
+            color: #fff !important;
         }
         .notification-badge {
             position: absolute;
@@ -56,7 +67,8 @@
         @media (max-width: 768px) {
             .sidebar {
                 transform: translateX(-100%);
-                z-index: 50;
+                z-index: 60 !important;
+                transition: transform 0.3s ease;
             }
             .sidebar.mobile-open {
                 transform: translateX(0);
@@ -72,7 +84,7 @@
                 right: 0;
                 bottom: 0;
                 background: rgba(0, 0, 0, 0.5);
-                z-index: 45;
+                z-index: 55 !important;
             }
             .sidebar-overlay.active {
                 display: block;
@@ -143,7 +155,7 @@
         <!-- Header -->
         <header class="bg-white border-b border-gray-200 fixed top-0 left-0 right-0 z-50">
             <div class="flex items-center justify-between px-4 md:px-6 py-4">
-                <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-3 md:space-x-4">
                     <button onclick="toggleMobileSidebar()" class="md:hidden p-2 hover:bg-gray-100 rounded-lg">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="3" y1="6" x2="21" y2="6"></line>
@@ -151,6 +163,7 @@
                             <line x1="3" y1="18" x2="21" y2="18"></line>
                         </svg>
                     </button>
+                    <img src="https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1" alt="SV Logo" class="w-10 h-10 md:w-12 md:h-12 rounded-lg object-cover" onerror="this.style.display='none'">
                     <h1 class="text-xl md:text-2xl font-bold">Saint Ventura Admin</h1>
                 </div>
                 <button onclick="logout()" class="px-3 md:px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition text-sm md:text-base">Logout</button>
@@ -158,11 +171,11 @@
         </header>
 
         <!-- Mobile Sidebar Overlay -->
-        <div id="sidebar-overlay" class="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+        <div id="sidebar-overlay" class="sidebar-overlay" onclick="closeMobileSidebar()" style="z-index: 55;"></div>
 
         <div class="flex pt-16">
             <!-- Sidebar -->
-            <aside id="sidebar" class="sidebar w-64 bg-white border-r border-gray-200 min-h-screen fixed left-0 top-16 z-40 shadow-lg md:shadow-none">
+            <aside id="sidebar" class="sidebar w-64 bg-white border-r border-gray-200 min-h-screen fixed left-0 top-16 z-40 md:z-40 shadow-lg md:shadow-none" style="z-index: 60;">
                 <div class="p-4 border-b border-gray-200">
                     <button onclick="toggleSidebar()" class="w-full flex items-center justify-between px-4 py-2 hover:bg-gray-100 rounded-lg transition">
                         <span class="font-semibold sidebar-text">Menu</span>
@@ -474,9 +487,16 @@
 
     <script>
         const ADMIN_PASSWORD = 'WEAR3+H3$@!N+$*';
-        const BACKEND_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-            ? 'http://localhost:3000' 
-            : 'https://saint-ventura-backend.onrender.com';
+        
+        // Determine backend URL - always use production for admin dashboard
+        function getBackendUrl() {
+            // Always use production backend for admin
+            return 'https://saint-ventura-backend.onrender.com';
+        }
+        
+        const BACKEND_URL = getBackendUrl();
+        
+        console.log('Admin Dashboard - Backend URL:', BACKEND_URL);
         
         let currentSection = 'inventory';
         let posCart = [];
@@ -530,11 +550,21 @@
             }
             // Hide all sections
             document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
-            document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
+            document.querySelectorAll('.sidebar-item').forEach(item => {
+                item.classList.remove('active');
+                // Remove any background color changes
+                item.style.backgroundColor = '';
+            });
             
             // Show selected section
             document.getElementById(`${section}-section`).classList.remove('hidden');
-            document.querySelector(`[data-section="${section}"]`).classList.add('active');
+            const activeItem = document.querySelector(`[data-section="${section}"]`);
+            if (activeItem) {
+                activeItem.classList.add('active');
+                // Ensure black background for active item
+                activeItem.style.backgroundColor = '#000';
+                activeItem.style.color = '#fff';
+            }
             currentSection = section;
             
             // Load section data
@@ -584,7 +614,6 @@
 
         function updateBadges() {
             adminFetch(`${BACKEND_URL}/api/admin/badges`)
-                .then(r => r.json())
                 .then(data => {
                     if (data.inbox > 0) {
                         document.getElementById('inbox-badge').textContent = data.inbox;
@@ -605,17 +634,47 @@
                         document.getElementById('notifications-badge').classList.add('hidden');
                     }
                 })
-                .catch(err => console.error('Error updating badges:', err));
+                .catch(err => {
+                    console.error('Error updating badges:', err);
+                    // Silently fail for badges - don't show error to user
+                });
         }
 
         // Helper function to add admin auth header
         function adminFetch(url, options = {}) {
             options.headers = options.headers || {};
             options.headers['x-admin-password'] = ADMIN_PASSWORD;
-            return fetch(url, options).catch(err => {
-                console.error('Fetch error:', err);
-                throw new Error('Network error: ' + err.message);
-            });
+            options.headers['Content-Type'] = 'application/json';
+            
+            // Add credentials for CORS
+            options.credentials = 'omit';
+            options.mode = 'cors';
+            
+            console.log('Fetching:', url, 'with headers:', options.headers);
+            
+            return fetch(url, options)
+                .then(response => {
+                    console.log('Response status:', response.status, 'for URL:', url);
+                    if (!response.ok) {
+                        return response.text().then(text => {
+                            let errorData;
+                            try {
+                                errorData = JSON.parse(text);
+                            } catch {
+                                errorData = { error: text || `HTTP ${response.status} ${response.statusText}` };
+                            }
+                            throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+                        });
+                    }
+                    return response.json();
+                })
+                .catch(err => {
+                    console.error('Fetch error for', url, ':', err);
+                    if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+                        throw new Error('Cannot connect to server. Please check your internet connection and ensure the backend is running.');
+                    }
+                    throw err;
+                });
         }
         
         // Error handling helper
@@ -642,27 +701,22 @@
             }
             
             adminFetch(`${BACKEND_URL}/api/admin/inventory`)
-                .then(r => {
-                    if (!r.ok) {
-                        throw new Error(`HTTP error! status: ${r.status}`);
-                    }
-                    return r.json();
-                })
                 .then(data => {
+                    console.log('Inventory data received:', data);
                     if (!Array.isArray(data)) {
-                        throw new Error('Invalid data format received');
+                        throw new Error('Invalid data format received - expected array');
                     }
                     allInventoryData = data;
                     renderInventory(data);
                 })
                 .catch(err => {
                     console.error('Inventory loading error:', err);
-                    const errorMsg = `Error loading inventory: ${err.message}. Please check your connection and try again.`;
+                    const errorMsg = `Error loading inventory: ${err.message}. Please check your connection and ensure the backend is running at ${BACKEND_URL}`;
                     if (tbody) {
-                        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-12"><div class="error-message">${errorMsg}</div></td></tr>`;
+                        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-12"><div class="error-message">${errorMsg}<br><small>Backend URL: ${BACKEND_URL}</small></div></td></tr>`;
                     }
                     if (mobileContainer) {
-                        mobileContainer.innerHTML = `<div class="error-message">${errorMsg}</div>`;
+                        mobileContainer.innerHTML = `<div class="error-message">${errorMsg}<br><small>Backend URL: ${BACKEND_URL}</small></div>`;
                     }
                 });
         }
@@ -810,10 +864,8 @@
             
             adminFetch(`${BACKEND_URL}/api/admin/inventory/update`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ productId, variantId, stock })
             })
-            .then(r => r.json())
             .then(data => {
                 if (data.success) {
                     // Show success notification
@@ -829,10 +881,11 @@
                     }, 2000);
                     loadInventory();
                 } else {
-                    alert('Error updating stock: ' + data.error);
+                    alert('Error updating stock: ' + (data.error || 'Unknown error'));
                 }
             })
             .catch(err => {
+                console.error('Error updating stock:', err);
                 alert('Error updating stock: ' + err.message);
             });
         }
@@ -843,10 +896,15 @@
 
         // Inbox functions
         function loadInbox() {
+            const list = document.getElementById('inbox-list');
+            list.innerHTML = '<div class="text-center py-8 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading emails...</span></div></div>';
+            
             adminFetch(`${BACKEND_URL}/api/admin/inbox`)
-                .then(r => r.json())
                 .then(data => {
-                    const list = document.getElementById('inbox-list');
+                    console.log('Inbox data received:', data);
+                    if (!Array.isArray(data)) {
+                        throw new Error('Invalid data format');
+                    }
                     if (data.length === 0) {
                         list.innerHTML = '<div class="text-center py-8 text-gray-500">No emails</div>';
                         return;
@@ -855,34 +913,38 @@
                         <div class="border border-gray-200 rounded-lg p-4 ${email.read ? 'bg-gray-50' : 'bg-white'}">
                             <div class="flex justify-between items-start mb-2">
                                 <div>
-                                    <p class="font-semibold">${email.from}</p>
-                                    <p class="text-sm text-gray-600">${email.subject}</p>
+                                    <p class="font-semibold">${email.from || email.name || 'Unknown'}</p>
+                                    <p class="text-sm text-gray-600">${email.subject || 'No subject'}</p>
                                 </div>
                                 <span class="text-xs text-gray-500">${new Date(email.date).toLocaleString()}</span>
                             </div>
-                            <p class="text-sm text-gray-700">${email.body.substring(0, 200)}...</p>
-                            <button onclick="markEmailRead('${email.id}')" class="mt-2 text-sm text-blue-600 hover:underline">Mark as Read</button>
+                            <p class="text-sm text-gray-700">${(email.body || email.message || '').substring(0, 200)}...</p>
+                            ${!email.read ? `<button onclick="markEmailRead('${email.id}')" class="mt-2 text-sm text-blue-600 hover:underline">Mark as Read</button>` : ''}
                         </div>
                     `).join('');
                 })
                 .catch(err => {
-                    document.getElementById('inbox-list').innerHTML = 
-                        '<div class="text-center py-8 text-red-500">Error loading emails</div>';
+                    console.error('Inbox loading error:', err);
+                    list.innerHTML = `<div class="error-message">Error loading emails: ${err.message}<br><small>Backend URL: ${BACKEND_URL}</small></div>`;
                 });
         }
 
         function markEmailRead(emailId) {
             adminFetch(`${BACKEND_URL}/api/admin/inbox/read`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ emailId })
             })
-            .then(r => r.json())
             .then(data => {
                 if (data.success) {
                     loadInbox();
                     updateBadges();
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to mark email as read'));
                 }
+            })
+            .catch(err => {
+                console.error('Error marking email as read:', err);
+                alert('Error: ' + err.message);
             });
         }
 
@@ -967,18 +1029,12 @@
 
             adminFetch(`${BACKEND_URL}/api/admin/broadcast`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ template, subject, message, products })
             })
-            .then(r => {
-                if (!r.ok) {
-                    return r.json().then(err => { throw new Error(err.error || `HTTP error! status: ${r.status}`); });
-                }
-                return r.json();
-            })
             .then(data => {
+                console.log('Broadcast response:', data);
                 if (data.success) {
-                    alert(`Email sent to ${data.sent} subscribers`);
+                    alert(`Email sent to ${data.sent || 0} subscribers${data.total ? ` out of ${data.total}` : ''}`);
                     document.getElementById('broadcast-form').reset();
                 } else {
                     alert('Error: ' + (data.error || 'Unknown error'));
@@ -996,10 +1052,15 @@
 
         // Abandoned carts functions
         function loadAbandonedCarts() {
+            const list = document.getElementById('abandoned-carts-list');
+            list.innerHTML = '<div class="text-center py-8 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading abandoned carts...</span></div></div>';
+            
             adminFetch(`${BACKEND_URL}/api/admin/abandoned-carts`)
-                .then(r => r.json())
                 .then(data => {
-                    const list = document.getElementById('abandoned-carts-list');
+                    console.log('Abandoned carts data received:', data);
+                    if (!Array.isArray(data)) {
+                        throw new Error('Invalid data format');
+                    }
                     if (data.length === 0) {
                         list.innerHTML = '<div class="text-center py-8 text-gray-500">No abandoned carts</div>';
                         return;
@@ -1009,31 +1070,37 @@
                             <div class="flex justify-between items-start mb-2">
                                 <div>
                                     <p class="font-semibold">${cart.email || 'Guest'}</p>
-                                    <p class="text-sm text-gray-600">${cart.items.length} items</p>
+                                    <p class="text-sm text-gray-600">${(cart.items || []).length} items</p>
                                 </div>
-                                <span class="text-xs text-gray-500">${new Date(cart.date).toLocaleString()}</span>
+                                <span class="text-xs text-gray-500">${cart.date ? new Date(cart.date).toLocaleString() : 'N/A'}</span>
                             </div>
-                            <p class="text-sm font-semibold">Total: R${cart.total.toFixed(2)}</p>
-                            <button onclick="sendCartReminder('${cart.id}')" class="mt-2 px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600">Send Reminder</button>
+                            <p class="text-sm font-semibold">Total: R${(cart.total || 0).toFixed(2)}</p>
+                            ${cart.email ? `<button onclick="sendCartReminder('${cart.id}')" class="mt-2 px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600">Send Reminder</button>` : ''}
                         </div>
                     `).join('');
+                })
+                .catch(err => {
+                    console.error('Error loading abandoned carts:', err);
+                    list.innerHTML = `<div class="error-message">Error loading abandoned carts: ${err.message}<br><small>Backend URL: ${BACKEND_URL}</small></div>`;
                 });
         }
 
         function sendCartReminder(cartId) {
             adminFetch(`${BACKEND_URL}/api/admin/abandoned-carts/remind`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ cartId })
             })
-            .then(r => r.json())
             .then(data => {
                 if (data.success) {
                     alert('Reminder email sent');
                     loadAbandonedCarts();
                 } else {
-                    alert('Error: ' + data.error);
+                    alert('Error: ' + (data.error || 'Failed to send reminder'));
                 }
+            })
+            .catch(err => {
+                console.error('Error sending reminder:', err);
+                alert('Error: ' + err.message);
             });
         }
 
@@ -1042,14 +1109,17 @@
             adminFetch(`${BACKEND_URL}/api/admin/abandoned-carts/remind-all`, {
                 method: 'POST'
             })
-            .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    alert(`Reminder emails sent to ${data.sent} customers`);
+                    alert(`Reminder emails sent to ${data.sent || 0} customers`);
                     loadAbandonedCarts();
                 } else {
-                    alert('Error: ' + data.error);
+                    alert('Error: ' + (data.error || 'Failed to send reminders'));
                 }
+            })
+            .catch(err => {
+                console.error('Error sending reminders:', err);
+                alert('Error: ' + err.message);
             });
         }
 
@@ -1059,11 +1129,16 @@
 
         // Fulfillers functions
         function loadFulfillers() {
+            const list = document.getElementById('fulfillers-list');
+            const select = document.getElementById('fulfiller-select');
+            list.innerHTML = '<div class="text-center py-4 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading fulfillers...</span></div></div>';
+            
             adminFetch(`${BACKEND_URL}/api/admin/fulfillers`)
-                .then(r => r.json())
                 .then(data => {
-                    const list = document.getElementById('fulfillers-list');
-                    const select = document.getElementById('fulfiller-select');
+                    console.log('Fulfillers data received:', data);
+                    if (!Array.isArray(data)) {
+                        throw new Error('Invalid data format');
+                    }
                     if (data.length === 0) {
                         list.innerHTML = '<div class="text-center py-4 text-gray-500">No fulfillers added</div>';
                         select.innerHTML = '<option value="">No fulfillers available</option>';
@@ -1072,14 +1147,19 @@
                     list.innerHTML = data.map(f => `
                         <div class="flex justify-between items-center p-2 border border-gray-200 rounded">
                             <div>
-                                <p class="font-semibold">${f.name}</p>
-                                <p class="text-sm text-gray-600">${f.email}</p>
+                                <p class="font-semibold">${f.name || 'Unknown'}</p>
+                                <p class="text-sm text-gray-600">${f.email || 'No email'}</p>
                             </div>
                             <button onclick="deleteFulfiller('${f.id}')" class="px-2 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600">Delete</button>
                         </div>
                     `).join('');
                     select.innerHTML = '<option value="">Select a fulfiller...</option>' +
-                        data.map(f => `<option value="${f.id}">${f.name} (${f.email})</option>`).join('');
+                        data.map(f => `<option value="${f.id}">${f.name || 'Unknown'} (${f.email || 'No email'})</option>`).join('');
+                })
+                .catch(err => {
+                    console.error('Error loading fulfillers:', err);
+                    list.innerHTML = `<div class="error-message">Error loading fulfillers: ${err.message}<br><small>Backend URL: ${BACKEND_URL}</small></div>`;
+                    select.innerHTML = '<option value="">Error loading fulfillers</option>';
                 });
         }
 
@@ -1100,17 +1180,19 @@
 
             adminFetch(`${BACKEND_URL}/api/admin/fulfillers`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name, email, phone })
             })
-            .then(r => r.json())
             .then(data => {
                 if (data.success) {
                     closeAddFulfillerModal();
                     loadFulfillers();
                 } else {
-                    alert('Error: ' + data.error);
+                    alert('Error: ' + (data.error || 'Failed to add fulfiller'));
                 }
+            })
+            .catch(err => {
+                console.error('Error adding fulfiller:', err);
+                alert('Error: ' + err.message);
             });
         });
 
@@ -1119,13 +1201,16 @@
             adminFetch(`${BACKEND_URL}/api/admin/fulfillers/${id}`, {
                 method: 'DELETE'
             })
-            .then(r => r.json())
             .then(data => {
                 if (data.success) {
                     loadFulfillers();
                 } else {
-                    alert('Error: ' + data.error);
+                    alert('Error: ' + (data.error || 'Failed to delete fulfiller'));
                 }
+            })
+            .catch(err => {
+                console.error('Error deleting fulfiller:', err);
+                alert('Error: ' + err.message);
             });
         }
 
@@ -1141,26 +1226,33 @@
 
             adminFetch(`${BACKEND_URL}/api/admin/fulfillers/notify`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ fulfillerId, orderDetails })
             })
-            .then(r => r.json())
             .then(data => {
                 if (data.success) {
                     alert('Email sent to fulfiller');
                     document.getElementById('fulfiller-email-form').reset();
                 } else {
-                    alert('Error: ' + data.error);
+                    alert('Error: ' + (data.error || 'Failed to send email'));
                 }
+            })
+            .catch(err => {
+                console.error('Error sending fulfiller email:', err);
+                alert('Error: ' + err.message);
             });
         });
 
         // Notifications functions
         function loadNotifications() {
+            const list = document.getElementById('notifications-list');
+            list.innerHTML = '<div class="text-center py-8 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading notifications...</span></div></div>';
+            
             adminFetch(`${BACKEND_URL}/api/admin/notifications`)
-                .then(r => r.json())
                 .then(data => {
-                    const list = document.getElementById('notifications-list');
+                    console.log('Notifications data received:', data);
+                    if (!Array.isArray(data)) {
+                        throw new Error('Invalid data format');
+                    }
                     if (data.length === 0) {
                         list.innerHTML = '<div class="text-center py-8 text-gray-500">No notifications</div>';
                         return;
@@ -1169,31 +1261,39 @@
                         <div class="border border-gray-200 rounded-lg p-4 ${notif.read ? 'bg-gray-50' : 'bg-white'}">
                             <div class="flex justify-between items-start">
                                 <div>
-                                    <p class="font-semibold">${notif.title}</p>
-                                    <p class="text-sm text-gray-600">${notif.message}</p>
+                                    <p class="font-semibold">${notif.title || 'Notification'}</p>
+                                    <p class="text-sm text-gray-600">${notif.message || 'No message'}</p>
                                 </div>
                                 <div class="text-right">
-                                    <span class="text-xs text-gray-500">${new Date(notif.date).toLocaleString()}</span>
+                                    <span class="text-xs text-gray-500">${notif.date ? new Date(notif.date).toLocaleString() : 'N/A'}</span>
                                     ${!notif.read ? '<button onclick="markNotificationRead(\'' + notif.id + '\')" class="ml-2 text-sm text-blue-600 hover:underline">Mark Read</button>' : ''}
                                 </div>
                             </div>
                         </div>
                     `).join('');
+                })
+                .catch(err => {
+                    console.error('Error loading notifications:', err);
+                    list.innerHTML = `<div class="error-message">Error loading notifications: ${err.message}<br><small>Backend URL: ${BACKEND_URL}</small></div>`;
                 });
         }
 
         function markNotificationRead(notifId) {
             adminFetch(`${BACKEND_URL}/api/admin/notifications/read`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ notificationId: notifId })
             })
-            .then(r => r.json())
             .then(data => {
                 if (data.success) {
                     loadNotifications();
                     updateBadges();
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to mark notification as read'));
                 }
+            })
+            .catch(err => {
+                console.error('Error marking notification as read:', err);
+                alert('Error: ' + err.message);
             });
         }
 
@@ -1201,12 +1301,17 @@
             adminFetch(`${BACKEND_URL}/api/admin/notifications/read-all`, {
                 method: 'POST'
             })
-            .then(r => r.json())
             .then(data => {
                 if (data.success) {
                     loadNotifications();
                     updateBadges();
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to mark all as read'));
                 }
+            })
+            .catch(err => {
+                console.error('Error marking all as read:', err);
+                alert('Error: ' + err.message);
             });
         }
 
@@ -1216,16 +1321,29 @@
 
         // Sales/POS functions
         function loadSales() {
+            const container = document.getElementById('pos-products');
+            container.innerHTML = '<div class="col-span-2 text-center py-8 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading products...</span></div></div>';
+            
             adminFetch(`${BACKEND_URL}/api/admin/products`)
-                .then(r => r.json())
                 .then(data => {
-                    const container = document.getElementById('pos-products');
+                    console.log('POS products data received:', data);
+                    if (!Array.isArray(data)) {
+                        throw new Error('Invalid products data format');
+                    }
+                    if (data.length === 0) {
+                        container.innerHTML = '<div class="col-span-2 text-center py-8 text-gray-500">No products available</div>';
+                        return;
+                    }
                     container.innerHTML = data.map(p => `
-                        <div class="border border-gray-200 rounded-lg p-4 cursor-pointer hover:bg-gray-50" onclick="addToPOSCart(${p.id}, '${p.name}', ${p.price})">
-                            <p class="font-semibold">${p.name}</p>
-                            <p class="text-gray-600">R${p.price.toFixed(2)}</p>
+                        <div class="border border-gray-200 rounded-lg p-4 cursor-pointer hover:bg-gray-50 transition" onclick="addToPOSCart(${p.id}, '${p.name.replace(/'/g, "\\'")}', ${p.price || 0})">
+                            <p class="font-semibold text-sm md:text-base">${p.name || 'Unknown Product'}</p>
+                            <p class="text-gray-600 text-sm md:text-base">R${(p.price || 0).toFixed(2)}</p>
                         </div>
                     `).join('');
+                })
+                .catch(err => {
+                    console.error('Error loading POS products:', err);
+                    container.innerHTML = `<div class="col-span-2 error-message">Error loading products: ${err.message}<br><small>Backend URL: ${BACKEND_URL}</small></div>`;
                 });
         }
 
@@ -1294,7 +1412,6 @@
 
             adminFetch(`${BACKEND_URL}/api/admin/pos/order`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     customerName,
                     customerEmail,
@@ -1304,21 +1421,24 @@
                     total
                 })
             })
-            .then(r => r.json())
             .then(data => {
+                console.log('POS order response:', data);
                 if (data.success) {
                     alert('Order created successfully');
                     posCart = [];
                     updatePOSCart();
                     document.getElementById('pos-order-form').reset();
-                    if (paymentMethod === 'yoco') {
+                    if (paymentMethod === 'yoco' && data.paymentUrl) {
                         window.open(data.paymentUrl, '_blank');
                     }
                 } else {
-                    alert('Error: ' + data.error);
+                    alert('Error: ' + (data.error || 'Failed to create order'));
                 }
             })
-            .catch(err => alert('Error creating order'));
+            .catch(err => {
+                console.error('Error creating POS order:', err);
+                alert('Error creating order: ' + err.message);
+            });
         });
     </script>
 </body>
