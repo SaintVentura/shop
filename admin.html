@@ -9,6 +9,9 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
+            box-sizing: border-box;
+            overflow-x: hidden;
+            background: #ffffff;
         }
         .sidebar-item.active {
             background-color: #000 !important;
@@ -131,7 +134,7 @@
         }
     </style>
 </head>
-<body class="bg-gray-50">
+<body class="h-full bg-white text-black">
     <!-- Login Screen -->
     <div id="login-screen" class="min-h-screen flex items-center justify-center bg-black">
         <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
@@ -153,7 +156,7 @@
     <!-- Admin Dashboard -->
     <div id="admin-dashboard" class="hidden min-h-screen">
         <!-- Header -->
-        <header class="bg-white border-b border-gray-200 fixed top-0 left-0 right-0 z-50">
+        <header class="bg-white/95 backdrop-blur-md border-b border-gray-200 fixed top-0 left-0 right-0 z-50">
             <div class="flex items-center justify-between px-4 md:px-6 py-4">
                 <div class="flex items-center space-x-3 md:space-x-4">
                     <button onclick="toggleMobileSidebar()" class="md:hidden p-2 hover:bg-gray-100 rounded-lg">
@@ -185,6 +188,14 @@
                     </button>
                 </div>
                 <nav class="p-4 space-y-2">
+                    <a href="#" onclick="showSection('dashboard')" class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition" data-section="dashboard">
+                        <span>📊</span>
+                        <span class="sidebar-text">Dashboard</span>
+                    </a>
+                    <a href="#" onclick="showSection('orders')" class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition" data-section="orders">
+                        <span>📋</span>
+                        <span class="sidebar-text">Orders</span>
+                    </a>
                     <a href="#" onclick="showSection('inventory')" class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition" data-section="inventory">
                         <span>📦</span>
                         <span class="sidebar-text">Stock Inventory</span>
@@ -216,11 +227,167 @@
                         <span>💰</span>
                         <span class="sidebar-text">Sale Dashboard</span>
                     </a>
+                    <a href="#" onclick="showSection('analytics')" class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition" data-section="analytics">
+                        <span>📈</span>
+                        <span class="sidebar-text">Analytics</span>
+                    </a>
                 </nav>
             </aside>
 
             <!-- Main Content -->
-            <main id="main-content" class="main-content flex-1 ml-0 md:ml-64 p-4 md:p-6">
+            <main id="main-content" class="main-content flex-1 ml-0 md:ml-64 p-4 md:p-6 bg-white">
+                <!-- Dashboard Overview Section -->
+                <div id="dashboard-section" class="section">
+                    <h2 class="text-2xl md:text-3xl font-bold mb-6">Dashboard Overview</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
+                        <div class="bg-white border border-gray-200 rounded-lg p-4 md:p-6 shadow-sm">
+                            <div class="flex items-center justify-between mb-2">
+                                <p class="text-sm text-gray-600">Total Revenue</p>
+                                <span class="text-2xl">💰</span>
+                            </div>
+                            <p id="stat-total-revenue" class="text-2xl md:text-3xl font-bold">R0.00</p>
+                        </div>
+                        <div class="bg-white border border-gray-200 rounded-lg p-4 md:p-6 shadow-sm">
+                            <div class="flex items-center justify-between mb-2">
+                                <p class="text-sm text-gray-600">Total Orders</p>
+                                <span class="text-2xl">📋</span>
+                            </div>
+                            <p id="stat-total-orders" class="text-2xl md:text-3xl font-bold">0</p>
+                        </div>
+                        <div class="bg-white border border-gray-200 rounded-lg p-4 md:p-6 shadow-sm">
+                            <div class="flex items-center justify-between mb-2">
+                                <p class="text-sm text-gray-600">Pending Orders</p>
+                                <span class="text-2xl">⏳</span>
+                            </div>
+                            <p id="stat-pending-orders" class="text-2xl md:text-3xl font-bold">0</p>
+                        </div>
+                        <div class="bg-white border border-gray-200 rounded-lg p-4 md:p-6 shadow-sm">
+                            <div class="flex items-center justify-between mb-2">
+                                <p class="text-sm text-gray-600">Subscribers</p>
+                                <span class="text-2xl">👥</span>
+                            </div>
+                            <p id="stat-subscribers" class="text-2xl md:text-3xl font-bold">0</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
+                        <div class="bg-white border border-gray-200 rounded-lg p-4 md:p-6 shadow-sm">
+                            <div class="flex items-center justify-between mb-2">
+                                <p class="text-sm text-gray-600">Low Stock Items</p>
+                                <span class="text-2xl">⚠️</span>
+                            </div>
+                            <p id="stat-low-stock" class="text-2xl md:text-3xl font-bold text-red-600">0</p>
+                        </div>
+                        <div class="bg-white border border-gray-200 rounded-lg p-4 md:p-6 shadow-sm">
+                            <div class="flex items-center justify-between mb-2">
+                                <p class="text-sm text-gray-600">Unread Notifications</p>
+                                <span class="text-2xl">🔔</span>
+                            </div>
+                            <p id="stat-notifications" class="text-2xl md:text-3xl font-bold">0</p>
+                        </div>
+                        <div class="bg-white border border-gray-200 rounded-lg p-4 md:p-6 shadow-sm">
+                            <div class="flex items-center justify-between mb-2">
+                                <p class="text-sm text-gray-600">Unread Emails</p>
+                                <span class="text-2xl">📧</span>
+                            </div>
+                            <p id="stat-emails" class="text-2xl md:text-3xl font-bold">0</p>
+                        </div>
+                        <div class="bg-white border border-gray-200 rounded-lg p-4 md:p-6 shadow-sm">
+                            <div class="flex items-center justify-between mb-2">
+                                <p class="text-sm text-gray-600">Abandoned Carts</p>
+                                <span class="text-2xl">🛒</span>
+                            </div>
+                            <p id="stat-carts" class="text-2xl md:text-3xl font-bold">0</p>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-gray-200 rounded-lg p-4 md:p-6 shadow-sm mb-6">
+                        <h3 class="text-xl font-semibold mb-4">Recent Orders</h3>
+                        <div id="recent-orders-list" class="space-y-2">
+                            <div class="text-center py-8 text-gray-500">Loading recent orders...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Orders Management Section -->
+                <div id="orders-section" class="section hidden">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-6 space-y-3 md:space-y-0">
+                        <h2 class="text-2xl md:text-3xl font-bold">Orders Management</h2>
+                        <button onclick="refreshOrders()" class="w-full md:w-auto px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 flex items-center justify-center space-x-2">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="23,4 23,10 17,10"></polyline>
+                                <polyline points="1,20 1,14 7,14"></polyline>
+                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                            </svg>
+                            <span>Refresh</span>
+                        </button>
+                    </div>
+                    <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                        <div class="p-4 border-b border-gray-200">
+                            <div class="flex flex-col md:flex-row items-stretch md:items-center space-y-3 md:space-y-0 md:space-x-4">
+                                <input type="text" id="orders-search" placeholder="Search orders..." class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black">
+                                <select id="orders-filter-status" class="w-full md:w-auto px-4 py-2 border border-gray-300 rounded-lg">
+                                    <option value="">All Status</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="completed">Completed</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700">Order ID</th>
+                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700">Customer</th>
+                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700">Items</th>
+                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700">Total</th>
+                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700">Status</th>
+                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700">Date</th>
+                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="orders-table" class="divide-y divide-gray-200">
+                                    <tr><td colspan="7" class="text-center py-12 text-gray-500">
+                                        <div class="flex items-center justify-center space-x-2">
+                                            <div class="loading-spinner"></div>
+                                            <span>Loading orders...</span>
+                                        </div>
+                                    </td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analytics Section -->
+                <div id="analytics-section" class="section hidden">
+                    <h2 class="text-2xl md:text-3xl font-bold mb-6">Analytics & Reports</h2>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                        <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                            <h3 class="text-xl font-semibold mb-4">Monthly Revenue</h3>
+                            <div id="revenue-chart" class="h-64 flex items-center justify-center text-gray-500">
+                                <div class="text-center">
+                                    <div class="loading-spinner mx-auto mb-2"></div>
+                                    <p>Loading revenue data...</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                            <h3 class="text-xl font-semibold mb-4">Order Status Distribution</h3>
+                            <div id="status-chart" class="h-64 flex items-center justify-center text-gray-500">
+                                <div class="text-center">
+                                    <div class="loading-spinner mx-auto mb-2"></div>
+                                    <p>Loading status data...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                        <h3 class="text-xl font-semibold mb-4">Sales Summary</h3>
+                        <div id="sales-summary" class="space-y-4">
+                            <div class="text-center py-8 text-gray-500">Loading sales summary...</div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Stock Inventory Section -->
                 <div id="inventory-section" class="section hidden">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-6 space-y-3 md:space-y-0">
@@ -498,7 +665,7 @@
         
         console.log('Admin Dashboard - Backend URL:', BACKEND_URL);
         
-        let currentSection = 'inventory';
+        let currentSection = 'dashboard';
         let posCart = [];
         let sidebarCollapsed = false;
         
@@ -568,13 +735,16 @@
             currentSection = section;
             
             // Load section data
-            if (section === 'inventory') loadInventory();
+            if (section === 'dashboard') loadDashboardData();
+            else if (section === 'orders') loadOrders();
+            else if (section === 'inventory') loadInventory();
             else if (section === 'inbox') loadInbox();
             else if (section === 'broadcast') loadBroadcast();
             else if (section === 'abandoned-carts') loadAbandonedCarts();
             else if (section === 'fulfillers') loadFulfillers();
             else if (section === 'notifications') loadNotifications();
             else if (section === 'sales') loadSales();
+            else if (section === 'analytics') loadAnalytics();
         }
 
         // Login
@@ -607,9 +777,57 @@
 
 
         function loadDashboard() {
-            showSection('inventory');
+            showSection('dashboard');
+            loadDashboardData();
             updateBadges();
-            setInterval(updateBadges, 30000); // Update badges every 30 seconds
+            setInterval(() => {
+                updateBadges();
+                if (currentSection === 'dashboard') {
+                    loadDashboardData();
+                }
+            }, 30000); // Update every 30 seconds
+        }
+        
+        function loadDashboardData() {
+            adminFetch(`${BACKEND_URL}/api/admin/dashboard`)
+                .then(data => {
+                    if (data.success) {
+                        // Update stats
+                        document.getElementById('stat-total-revenue').textContent = `R${data.stats.totalRevenue.toFixed(2)}`;
+                        document.getElementById('stat-total-orders').textContent = data.stats.totalOrders;
+                        document.getElementById('stat-pending-orders').textContent = data.stats.pendingOrders;
+                        document.getElementById('stat-subscribers').textContent = data.stats.totalSubscribers;
+                        document.getElementById('stat-low-stock').textContent = data.stats.lowStockItems;
+                        document.getElementById('stat-notifications').textContent = data.stats.unreadNotifications;
+                        document.getElementById('stat-emails').textContent = data.stats.unreadEmails;
+                        document.getElementById('stat-carts').textContent = data.stats.abandonedCarts;
+                        
+                        // Update recent orders
+                        const recentList = document.getElementById('recent-orders-list');
+                        if (data.recentOrders && data.recentOrders.length > 0) {
+                            recentList.innerHTML = data.recentOrders.map(order => `
+                                <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <p class="font-semibold">${order.customerName || 'Unknown'}</p>
+                                            <p class="text-sm text-gray-600">${order.id || 'N/A'}</p>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="font-semibold">R${(order.total || 0).toFixed(2)}</p>
+                                            <span class="px-2 py-1 rounded-full text-xs font-semibold ${order.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">${order.status || 'pending'}</span>
+                                        </div>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-2">${order.date ? new Date(order.date).toLocaleString() : 'N/A'}</p>
+                                </div>
+                            `).join('');
+                        } else {
+                            recentList.innerHTML = '<div class="text-center py-8 text-gray-500">No recent orders</div>';
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.error('Error loading dashboard data:', err);
+                });
         }
 
         function updateBadges() {
@@ -1317,6 +1535,231 @@
 
         function refreshNotifications() {
             loadNotifications();
+        }
+
+        // Orders Management functions
+        let allOrdersData = [];
+        
+        function loadOrders() {
+            const tbody = document.getElementById('orders-table');
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-12 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading orders...</span></div></td></tr>';
+            }
+            
+            adminFetch(`${BACKEND_URL}/api/admin/orders`)
+                .then(data => {
+                    console.log('Orders data received:', data);
+                    if (!Array.isArray(data)) {
+                        throw new Error('Invalid data format');
+                    }
+                    allOrdersData = data;
+                    renderOrders(data);
+                })
+                .catch(err => {
+                    console.error('Error loading orders:', err);
+                    if (tbody) {
+                        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-12"><div class="error-message">Error loading orders: ${err.message}</div></td></tr>`;
+                    }
+                });
+        }
+        
+        function renderOrders(orders) {
+            const tbody = document.getElementById('orders-table');
+            if (!tbody) return;
+            
+            if (orders.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-12 text-gray-500">No orders found</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = orders.map(order => {
+                const itemCount = Array.isArray(order.items) ? order.items.length : 0;
+                const statusClass = order.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
+                return `
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="py-4 px-4 md:px-6">
+                            <span class="font-mono text-sm">${order.id || 'N/A'}</span>
+                        </td>
+                        <td class="py-4 px-4 md:px-6">
+                            <div>
+                                <p class="font-semibold">${order.customerName || 'Unknown'}</p>
+                                <p class="text-xs text-gray-500">${order.customerEmail || ''}</p>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4 md:px-6">
+                            <span class="px-2 py-1 bg-gray-100 rounded-full text-xs">${itemCount} items</span>
+                        </td>
+                        <td class="py-4 px-4 md:px-6">
+                            <span class="font-semibold">R${(order.total || 0).toFixed(2)}</span>
+                        </td>
+                        <td class="py-4 px-4 md:px-6">
+                            <span class="px-2 py-1 rounded-full text-xs font-semibold ${statusClass}">${order.status || 'pending'}</span>
+                        </td>
+                        <td class="py-4 px-4 md:px-6">
+                            <span class="text-sm text-gray-600">${order.date ? new Date(order.date).toLocaleDateString() : 'N/A'}</span>
+                        </td>
+                        <td class="py-4 px-4 md:px-6">
+                            <select onchange="updateOrderStatus('${order.id}', this.value)" class="px-3 py-1 border border-gray-300 rounded-lg text-sm">
+                                <option value="pending" ${order.status === 'pending' ? 'selected' : ''}>Pending</option>
+                                <option value="completed" ${order.status === 'completed' ? 'selected' : ''}>Completed</option>
+                            </select>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        function updateOrderStatus(orderId, status) {
+            adminFetch(`${BACKEND_URL}/api/admin/orders/${orderId}/status`, {
+                method: 'PUT',
+                body: JSON.stringify({ status })
+            })
+            .then(data => {
+                if (data.success) {
+                    loadOrders();
+                    if (currentSection === 'dashboard') loadDashboardData();
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to update order status'));
+                }
+            })
+            .catch(err => {
+                console.error('Error updating order status:', err);
+                alert('Error: ' + err.message);
+            });
+        }
+        
+        function refreshOrders() {
+            loadOrders();
+        }
+        
+        // Search and filter orders
+        document.getElementById('orders-search')?.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const status = document.getElementById('orders-filter-status')?.value || '';
+            filterOrders(searchTerm, status);
+        });
+        
+        document.getElementById('orders-filter-status')?.addEventListener('change', (e) => {
+            const searchTerm = document.getElementById('orders-search')?.value.toLowerCase() || '';
+            filterOrders(searchTerm, e.target.value);
+        });
+        
+        function filterOrders(searchTerm, status) {
+            let filtered = allOrdersData;
+            
+            if (searchTerm) {
+                filtered = filtered.filter(order => 
+                    (order.customerName || '').toLowerCase().includes(searchTerm) ||
+                    (order.customerEmail || '').toLowerCase().includes(searchTerm) ||
+                    (order.id || '').toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            if (status) {
+                filtered = filtered.filter(order => (order.status || '') === status);
+            }
+            
+            renderOrders(filtered);
+        }
+
+        // Analytics functions
+        function loadAnalytics() {
+            adminFetch(`${BACKEND_URL}/api/admin/dashboard`)
+                .then(data => {
+                    if (data.success) {
+                        // Render revenue chart
+                        renderRevenueChart(data.monthlyRevenue);
+                        // Render status chart
+                        renderStatusChart(data.stats);
+                        // Render sales summary
+                        renderSalesSummary(data);
+                    }
+                })
+                .catch(err => {
+                    console.error('Error loading analytics:', err);
+                    document.getElementById('revenue-chart').innerHTML = `<div class="error-message">Error loading analytics: ${err.message}</div>`;
+                });
+        }
+        
+        function renderRevenueChart(monthlyRevenue) {
+            const container = document.getElementById('revenue-chart');
+            if (!container) return;
+            
+            const months = Object.keys(monthlyRevenue).sort();
+            const values = months.map(m => monthlyRevenue[m]);
+            const maxValue = Math.max(...values, 1);
+            
+            container.innerHTML = `
+                <div class="w-full h-full flex items-end justify-between space-x-2">
+                    ${months.map((month, i) => {
+                        const height = (values[i] / maxValue) * 100;
+                        const monthLabel = new Date(month + '-01').toLocaleDateString('en-US', { month: 'short' });
+                        return `
+                            <div class="flex-1 flex flex-col items-center">
+                                <div class="w-full bg-gray-200 rounded-t" style="height: ${height}%; min-height: 20px;">
+                                    <div class="w-full h-full bg-black rounded-t transition-all duration-300"></div>
+                                </div>
+                                <p class="text-xs text-gray-600 mt-2">${monthLabel}</p>
+                                <p class="text-xs font-semibold mt-1">R${values[i].toFixed(0)}</p>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+        
+        function renderStatusChart(stats) {
+            const container = document.getElementById('status-chart');
+            if (!container) return;
+            
+            const total = stats.totalOrders || 1;
+            const completedPercent = ((stats.completedOrders || 0) / total) * 100;
+            const pendingPercent = ((stats.pendingOrders || 0) / total) * 100;
+            
+            container.innerHTML = `
+                <div class="w-full space-y-4">
+                    <div>
+                        <div class="flex justify-between mb-2">
+                            <span class="text-sm font-medium">Completed</span>
+                            <span class="text-sm font-semibold">${stats.completedOrders || 0} (${completedPercent.toFixed(1)}%)</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-4">
+                            <div class="bg-green-600 h-4 rounded-full transition-all duration-300" style="width: ${completedPercent}%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between mb-2">
+                            <span class="text-sm font-medium">Pending</span>
+                            <span class="text-sm font-semibold">${stats.pendingOrders || 0} (${pendingPercent.toFixed(1)}%)</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-4">
+                            <div class="bg-yellow-600 h-4 rounded-full transition-all duration-300" style="width: ${pendingPercent}%"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function renderSalesSummary(data) {
+            const container = document.getElementById('sales-summary');
+            if (!container) return;
+            
+            container.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <p class="text-sm text-gray-600 mb-2">Total Revenue</p>
+                        <p class="text-2xl font-bold">R${(data.stats.totalRevenue || 0).toFixed(2)}</p>
+                    </div>
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <p class="text-sm text-gray-600 mb-2">Average Order Value</p>
+                        <p class="text-2xl font-bold">R${data.stats.totalOrders > 0 ? (data.stats.totalRevenue / data.stats.totalOrders).toFixed(2) : '0.00'}</p>
+                    </div>
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <p class="text-sm text-gray-600 mb-2">Completion Rate</p>
+                        <p class="text-2xl font-bold">${data.stats.totalOrders > 0 ? ((data.stats.completedOrders / data.stats.totalOrders) * 100).toFixed(1) : '0'}%</p>
+                    </div>
+                </div>
+            `;
         }
 
         // Sales/POS functions
