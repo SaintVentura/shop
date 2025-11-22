@@ -15,7 +15,9 @@ const PORT = process.env.PORT || 3000;
 app.use(cors({
   origin: '*', // Allow all origins (GitHub Pages, localhost, etc.)
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-password', 'Accept'],
+  exposedHeaders: ['Content-Type'],
+  credentials: false
 }));
 app.use(express.json());
 
@@ -1092,9 +1094,11 @@ if (process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS) 
 // Admin authentication middleware
 function adminAuth(req, res, next) {
   const password = req.headers['x-admin-password'] || req.body.password;
+  console.log('Admin auth check - header present:', !!req.headers['x-admin-password']);
   if (password === ADMIN_PASSWORD) {
     next();
   } else {
+    console.error('Admin auth failed - password mismatch');
     res.status(401).json({ success: false, error: 'Unauthorized' });
   }
 }
