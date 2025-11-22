@@ -726,10 +726,13 @@
             }
             // Hide all sections
             document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+            // Remove active class and border from ALL sidebar items
             document.querySelectorAll('.sidebar-item').forEach(item => {
                 item.classList.remove('active');
-                // Remove any background color changes
+                // Remove all inline styles to reset to default
                 item.style.backgroundColor = '';
+                item.style.color = '';
+                item.style.border = '';
             });
             
             // Show selected section
@@ -1473,36 +1476,51 @@
         // Notifications functions
         function loadNotifications() {
             const list = document.getElementById('notifications-list');
+            if (!list) return;
+            
             list.innerHTML = '<div class="text-center py-8 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading notifications...</span></div></div>';
             
             adminFetch(`${BACKEND_URL}/api/admin/notifications`)
                 .then(data => {
                     console.log('Notifications data received:', data);
+                    if (!data) {
+                        throw new Error('No data received from server');
+                    }
                     if (!Array.isArray(data)) {
-                        throw new Error('Invalid data format');
+                        // If it's an error object, throw it
+                        if (data.error) {
+                            throw new Error(data.error);
+                        }
+                        throw new Error('Invalid data format - expected array');
                     }
                     if (data.length === 0) {
                         list.innerHTML = '<div class="text-center py-8 text-gray-500">No notifications</div>';
                         return;
                     }
-                    list.innerHTML = data.map(notif => `
+                    list.innerHTML = data.map(notif => {
+                        const notifId = notif.id || Date.now().toString();
+                        const notifTitle = (notif.title || 'Notification').replace(/'/g, "\\'");
+                        const notifMessage = (notif.message || 'No message').replace(/'/g, "\\'");
+                        return `
                         <div class="border border-gray-200 rounded-lg p-4 ${notif.read ? 'bg-gray-50' : 'bg-white'}">
                             <div class="flex justify-between items-start">
                                 <div>
-                                    <p class="font-semibold">${notif.title || 'Notification'}</p>
-                                    <p class="text-sm text-gray-600">${notif.message || 'No message'}</p>
+                                    <p class="font-semibold">${notifTitle}</p>
+                                    <p class="text-sm text-gray-600">${notifMessage}</p>
                                 </div>
                                 <div class="text-right">
                                     <span class="text-xs text-gray-500">${notif.date ? new Date(notif.date).toLocaleString() : 'N/A'}</span>
-                                    ${!notif.read ? '<button onclick="markNotificationRead(\'' + notif.id + '\')" class="ml-2 text-sm text-blue-600 hover:underline">Mark Read</button>' : ''}
+                                    ${!notif.read ? `<button onclick="markNotificationRead('${notifId}')" class="ml-2 text-sm text-blue-600 hover:underline">Mark Read</button>` : ''}
                                 </div>
                             </div>
                         </div>
-                    `).join('');
+                    `;
+                    }).join('');
                 })
                 .catch(err => {
                     console.error('Error loading notifications:', err);
-                    list.innerHTML = `<div class="error-message">Error loading notifications: ${err.message}<br><small>Backend URL: ${BACKEND_URL}</small></div>`;
+                    const errorMsg = err.message || 'Unknown error';
+                    list.innerHTML = `<div class="error-message">Error loading notifications: ${errorMsg}<br><small>Backend URL: ${BACKEND_URL}</small><br><small>Please check your connection and ensure the backend is running.</small></div>`;
                 });
         }
 
