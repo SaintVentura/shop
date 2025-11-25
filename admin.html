@@ -346,7 +346,7 @@
                         </div>
                         <div class="bg-white border border-gray-200 rounded-lg p-6 md:p-8 shadow-sm">
                             <div class="flex items-center justify-between mb-4">
-                                <p class="text-sm md:text-base text-gray-600">Total Orders</p>
+                                <p class="text-sm md:text-base text-gray-600">Completed Orders</p>
                                 <span class="text-2xl md:text-3xl">📋</span>
                             </div>
                             <p id="stat-total-orders" class="text-2xl md:text-3xl font-bold">0</p>
@@ -645,10 +645,16 @@
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium mb-2">Order Details</label>
-                                    <textarea id="fulfiller-order-details" rows="6" class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="Enter order details..."></textarea>
+                                    <label class="block text-sm font-medium mb-2">Select Order (Completed Orders Only)</label>
+                                    <select id="fulfiller-order-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                                        <option value="">Select an order...</option>
+                                    </select>
                                 </div>
-                                <button type="submit" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition">Send Email</button>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Order Details</label>
+                                    <textarea id="fulfiller-order-details" rows="8" class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="Order details will be auto-filled when you select an order, or enter manually..."></textarea>
+                                </div>
+                                <button type="submit" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition">Send Email to Fulfiller</button>
                             </form>
                         </div>
                     </div>
@@ -670,14 +676,14 @@
 
                 <!-- Sale Dashboard Section -->
                 <div id="sales-section" class="section hidden">
-                    <h2 class="text-2xl md:text-3xl font-bold mb-8">Sale Dashboard (Yoco POS)</h2>
+                    <h2 class="text-2xl md:text-3xl font-bold mb-8">Point of Sale</h2>
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <div class="lg:col-span-2 bg-white rounded-lg shadow p-6 md:p-8">
                             <h3 class="text-xl md:text-2xl font-semibold mb-6">Create Order</h3>
                             <div class="mb-6">
                                 <input type="text" id="pos-search" placeholder="Search products..." class="w-full px-4 py-2 border border-gray-300 rounded-lg">
                             </div>
-                            <div id="pos-products" class="grid grid-cols-2 gap-6 mb-8">
+                            <div id="pos-products" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
                                 <!-- Products will be loaded here -->
                             </div>
                             <div class="border-t pt-6">
@@ -916,7 +922,7 @@
                     if (data.success) {
                         // Update stats
                         document.getElementById('stat-total-revenue').textContent = `R${data.stats.totalRevenue.toFixed(2)}`;
-                        document.getElementById('stat-total-orders').textContent = data.stats.totalOrders;
+                        document.getElementById('stat-total-orders').textContent = data.stats.completedOrders;
                         document.getElementById('stat-pending-orders').textContent = data.stats.pendingOrders;
                         document.getElementById('stat-subscribers').textContent = data.stats.totalSubscribers;
                         document.getElementById('stat-low-stock').textContent = data.stats.lowStockItems;
@@ -1164,7 +1170,7 @@
                                     <span class="px-3 py-1 rounded-full text-xs font-semibold ${variant.stock === 0 ? 'bg-red-100 text-red-800' : variant.stock < 5 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}">${stockStatus}</span>
                                 </div>
                                 <div>
-                                    <button onclick="saveStock('${variantId}', '${productIdEscaped}', '${variantIdEscaped}')" 
+                                    <button onclick="saveStock('${variantId}', '${productIdEscaped}', '${variantIdEscaped}', this)" 
                                         class="px-4 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition">Save</button>
                                 </div>
                             </div>
@@ -1331,7 +1337,7 @@
             // Stock value updated, will be saved when Save is clicked
         }
 
-        function saveStock(itemId, productId, variantId) {
+        function saveStock(itemId, productId, variantId, buttonElement) {
             const input = document.querySelector(`input[data-id="${itemId}"]`);
             const stock = parseInt(input.value);
             
@@ -1347,7 +1353,7 @@
             .then(data => {
                 if (data.success) {
                     // Show success notification
-                    const button = event.target;
+                    const button = buttonElement;
                     const originalText = button.textContent;
                     button.textContent = 'Saved!';
                     button.classList.add('bg-green-600');
@@ -1434,10 +1440,6 @@
         function loadBroadcast() {
             // Load subscribers
             adminFetch(`${BACKEND_URL}/api/admin/subscribers`)
-                .then(r => {
-                    if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
-                    return r.json();
-                })
                 .then(data => {
                     if (!Array.isArray(data)) {
                         throw new Error('Invalid subscribers data format');
@@ -1458,15 +1460,11 @@
                 .catch(err => {
                     console.error('Error loading subscribers:', err);
                     document.getElementById('subscribers-list').innerHTML = 
-                        `<div class="error-message">Error loading subscribers: ${err.message}</div>`;
+                        `<div class="error-message">Error loading subscribers: ${err.message || 'Unknown error'}</div>`;
                 });
 
             // Load products
             adminFetch(`${BACKEND_URL}/api/admin/products`)
-                .then(r => {
-                    if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
-                    return r.json();
-                })
                 .then(data => {
                     if (!Array.isArray(data)) {
                         throw new Error('Invalid products data format');
@@ -1620,26 +1618,80 @@
                     if (data.length === 0) {
                         list.innerHTML = '<div class="text-center py-4 text-gray-500">No fulfillers added</div>';
                         select.innerHTML = '<option value="">No fulfillers available</option>';
-                        return;
-                    }
-                    list.innerHTML = data.map(f => `
-                        <div class="flex justify-between items-center p-2 border border-gray-200 rounded">
-                            <div>
-                                <p class="font-semibold">${f.name || 'Unknown'}</p>
-                                <p class="text-sm text-gray-600">${f.email || 'No email'}</p>
+                    } else {
+                        list.innerHTML = data.map(f => `
+                            <div class="flex justify-between items-center p-3 border border-gray-200 rounded-lg">
+                                <div class="flex-1">
+                                    <p class="font-semibold text-base">${f.name || 'Unknown'}</p>
+                                    <p class="text-sm text-gray-600">${f.email || 'No email'}</p>
+                                    ${f.phone ? `<p class="text-xs text-gray-500">${f.phone}</p>` : ''}
+                                </div>
+                                <button onclick="deleteFulfiller('${f.id}')" class="ml-4 px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition">Delete</button>
                             </div>
-                            <button onclick="deleteFulfiller('${f.id}')" class="px-2 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600">Delete</button>
-                        </div>
-                    `).join('');
-                    select.innerHTML = '<option value="">Select a fulfiller...</option>' +
-                        data.map(f => `<option value="${f.id}">${f.name || 'Unknown'} (${f.email || 'No email'})</option>`).join('');
+                        `).join('');
+                        select.innerHTML = '<option value="">Select a fulfiller...</option>' +
+                            data.map(f => `<option value="${f.id}">${f.name || 'Unknown'} (${f.email || 'No email'})</option>`).join('');
+                    }
+                    
+                    // Load completed orders
+                    return adminFetch(`${BACKEND_URL}/api/admin/orders`);
+                })
+                .then(ordersData => {
+                    if (!Array.isArray(ordersData)) {
+                        throw new Error('Invalid orders data format');
+                    }
+                    // Filter only completed orders
+                    const completedOrders = ordersData.filter(o => o.status === 'completed');
+                    const orderSelect = document.getElementById('fulfiller-order-select');
+                    if (orderSelect) {
+                        if (completedOrders.length === 0) {
+                            orderSelect.innerHTML = '<option value="">No completed orders</option>';
+                        } else {
+                            orderSelect.innerHTML = '<option value="">Select an order...</option>' +
+                                completedOrders.map(o => `<option value="${o.id}">${o.id} - ${o.customerName || 'Unknown'} - R${(o.total || 0).toFixed(2)}</option>`).join('');
+                        }
+                    }
                 })
                 .catch(err => {
-                    console.error('Error loading fulfillers:', err);
-                    list.innerHTML = `<div class="error-message">Error loading fulfillers: ${err.message}<br><small>Backend URL: ${BACKEND_URL}</small></div>`;
-                    select.innerHTML = '<option value="">Error loading fulfillers</option>';
+                    console.error('Error loading fulfillers/orders:', err);
+                    if (list) {
+                        list.innerHTML = `<div class="error-message">Error loading fulfillers: ${err.message}<br><small>Backend URL: ${BACKEND_URL}</small></div>`;
+                    }
+                    if (select) {
+                        select.innerHTML = '<option value="">Error loading fulfillers</option>';
+                    }
+                    const orderSelect = document.getElementById('fulfiller-order-select');
+                    if (orderSelect) {
+                        orderSelect.innerHTML = '<option value="">Error loading orders</option>';
+                    }
                 });
         }
+        
+        // Auto-fill order details when order is selected
+        document.getElementById('fulfiller-order-select')?.addEventListener('change', async function(e) {
+            const orderId = e.target.value;
+            if (!orderId) {
+                document.getElementById('fulfiller-order-details').value = '';
+                return;
+            }
+            
+            try {
+                const orders = await adminFetch(`${BACKEND_URL}/api/admin/orders`);
+                const order = orders.find(o => o.id === orderId);
+                if (order) {
+                    const itemsText = Array.isArray(order.items) ? order.items.map(item => {
+                        const sizeText = item.size ? `, Size: ${item.size}` : '';
+                        const colorText = item.color ? `, Color: ${item.color}` : '';
+                        return `- ${item.name}${sizeText}${colorText} (Qty: ${item.quantity}) - R${(item.price * item.quantity).toFixed(2)}`;
+                    }).join('\n') : 'No items';
+                    
+                    const orderDetails = `Order ID: ${order.id}\nCustomer: ${order.customerName || 'Unknown'}\nEmail: ${order.customerEmail || 'N/A'}\nPhone: ${order.customerPhone || 'N/A'}\n\nOrder Items:\n${itemsText}\n\nTotal: R${(order.total || 0).toFixed(2)}\nDate: ${order.date ? new Date(order.date).toLocaleString() : 'N/A'}\n\nDelivery Address: ${order.deliveryAddress || 'N/A'}`;
+                    document.getElementById('fulfiller-order-details').value = orderDetails;
+                }
+            } catch (err) {
+                console.error('Error loading order details:', err);
+            }
+        });
 
         function showAddFulfillerModal() {
             document.getElementById('add-fulfiller-modal').classList.remove('hidden');
@@ -1840,13 +1892,19 @@
         
         function renderOrders(orders) {
             const tbody = document.getElementById('orders-table');
+            const mobileTable = document.getElementById('orders-table-mobile');
+            
             if (!tbody) return;
             
             if (orders.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="7" class="text-center py-12 text-gray-500">No orders found</td></tr>';
+                if (mobileTable) {
+                    mobileTable.innerHTML = '<div class="text-center py-12 text-gray-500">No orders found</div>';
+                }
                 return;
             }
             
+            // Desktop table
             tbody.innerHTML = orders.map(order => {
                 const itemCount = Array.isArray(order.items) ? order.items.length : 0;
                 const statusClass = order.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
@@ -1882,6 +1940,37 @@
                     </tr>
                 `;
             }).join('');
+            
+            // Mobile cards
+            if (mobileTable) {
+                mobileTable.innerHTML = orders.map(order => {
+                    const itemCount = Array.isArray(order.items) ? order.items.length : 0;
+                    const statusClass = order.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
+                    return `
+                        <div class="bg-white border border-gray-200 rounded-lg p-4">
+                            <div class="flex justify-between items-start mb-3">
+                                <div>
+                                    <p class="font-semibold text-sm">${order.customerName || 'Unknown'}</p>
+                                    <p class="text-xs text-gray-500">${order.customerEmail || ''}</p>
+                                    <p class="text-xs font-mono text-gray-400 mt-1">${order.id || 'N/A'}</p>
+                                </div>
+                                <span class="px-2 py-1 rounded-full text-xs font-semibold ${statusClass}">${order.status || 'pending'}</span>
+                            </div>
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="text-sm text-gray-600">${itemCount} items</span>
+                                <span class="font-semibold">R${(order.total || 0).toFixed(2)}</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs text-gray-500">${order.date ? new Date(order.date).toLocaleDateString() : 'N/A'}</span>
+                                <select onchange="updateOrderStatus('${order.id}', this.value)" class="px-2 py-1 border border-gray-300 rounded-lg text-xs">
+                                    <option value="pending" ${order.status === 'pending' ? 'selected' : ''}>Pending</option>
+                                    <option value="completed" ${order.status === 'completed' ? 'selected' : ''}>Completed</option>
+                                </select>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
         }
         
         function updateOrderStatus(orderId, status) {
@@ -2040,7 +2129,7 @@
         // Sales/POS functions
         function loadSales() {
             const container = document.getElementById('pos-products');
-            container.innerHTML = '<div class="col-span-2 text-center py-8 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading products...</span></div></div>';
+                    container.innerHTML = '<div class="col-span-2 md:col-span-3 lg:col-span-4 text-center py-8 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading products...</span></div></div>';
             
             adminFetch(`${BACKEND_URL}/api/admin/products`)
                 .then(data => {
@@ -2049,28 +2138,117 @@
                         throw new Error('Invalid products data format');
                     }
                     if (data.length === 0) {
-                        container.innerHTML = '<div class="col-span-2 text-center py-8 text-gray-500">No products available</div>';
+                        container.innerHTML = '<div class="col-span-2 md:col-span-3 lg:col-span-4 text-center py-8 text-gray-500">No products available</div>';
                         return;
                     }
-                    container.innerHTML = data.map(p => `
-                        <div class="border border-gray-200 rounded-lg p-4 cursor-pointer hover:bg-gray-50 transition" onclick="addToPOSCart(${p.id}, '${p.name.replace(/'/g, "\\'")}', ${p.price || 0})">
-                            <p class="font-semibold text-sm md:text-base">${p.name || 'Unknown Product'}</p>
-                            <p class="text-gray-600 text-sm md:text-base">R${(p.price || 0).toFixed(2)}</p>
+                    container.innerHTML = data.map(p => {
+                        const firstImage = p.images && p.images.length > 0 ? p.images[0] : (p.availableColors && p.availableColors.length > 0 ? p.availableColors[0].image : 'https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1');
+                        const hasVariants = (p.sizes && p.sizes.length > 1) || (p.colors && p.colors.length > 1);
+                        return `
+                        <div class="border border-gray-200 rounded-xl p-4 hover:shadow-lg transition-all duration-200 bg-white">
+                            <div class="aspect-square mb-3 bg-gray-100 rounded-lg overflow-hidden">
+                                <img src="${firstImage}" alt="${p.name}" class="w-full h-full object-cover" onerror="this.src='https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1'">
+                            </div>
+                            <p class="font-semibold text-sm md:text-base mb-1">${p.name || 'Unknown Product'}</p>
+                            <p class="text-gray-600 text-sm md:text-base font-bold mb-2">R${(p.price || 0).toFixed(2)}</p>
+                            ${hasVariants ? `
+                                <button onclick="showVariantModal(${p.id})" class="w-full px-3 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition">Select Variant</button>
+                            ` : `
+                                <button onclick="addToPOSCart(${p.id}, '${p.name.replace(/'/g, "\\'")}', ${p.price || 0}, null, null)" class="w-full px-3 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition">Add to Cart</button>
+                            `}
                         </div>
-                    `).join('');
+                    `;
+                    }).join('');
                 })
                 .catch(err => {
                     console.error('Error loading POS products:', err);
-                    container.innerHTML = `<div class="col-span-2 error-message">Error loading products: ${err.message}<br><small>Backend URL: ${BACKEND_URL}</small></div>`;
+                    container.innerHTML = `<div class="col-span-2 md:col-span-3 lg:col-span-4 error-message">Error loading products: ${err.message}<br><small>Backend URL: ${BACKEND_URL}</small></div>`;
                 });
         }
 
-        function addToPOSCart(id, name, price) {
-            const existing = posCart.find(item => item.id === id);
+        function showVariantModal(productId) {
+            adminFetch(`${BACKEND_URL}/api/admin/products`)
+                .then(data => {
+                    const product = data.find(p => p.id === productId);
+                    if (!product) return;
+                    
+                    let modalHtml = `
+                        <div id="variant-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                            <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+                                <h3 class="text-xl font-bold mb-4">${product.name}</h3>
+                                <div class="space-y-4">
+                    `;
+                    
+                    if (product.sizes && product.sizes.length > 1) {
+                        modalHtml += `
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Size</label>
+                                <select id="variant-size" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                                    ${product.sizes.map(s => `<option value="${s}">${s}</option>`).join('')}
+                                </select>
+                            </div>
+                        `;
+                    }
+                    
+                    if (product.colors && product.colors.length > 1) {
+                        modalHtml += `
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Color</label>
+                                <select id="variant-color" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                                    ${product.colors.map(c => `<option value="${c}">${c}</option>`).join('')}
+                                </select>
+                            </div>
+                        `;
+                    }
+                    
+                    modalHtml += `
+                                    <div class="flex space-x-2">
+                                        <button onclick="addToPOSCartWithVariant(${productId})" class="flex-1 px-4 py-2 bg-black text-white rounded-lg font-medium hover:bg-gray-800">Add to Cart</button>
+                                        <button onclick="closeVariantModal()" class="flex-1 px-4 py-2 bg-gray-300 text-black rounded-lg font-medium hover:bg-gray-400">Cancel</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    document.body.insertAdjacentHTML('beforeend', modalHtml);
+                });
+        }
+
+        function closeVariantModal() {
+            const modal = document.getElementById('variant-modal');
+            if (modal) modal.remove();
+        }
+
+        function addToPOSCartWithVariant(productId) {
+            adminFetch(`${BACKEND_URL}/api/admin/products`)
+                .then(data => {
+                    const product = data.find(p => p.id === productId);
+                    if (!product) return;
+                    
+                    const size = document.getElementById('variant-size')?.value || (product.sizes && product.sizes.length === 1 ? product.sizes[0] : null);
+                    const color = document.getElementById('variant-color')?.value || (product.colors && product.colors.length === 1 ? product.colors[0] : null);
+                    
+                    addToPOSCart(productId, product.name, product.price, size, color);
+                    closeVariantModal();
+                });
+        }
+
+        function addToPOSCart(id, name, price, size, color) {
+            const variantKey = `${id}-${size || 'default'}-${color || 'default'}`;
+            const existing = posCart.find(item => item.variantKey === variantKey);
             if (existing) {
                 existing.quantity++;
             } else {
-                posCart.push({ id, name, price, quantity: 1 });
+                posCart.push({ 
+                    id, 
+                    name, 
+                    price, 
+                    quantity: 1,
+                    size: size || null,
+                    color: color || null,
+                    variantKey: variantKey
+                });
             }
             updatePOSCart();
         }
@@ -2082,17 +2260,18 @@
                 document.getElementById('pos-total').textContent = 'R0.00';
                 return;
             }
-            container.innerHTML = posCart.map(item => `
-                <div class="flex justify-between items-center p-2 border border-gray-200 rounded">
-                    <div>
-                        <p class="font-semibold">${item.name}</p>
-                        <p class="text-sm text-gray-600">R${item.price.toFixed(2)} × ${item.quantity}</p>
+            container.innerHTML = posCart.map((item, index) => `
+                <div class="flex justify-between items-center p-3 border border-gray-200 rounded-lg bg-white hover:shadow-md transition">
+                    <div class="flex-1">
+                        <p class="font-semibold text-sm">${item.name}</p>
+                        ${item.size || item.color ? `<p class="text-xs text-gray-500">${[item.size, item.color].filter(Boolean).join(' / ')}</p>` : ''}
+                        <p class="text-sm text-gray-600 mt-1">R${item.price.toFixed(2)} × ${item.quantity} = R${(item.price * item.quantity).toFixed(2)}</p>
                     </div>
                     <div class="flex items-center space-x-2">
-                        <button onclick="updatePOSQuantity(${item.id}, -1)" class="px-2 py-1 bg-gray-200 rounded">-</button>
-                        <span>${item.quantity}</span>
-                        <button onclick="updatePOSQuantity(${item.id}, 1)" class="px-2 py-1 bg-gray-200 rounded">+</button>
-                        <button onclick="removeFromPOSCart(${item.id})" class="ml-2 px-2 py-1 bg-red-500 text-white rounded text-sm">Remove</button>
+                        <button onclick="updatePOSQuantity(${index}, -1)" class="px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 font-semibold">-</button>
+                        <span class="font-semibold min-w-[2rem] text-center">${item.quantity}</span>
+                        <button onclick="updatePOSQuantity(${index}, 1)" class="px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 font-semibold">+</button>
+                        <button onclick="removeFromPOSCart(${index})" class="ml-2 px-3 py-1 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600">Remove</button>
                     </div>
                 </div>
             `).join('');
@@ -2100,19 +2279,19 @@
             document.getElementById('pos-total').textContent = 'R' + total.toFixed(2);
         }
 
-        function updatePOSQuantity(id, change) {
-            const item = posCart.find(i => i.id === id);
+        function updatePOSQuantity(index, change) {
+            const item = posCart[index];
             if (item) {
                 item.quantity += change;
                 if (item.quantity <= 0) {
-                    posCart = posCart.filter(i => i.id !== id);
+                    posCart.splice(index, 1);
                 }
                 updatePOSCart();
             }
         }
 
-        function removeFromPOSCart(id) {
-            posCart = posCart.filter(item => item.id !== id);
+        function removeFromPOSCart(index) {
+            posCart.splice(index, 1);
             updatePOSCart();
         }
 
@@ -2147,7 +2326,8 @@
                     updatePOSCart();
                     document.getElementById('pos-order-form').reset();
                     if (paymentMethod === 'yoco' && data.paymentUrl) {
-                        window.open(data.paymentUrl, '_blank');
+                        // Redirect to Yoco checkout
+                        window.location.href = data.paymentUrl;
                     }
                 } else {
                     alert('Error: ' + (data.error || 'Failed to create order'));

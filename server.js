@@ -606,23 +606,7 @@ app.post('/api/newsletter-subscribe', async (req, res) => {
       // Continue even if saving fails - don't block the subscription
     }
 
-    // Create notification for new subscription
-    try {
-      const notifications = await readDataFile('notifications');
-      notifications.push({
-        id: Date.now().toString(),
-        type: 'subscription',
-        title: 'New Newsletter Subscription',
-        message: email,
-        date: new Date().toISOString(),
-        read: false
-      });
-      await writeDataFile('notifications', notifications);
-    } catch (error) {
-      console.error('Error creating subscription notification:', error);
-    }
-
-    // Send Telegram message to support
+    // Send Telegram message to support (this will also create a notification via sendWhatsApp)
     const telegramMessage = `📬 *New Newsletter Subscription*\n\nEmail: ${email}\n\nTime: ${new Date().toLocaleString('en-ZA')}`;
     
     sendWhatsApp({
@@ -739,6 +723,26 @@ app.post('/api/send-checkout-email', async (req, res) => {
     let deliveryHtml = '';
     if (deliveryAddress) {
       deliveryHtml = `<p><strong>Delivery Address:</strong><br>${deliveryAddress.replace(/\n/g, '<br>')}</p>`;
+    }
+
+    // Store checkout email in inbox
+    try {
+      const inbox = await readDataFile('inbox');
+      const emailBody = `New Order Checkout\n\nCustomer: ${customerName}\nEmail: ${customerEmail}\nPhone: ${customerPhone || 'Not provided'}\n\nShipping Method: ${shippingMethod}\nDelivery Address: ${deliveryAddress || 'Not provided'}\n\nOrder Items:\n${itemsText}\n\nSubtotal: R${subtotal.toFixed(2)}\nShipping: R${shipping.toFixed(2)}\nTotal: R${total.toFixed(2)}`;
+      
+      inbox.push({
+        id: Date.now().toString(),
+        from: customerEmail,
+        name: customerName,
+        phone: customerPhone || '',
+        subject: `New Order Checkout - ${customerName}`,
+        body: emailBody,
+        date: new Date().toISOString(),
+        read: false
+      });
+      await writeDataFile('inbox', inbox);
+    } catch (error) {
+      console.error('Error storing checkout email in inbox:', error);
     }
 
     // Create notification for new checkout
@@ -1488,20 +1492,9 @@ app.post('/api/newsletter-subscribe', async (req, res) => {
       });
       await writeDataFile('subscribers', subscribers);
 
-      // Create notification
-      const notifications = await readDataFile('notifications');
-      notifications.push({
-        id: Date.now().toString(),
-        type: 'subscriber',
-        title: 'New Newsletter Subscription',
-        message: email,
-        date: new Date().toISOString(),
-        read: false
-      });
-      await writeDataFile('notifications', notifications);
     }
 
-    // Send Telegram message to support
+    // Send Telegram message to support (this will also create a notification via sendWhatsApp)
     const telegramMessage = `📬 *New Newsletter Subscription*\n\nEmail: ${email}\n\nTime: ${new Date().toLocaleString('en-ZA')}`;
     
     sendWhatsApp({
@@ -1813,7 +1806,10 @@ app.get('/api/admin/dashboard', adminAuth, async (req, res) => {
     
     // Calculate stats
     const totalOrders = orders.length;
-    const totalRevenue = orders.reduce((sum, o) => sum + (parseFloat(o.total) || 0), 0);
+    // Only count revenue from completed orders
+    const totalRevenue = orders
+      .filter(o => o.status === 'completed')
+      .reduce((sum, o) => sum + (parseFloat(o.total) || 0), 0);
     const pendingOrders = orders.filter(o => o.status === 'pending').length;
     const completedOrders = orders.filter(o => o.status === 'completed').length;
     const lowStockItems = inventory.filter(i => (i.stock || 0) < 5).length;
@@ -1834,8 +1830,9 @@ app.get('/api/admin/dashboard', adminAuth, async (req, res) => {
       monthlyRevenue[monthKey] = 0;
     }
     
+    // Only count revenue from completed orders in monthly revenue
     orders.forEach(order => {
-      if (order.date) {
+      if (order.date && order.status === 'completed') {
         const orderDate = new Date(order.date);
         const monthKey = `${orderDate.getFullYear()}-${String(orderDate.getMonth() + 1).padStart(2, '0')}`;
         if (monthlyRevenue.hasOwnProperty(monthKey)) {
@@ -1872,12 +1869,70 @@ app.get('/api/admin/orders', adminAuth, async (req, res) => {
     const orders = await readDataFile('orders');
     // Sort by date, newest first
     orders.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+    
+    // Check for abandoned carts (pending orders > 10 minutes)
+    await checkAbandonedCarts(orders);
+    
     res.json(orders);
   } catch (error) {
     console.error('Error fetching orders:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+// Function to check and move pending orders to abandoned carts
+async function checkAbandonedCarts(orders) {
+  try {
+    const now = Date.now();
+    const tenMinutesAgo = now - (10 * 60 * 1000); // 10 minutes in milliseconds
+    const abandonedCarts = await readDataFile('abandonedCarts');
+    const ordersData = await readDataFile('orders');
+    
+    // Find pending orders older than 10 minutes
+    const pendingOrders = ordersData.filter(order => {
+      if (order.status !== 'pending') return false;
+      if (!order.date) return false;
+      const orderDate = new Date(order.date).getTime();
+      return orderDate < tenMinutesAgo;
+    });
+    
+    // Move to abandoned carts if they have email
+    for (const order of pendingOrders) {
+      if (order.customerEmail) {
+        // Check if already in abandoned carts
+        const existingCart = abandonedCarts.find(c => c.email === order.customerEmail && c.orderId === order.id);
+        if (!existingCart) {
+          abandonedCarts.push({
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+            email: order.customerEmail,
+            orderId: order.id,
+            items: order.items || [],
+            total: order.total || 0,
+            date: order.date,
+            customerName: order.customerName
+          });
+        }
+      }
+    }
+    
+    if (pendingOrders.length > 0) {
+      await writeDataFile('abandonedCarts', abandonedCarts);
+      console.log(`✅ Moved ${pendingOrders.length} pending order(s) to abandoned carts`);
+    }
+  } catch (error) {
+    console.error('Error checking abandoned carts:', error);
+  }
+}
+
+// Periodic check for abandoned carts (every 5 minutes)
+setInterval(async () => {
+  try {
+    const orders = await readDataFile('orders');
+    await checkAbandonedCarts(orders);
+  } catch (error) {
+    console.error('Error in periodic abandoned cart check:', error);
+  }
+}, 5 * 60 * 1000); // Check every 5 minutes
 
 // Update order status
 app.put('/api/admin/orders/:orderId/status', adminAuth, async (req, res) => {
@@ -1938,20 +1993,35 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
 
     // If Yoco payment, create checkout
     if (paymentMethod === 'yoco') {
-      const amountInCents = Math.round(total * 100);
-      const baseUrl = req.headers.origin || 'https://saintventura.co.za';
+      // Ensure total is a number and convert to cents
+      const totalAmount = parseFloat(total) || 0;
+      if (totalAmount <= 0) {
+        return res.status(400).json({ success: false, error: 'Invalid order total' });
+      }
+      
+      const amountInCents = Math.round(totalAmount * 100);
+      const baseUrl = req.headers.origin || req.headers.referer || 'https://saintventura.co.za';
+      const baseUrlClean = baseUrl.replace(/\/$/, ''); // Remove trailing slash
       
       const checkoutData = {
         amount: amountInCents,
         currency: 'ZAR',
-        successUrl: `${baseUrl}/checkout-success.html?orderId=${orderId}`,
-        cancelUrl: `${baseUrl}/admin.html`,
+        successUrl: `${baseUrlClean}/checkout-success.html?orderId=${orderId}`,
+        cancelUrl: `${baseUrlClean}/admin.html`,
         metadata: {
           orderId: orderId,
           customerName: customerName,
-          customerEmail: customerEmail
+          customerEmail: customerEmail,
+          items: JSON.stringify(items)
         }
       };
+
+      console.log('Creating Yoco checkout for POS order:', {
+        orderId,
+        amountInCents,
+        totalAmount,
+        baseUrl: baseUrlClean
+      });
 
       try {
         const response = await axios.post(
@@ -1961,16 +2031,36 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
             headers: {
               'Authorization': `Bearer ${YOCO_SECRET_KEY}`,
               'Content-Type': 'application/json'
-            }
+            },
+            timeout: 30000
           }
         );
 
-        const checkoutId = response.data?.id;
-        const redirectUrl = response.data?.redirectUrl || `https://payments.yoco.com/checkout/${checkoutId}`;
+        const checkoutId = response.data?.id || response.data?.checkoutId;
+        let redirectUrl = response.data?.redirectUrl || 
+                         response.data?.url || 
+                         response.data?.checkoutUrl ||
+                         response.data?.link;
+        
+        // If no redirect URL, construct it
+        if (!redirectUrl) {
+          redirectUrl = `https://payments.yoco.com/checkout/${checkoutId}`;
+        }
+        
+        // Ensure URL is absolute
+        if (redirectUrl && !redirectUrl.startsWith('http')) {
+          redirectUrl = `https://${redirectUrl}`;
+        }
+        
+        console.log('Yoco checkout created:', { checkoutId, redirectUrl });
         
         res.json({ success: true, orderId, paymentUrl: redirectUrl });
       } catch (error) {
-        res.status(500).json({ success: false, error: 'Failed to create Yoco checkout' });
+        console.error('Yoco checkout error:', error.response?.data || error.message);
+        res.status(500).json({ 
+          success: false, 
+          error: 'Failed to create Yoco checkout: ' + (error.response?.data?.message || error.message) 
+        });
       }
     } else {
       res.json({ success: true, orderId });
