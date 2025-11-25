@@ -1397,6 +1397,37 @@ app.post('/api/admin/inbox/read', adminAuth, async (req, res) => {
   }
 });
 
+// Manual email entry endpoint (for emails sent TO contact@saintventura.co.za)
+app.post('/api/admin/inbox/add', adminAuth, async (req, res) => {
+  try {
+    const { from, name, subject, body, phone } = req.body;
+    
+    if (!from || !subject || !body) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'From, subject, and body are required' 
+      });
+    }
+    
+    const inbox = await readDataFile('inbox');
+    inbox.push({
+      id: Date.now().toString(),
+      from: from,
+      name: name || '',
+      phone: phone || '',
+      subject: subject,
+      body: body,
+      date: new Date().toISOString(),
+      read: false
+    });
+    await writeDataFile('inbox', inbox);
+    
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Store contact form emails in inbox
 app.post('/api/contact-form', async (req, res) => {
   try {
