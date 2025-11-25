@@ -1160,8 +1160,22 @@ if (process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS) 
     }
   });
   console.log('✅ Email transporter configured');
+  console.log('   Host:', process.env.EMAIL_HOST);
+  console.log('   Port:', process.env.EMAIL_PORT || 587);
+  console.log('   User:', process.env.EMAIL_USER);
+  console.log('   From:', process.env.FROM_EMAIL || process.env.EMAIL_USER);
+  
+  // Test email connection
+  emailTransporter.verify(function(error, success) {
+    if (error) {
+      console.error('❌ Email transporter verification failed:', error.message);
+    } else {
+      console.log('✅ Email transporter verified - ready to send emails');
+    }
+  });
 } else {
   console.warn('⚠️  Email not configured - broadcast and email features will be limited');
+  console.warn('   Required: EMAIL_HOST, EMAIL_USER, EMAIL_PASS');
 }
 
 // Admin authentication middleware
@@ -1561,19 +1575,27 @@ app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
     let sent = 0;
     let errors = [];
     
+    if (!emailTransporter) {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Email transporter not configured. Please set EMAIL_HOST, EMAIL_USER, and EMAIL_PASS in .env file' 
+      });
+    }
+    
     if (emailTransporter) {
       for (const subscriber of subscribers) {
         try {
           await emailTransporter.sendMail({
-            from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'noreply@saintventura.co.za',
+            from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
             to: subscriber.email,
             subject: emailSubject,
             text: emailBody,
             html: emailBody.replace(/\n/g, '<br>')
           });
           sent++;
+          console.log(`✅ Email sent to subscriber: ${subscriber.email}`);
         } catch (error) {
-          console.error(`Error sending to ${subscriber.email}:`, error);
+          console.error(`❌ Error sending to ${subscriber.email}:`, error.message);
           errors.push(subscriber.email);
         }
       }
@@ -1621,15 +1643,19 @@ app.post('/api/admin/abandoned-carts/remind', adminAuth, async (req, res) => {
 
     if (emailTransporter) {
       await emailTransporter.sendMail({
-        from: process.env.EMAIL_USER,
+        from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
         to: cart.email,
         subject: 'Complete Your Purchase - Saint Ventura',
         text: `Hi,\n\nYou left items in your cart. Complete your purchase now!\n\nItems: ${cart.items.map(i => i.name).join(', ')}\nTotal: R${cart.total.toFixed(2)}\n\nVisit our website to complete your order.`,
         html: `<p>Hi,</p><p>You left items in your cart. Complete your purchase now!</p><p><strong>Items:</strong> ${cart.items.map(i => i.name).join(', ')}<br><strong>Total:</strong> R${cart.total.toFixed(2)}</p><p>Visit our website to complete your order.</p>`
       });
+      res.json({ success: true });
+    } else {
+      res.status(500).json({ 
+        success: false, 
+        error: 'Email transporter not configured. Please set EMAIL_HOST, EMAIL_USER, and EMAIL_PASS in .env file' 
+      });
     }
-
-    res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -1645,7 +1671,7 @@ app.post('/api/admin/abandoned-carts/remind-all', adminAuth, async (req, res) =>
       for (const cart of cartsWithEmail) {
         try {
           await emailTransporter.sendMail({
-            from: process.env.EMAIL_USER,
+            from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
             to: cart.email,
             subject: 'Complete Your Purchase - Saint Ventura',
             text: `Hi,\n\nYou left items in your cart. Complete your purchase now!\n\nItems: ${cart.items.map(i => i.name).join(', ')}\nTotal: R${cart.total.toFixed(2)}\n\nVisit our website to complete your order.`,
@@ -1654,13 +1680,16 @@ app.post('/api/admin/abandoned-carts/remind-all', adminAuth, async (req, res) =>
           sent++;
         } catch (error) {
           console.error(`Error sending to ${cart.email}:`, error);
+          errors.push(cart.email);
         }
       }
+      res.json({ success: true, sent, total: cartsWithEmail.length, errors: errors.length });
     } else {
-      sent = cartsWithEmail.length;
+      res.status(500).json({ 
+        success: false, 
+        error: 'Email transporter not configured. Please set EMAIL_HOST, EMAIL_USER, and EMAIL_PASS in .env file' 
+      });
     }
-
-    res.json({ success: true, sent });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -1742,15 +1771,19 @@ app.post('/api/admin/fulfillers/notify', adminAuth, async (req, res) => {
 
     if (emailTransporter) {
       await emailTransporter.sendMail({
-        from: process.env.EMAIL_USER,
+        from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
         to: fulfiller.email,
         subject: 'New Order to Fulfill - Saint Ventura',
         text: `Hi ${fulfiller.name},\n\nYou have a new order to fulfill:\n\n${orderDetails}\n\nPlease process this order as soon as possible.`,
         html: `<p>Hi ${fulfiller.name},</p><p>You have a new order to fulfill:</p><p>${orderDetails.replace(/\n/g, '<br>')}</p><p>Please process this order as soon as possible.</p>`
       });
+      res.json({ success: true });
+    } else {
+      res.status(500).json({ 
+        success: false, 
+        error: 'Email transporter not configured. Please set EMAIL_HOST, EMAIL_USER, and EMAIL_PASS in .env file' 
+      });
     }
-
-    res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
