@@ -838,6 +838,10 @@
     <script>
         const ADMIN_PASSWORD = 'WEAR3+H3$@!N+$*';
         
+        // Initialize data arrays at the top level to avoid initialization errors
+        let allInventoryData = [];
+        let allOrdersData = [];
+        
         // Auto-detect backend URL based on environment (same as index.html)
         function getBackendUrl() {
             const hostname = window.location.hostname;
@@ -1206,7 +1210,7 @@
         }
 
         // Inventory functions
-        let allInventoryData = [];
+        // allInventoryData is declared at the top of the script
         
         function loadInventory() {
             const tbody = document.getElementById('inventory-table');
@@ -1435,22 +1439,33 @@
         
         // Search and filter functionality
         document.getElementById('inventory-search')?.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            const category = document.getElementById('inventory-filter-category')?.value || '';
-            filterInventory(searchTerm, category);
+            // Only filter if data is loaded
+            if (allInventoryData && allInventoryData.length > 0) {
+                const searchTerm = e.target.value.toLowerCase();
+                const category = document.getElementById('inventory-filter-category')?.value || '';
+                filterInventory(searchTerm, category);
+            }
         });
         
         document.getElementById('inventory-filter-category')?.addEventListener('change', (e) => {
-            const searchTerm = document.getElementById('inventory-search')?.value.toLowerCase() || '';
-            filterInventory(searchTerm, e.target.value);
+            // Only filter if data is loaded
+            if (allInventoryData && allInventoryData.length > 0) {
+                const searchTerm = document.getElementById('inventory-search')?.value.toLowerCase() || '';
+                filterInventory(searchTerm, e.target.value);
+            }
         });
         
         function filterInventory(searchTerm, category) {
-            let filtered = allInventoryData;
+            // Ensure allInventoryData is initialized
+            if (!allInventoryData || !Array.isArray(allInventoryData)) {
+                allInventoryData = [];
+            }
+            
+            let filtered = [...allInventoryData]; // Create a copy to avoid mutation
             
             if (searchTerm) {
                 filtered = filtered.filter(item => 
-                    (item.productName || item.name).toLowerCase().includes(searchTerm) ||
+                    (item.productName || item.name || '').toLowerCase().includes(searchTerm) ||
                     (item.variant || '').toLowerCase().includes(searchTerm) ||
                     (item.category || '').toLowerCase().includes(searchTerm)
                 );
@@ -3024,7 +3039,7 @@ Thank you!</textarea>
         }
 
         // Orders Management functions
-        let allOrdersData = [];
+        // allOrdersData is declared at the top of the script
         
         function loadOrders() {
             const tbody = document.getElementById('orders-table');
@@ -3157,18 +3172,29 @@ Thank you!</textarea>
         
         // Search and filter orders
         document.getElementById('orders-search')?.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            const status = document.getElementById('orders-filter-status')?.value || '';
-            filterOrders(searchTerm, status);
+            // Only filter if data is loaded
+            if (allOrdersData && allOrdersData.length > 0) {
+                const searchTerm = e.target.value.toLowerCase();
+                const status = document.getElementById('orders-filter-status')?.value || '';
+                filterOrders(searchTerm, status);
+            }
         });
         
         document.getElementById('orders-filter-status')?.addEventListener('change', (e) => {
-            const searchTerm = document.getElementById('orders-search')?.value.toLowerCase() || '';
-            filterOrders(searchTerm, e.target.value);
+            // Only filter if data is loaded
+            if (allOrdersData && allOrdersData.length > 0) {
+                const searchTerm = document.getElementById('orders-search')?.value.toLowerCase() || '';
+                filterOrders(searchTerm, e.target.value);
+            }
         });
         
         function filterOrders(searchTerm, status) {
-            let filtered = allOrdersData;
+            // Ensure allOrdersData is initialized
+            if (!allOrdersData || !Array.isArray(allOrdersData)) {
+                allOrdersData = [];
+            }
+            
+            let filtered = [...allOrdersData]; // Create a copy to avoid mutation
             
             if (searchTerm) {
                 filtered = filtered.filter(order => 
