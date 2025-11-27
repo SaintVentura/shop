@@ -734,8 +734,8 @@
     </div>
 
     <!-- Compose Email Modal -->
-    <div id="compose-email-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4" style="padding-top: 5rem;">
-        <div class="bg-white rounded-lg p-6 w-full max-w-5xl max-h-[85vh] overflow-y-auto shadow-2xl" style="margin-top: 2rem;">
+    <div id="compose-email-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4" style="padding-top: 2rem;">
+        <div class="bg-white rounded-lg p-6 w-full max-w-5xl max-h-[90vh] overflow-y-auto shadow-2xl" style="margin-top: 0;">
             <div class="flex justify-between items-center mb-4 sticky top-0 bg-white pb-4 border-b">
                 <h3 class="text-xl font-semibold">Compose Email</h3>
                 <button onclick="closeComposeEmail()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
@@ -794,8 +794,8 @@
     </div>
 
     <!-- View/Reply Email Modal -->
-    <div id="view-email-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4" style="padding-top: 5rem;">
-        <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[85vh] overflow-y-auto shadow-2xl" style="margin-top: 2rem;">
+    <div id="view-email-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4" style="padding-top: 2rem;">
+        <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl" style="margin-top: 0;">
             <div class="flex justify-between items-center mb-4 sticky top-0 bg-white pb-4 border-b">
                 <h3 class="text-xl font-semibold" id="view-email-subject">Email</h3>
                 <button onclick="closeViewEmail()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
@@ -1571,8 +1571,9 @@
             if (!currentViewingEmail) return;
             if (!confirm('Delete this email?')) return;
             
-            adminFetch(`${BACKEND_URL}/api/admin/inbox/${currentViewingEmail.id}`, {
-                method: 'DELETE'
+            adminFetch(`${BACKEND_URL}/api/admin/inbox/delete`, {
+                method: 'POST',
+                body: JSON.stringify({ emailId: currentViewingEmail.id })
             })
             .then(data => {
                 if (data.success) {
@@ -1595,9 +1596,20 @@
         }
         
         function replyToEmail() {
-            if (!currentViewingEmail) return;
+            if (!currentViewingEmail) {
+                alert('No email selected');
+                return;
+            }
+            
+            const replyFrom = currentViewingEmail.from || currentViewingEmail.name || '';
+            const replySubject = currentViewingEmail.subject || '';
+            
             closeViewEmail();
-            showComposeEmail(currentViewingEmail.from, currentViewingEmail.subject);
+            
+            // Small delay to ensure modal is closed
+            setTimeout(() => {
+                showComposeEmail(replyFrom, replySubject);
+            }, 100);
         }
         
         function markEmailAsRead(emailId) {

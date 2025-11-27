@@ -1157,12 +1157,18 @@ if (process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS) 
   // SMTP setup for sending emails
   emailTransporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
-    port: process.env.EMAIL_PORT || 587,
-    secure: process.env.EMAIL_PORT == 465,
+    port: parseInt(process.env.EMAIL_PORT || 587),
+    secure: parseInt(process.env.EMAIL_PORT || 587) === 465,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS
-    }
+    },
+    connectionTimeout: 20000, // 20 seconds
+    greetingTimeout: 20000,
+    socketTimeout: 20000,
+    pool: true,
+    maxConnections: 1,
+    maxMessages: 3
   });
   console.log('✅ Email transporter configured');
   console.log('   Host:', process.env.EMAIL_HOST);
