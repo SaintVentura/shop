@@ -1711,6 +1711,29 @@ app.post('/api/admin/inbox/send', adminAuth, async (req, res) => {
   }
 });
 
+// Delete email (using POST instead of DELETE for better compatibility)
+app.post('/api/admin/inbox/delete', adminAuth, async (req, res) => {
+  try {
+    const { emailId } = req.body;
+    
+    if (!emailId) {
+      return res.status(400).json({ success: false, error: 'Email ID is required' });
+    }
+    
+    const inbox = await readDataFile('inbox');
+    const filtered = inbox.filter(e => e.id !== emailId);
+    
+    if (filtered.length === inbox.length) {
+      return res.status(404).json({ success: false, error: 'Email not found' });
+    }
+    
+    await writeDataFile('inbox', filtered);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Store contact form emails in inbox
 app.post('/api/contact-form', async (req, res) => {
   try {
