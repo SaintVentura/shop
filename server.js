@@ -1163,17 +1163,20 @@ if (process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS) 
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS
     },
-    connectionTimeout: 30000, // 30 seconds
-    greetingTimeout: 30000,
-    socketTimeout: 30000,
+    connectionTimeout: 60000, // 60 seconds
+    greetingTimeout: 60000,
+    socketTimeout: 60000,
     pool: false, // Disable pooling for better reliability
     requireTLS: true,
     tls: {
       rejectUnauthorized: false, // Allow self-signed certificates
-      ciphers: 'SSLv3'
+      minVersion: 'TLSv1.2'
     },
     debug: false,
-    logger: false
+    logger: false,
+    // Add retry options
+    maxConnections: 1,
+    maxMessages: 1
   });
   console.log('✅ Email transporter configured');
   console.log('   Host:', process.env.EMAIL_HOST);
@@ -1739,22 +1742,42 @@ app.post('/api/admin/inbox/send', adminAuth, async (req, res) => {
     let sentCount = 0;
     let errors = [];
     
-    // Send to each recipient
+    // Send to each recipient with retry logic
     for (const recipient of recipients) {
-      try {
-        await emailTransporter.sendMail({
-          from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
-          to: recipient,
-          replyTo: replyTo || process.env.EMAIL_USER,
-          subject: subject,
-          text: emailText,
-          html: emailHtml
-        });
-        sentCount++;
-        console.log(`✅ Email sent to: ${recipient}`);
-      } catch (error) {
-        console.error(`❌ Error sending to ${recipient}:`, error.message);
-        errors.push(recipient);
+      let retries = 3;
+      let lastError = null;
+      
+      while (retries > 0) {
+        try {
+          await emailTransporter.sendMail({
+            from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
+            to: recipient,
+            replyTo: replyTo || process.env.EMAIL_USER,
+            subject: subject,
+            text: emailText,
+            html: emailHtml,
+            // Add timeout per email
+            timeout: 60000 // 60 seconds per email
+          });
+          sentCount++;
+          console.log(`✅ Email sent to: ${recipient}`);
+          break; // Success, exit retry loop
+        } catch (error) {
+          lastError = error;
+          retries--;
+          console.error(`❌ Error sending to ${recipient} (${3 - retries}/3 attempts):`, error.message);
+          
+          if (retries > 0) {
+            // Wait before retry (exponential backoff)
+            const delay = (3 - retries) * 2000; // 2s, 4s delays
+            console.log(`   Retrying in ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          } else {
+            // All retries failed
+            console.error(`❌ Failed to send to ${recipient} after 3 attempts`);
+            errors.push(recipient);
+          }
+        }
       }
     }
     
@@ -2006,19 +2029,37 @@ app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
     
     if (emailTransporter) {
       for (const subscriber of targetSubscribers) {
-        try {
-          await emailTransporter.sendMail({
-            from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
-            to: subscriber.email,
-            subject: emailSubject,
-            text: emailBody,
-            html: emailHtml
-          });
-          sent++;
-          console.log(`✅ Email sent to subscriber: ${subscriber.email}`);
-        } catch (error) {
-          console.error(`❌ Error sending to ${subscriber.email}:`, error.message);
-          errors.push(subscriber.email);
+        let retries = 3;
+        let success = false;
+        
+        while (retries > 0 && !success) {
+          try {
+            await emailTransporter.sendMail({
+              from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
+              to: subscriber.email,
+              subject: emailSubject,
+              text: emailBody,
+              html: emailHtml,
+              timeout: 60000 // 60 seconds per email
+            });
+            sent++;
+            success = true;
+            console.log(`✅ Email sent to subscriber: ${subscriber.email}`);
+          } catch (error) {
+            retries--;
+            console.error(`❌ Error sending to ${subscriber.email} (${3 - retries}/3 attempts):`, error.message);
+            
+            if (retries > 0) {
+              // Wait before retry (exponential backoff)
+              const delay = (3 - retries) * 2000; // 2s, 4s delays
+              console.log(`   Retrying in ${delay}ms...`);
+              await new Promise(resolve => setTimeout(resolve, delay));
+            } else {
+              // All retries failed
+              console.error(`❌ Failed to send to ${subscriber.email} after 3 attempts`);
+              errors.push(subscriber.email);
+            }
+          }
         }
       }
     } else {
@@ -2192,14 +2233,42 @@ app.post('/api/admin/fulfillers/notify', adminAuth, async (req, res) => {
     }
 
     if (emailTransporter) {
-      await emailTransporter.sendMail({
-        from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
-        to: fulfiller.email,
-        subject: 'New Order to Fulfill - Saint Ventura',
-        text: `Hi ${fulfiller.name},\n\nYou have a new order to fulfill:\n\n${orderDetails}\n\nPlease process this order as soon as possible.`,
-        html: `<p>Hi ${fulfiller.name},</p><p>You have a new order to fulfill:</p><p>${orderDetails.replace(/\n/g, '<br>')}</p><p>Please process this order as soon as possible.</p>`
-      });
-      res.json({ success: true });
+      let retries = 3;
+      let success = false;
+      let lastError = null;
+      
+      while (retries > 0 && !success) {
+        try {
+          await emailTransporter.sendMail({
+            from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
+            to: fulfiller.email,
+            subject: 'New Order to Fulfill - Saint Ventura',
+            text: `Hi ${fulfiller.name},\n\nYou have a new order to fulfill:\n\n${orderDetails}\n\nPlease process this order as soon as possible.`,
+            html: `<p>Hi ${fulfiller.name},</p><p>You have a new order to fulfill:</p><p>${orderDetails.replace(/\n/g, '<br>')}</p><p>Please process this order as soon as possible.</p>`,
+            timeout: 60000 // 60 seconds per email
+          });
+          success = true;
+          res.json({ success: true });
+        } catch (error) {
+          lastError = error;
+          retries--;
+          console.error(`❌ Error sending fulfiller email to ${fulfiller.email} (${3 - retries}/3 attempts):`, error.message);
+          
+          if (retries > 0) {
+            // Wait before retry (exponential backoff)
+            const delay = (3 - retries) * 2000; // 2s, 4s delays
+            console.log(`   Retrying in ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          } else {
+            // All retries failed
+            console.error(`❌ Failed to send fulfiller email after 3 attempts`);
+            return res.status(500).json({ 
+              success: false, 
+              error: `Failed to send email: ${lastError.message}` 
+            });
+          }
+        }
+      }
     } else {
       res.status(500).json({ 
         success: false, 

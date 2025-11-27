@@ -3013,20 +3013,40 @@ Thank you!</textarea>
         // Set up fulfiller form event listener safely - wait for DOM to be ready
         function setupFulfillerForm() {
             const fulfillerForm = document.getElementById('add-fulfiller-form');
-            if (fulfillerForm) {
-                console.log('Setting up fulfiller form event listener');
-                // Remove any existing listeners to avoid duplicates
-                const newForm = fulfillerForm.cloneNode(true);
-                fulfillerForm.parentNode.replaceChild(newForm, fulfillerForm);
-                
-                newForm.addEventListener('submit', (e) => {
+            if (!fulfillerForm) {
+                console.warn('Fulfiller form not found when setting up event listener');
+                return;
+            }
+            
+            console.log('Setting up fulfiller form event listener');
+            
+            // Remove existing listener by cloning (avoids duplicates)
+            const formParent = fulfillerForm.parentNode;
+            const newForm = fulfillerForm.cloneNode(true);
+            formParent.replaceChild(newForm, fulfillerForm);
+            
+            // Update IDs after cloning
+            newForm.id = 'add-fulfiller-form';
+            const nameInput = newForm.querySelector('#fulfiller-name');
+            const emailInput = newForm.querySelector('#fulfiller-email');
+            const phoneInput = newForm.querySelector('#fulfiller-phone');
+            if (nameInput) nameInput.id = 'fulfiller-name';
+            if (emailInput) emailInput.id = 'fulfiller-email';
+            if (phoneInput) phoneInput.id = 'fulfiller-phone';
+            
+            newForm.addEventListener('submit', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     console.log('Fulfiller form submitted');
                     
-                    const name = document.getElementById('fulfiller-name')?.value.trim();
-                    const email = document.getElementById('fulfiller-email')?.value.trim();
-                    const phone = document.getElementById('fulfiller-phone')?.value.trim();
+                    // Get values from the form directly (not by ID, since form was cloned)
+                    const nameInput = newForm.querySelector('#fulfiller-name') || newForm.querySelector('input[type="text"]');
+                    const emailInput = newForm.querySelector('#fulfiller-email') || newForm.querySelector('input[type="email"]');
+                    const phoneInput = newForm.querySelector('#fulfiller-phone') || newForm.querySelector('input[type="tel"]');
+                    
+                    const name = nameInput?.value.trim();
+                    const email = emailInput?.value.trim();
+                    const phone = phoneInput?.value.trim();
                     
                     console.log('Form values:', { name, email, phone });
                     
@@ -3103,15 +3123,41 @@ Thank you!</textarea>
         
         // Also set up when the modal is opened (in case form is dynamically created)
         window.showAddFulfillerModal = function() {
+            console.log('showAddFulfillerModal called');
             const modal = document.getElementById('add-fulfiller-modal');
             if (modal) {
+                console.log('Modal found, opening...');
                 modal.classList.remove('hidden');
+                // Clear form fields
+                const nameInput = document.getElementById('fulfiller-name');
+                const emailInput = document.getElementById('fulfiller-email');
+                const phoneInput = document.getElementById('fulfiller-phone');
+                if (nameInput) nameInput.value = '';
+                if (emailInput) emailInput.value = '';
+                if (phoneInput) phoneInput.value = '';
                 // Re-setup form listener when modal is opened
-                setTimeout(setupFulfillerForm, 100);
+                setTimeout(() => {
+                    console.log('Re-setting up fulfiller form...');
+                    setupFulfillerForm();
+                }, 100);
             } else {
                 console.error('Add fulfiller modal not found');
             }
         };
+        
+        // Also add click handler to the button directly (as backup)
+        document.addEventListener('DOMContentLoaded', () => {
+            const addFulfillerBtn = document.querySelector('button[onclick="showAddFulfillerModal()"]');
+            if (addFulfillerBtn) {
+                console.log('Found Add Fulfiller button, adding click handler');
+                addFulfillerBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Add Fulfiller button clicked');
+                    window.showAddFulfillerModal();
+                });
+            }
+        });
 
         function deleteFulfiller(id) {
             if (!confirm('Delete this fulfiller?')) return;
