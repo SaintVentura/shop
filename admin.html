@@ -1477,11 +1477,17 @@
                     if (!Array.isArray(data)) {
                         throw new Error('Invalid data format');
                     }
-                    if (data.length === 0) {
+                    // Sort by date (newest first) to ensure latest emails are shown
+                    const sortedData = data.sort((a, b) => {
+                        const dateA = new Date(a.date || 0);
+                        const dateB = new Date(b.date || 0);
+                        return dateB - dateA;
+                    });
+                    if (sortedData.length === 0) {
                         list.innerHTML = '<div class="text-center py-8 text-gray-500">No emails</div>';
                         return;
                     }
-                    list.innerHTML = data.map(email => `
+                    list.innerHTML = sortedData.map(email => `
                         <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition cursor-pointer ${email.read ? '' : 'bg-blue-50 border-blue-200'} ${email.sent ? 'bg-green-50 border-green-200' : ''}" onclick="viewEmail('${email.id}')">
                             <div class="flex justify-between items-start">
                                 <div class="flex-1">
@@ -1631,6 +1637,12 @@
         function fetchEmails() {
             const list = document.getElementById('inbox-list');
             const originalHtml = list.innerHTML;
+            const btn = document.getElementById('fetch-emails-btn') || document.querySelector('button[onclick="fetchEmails()"]');
+            if (btn) {
+                btn.disabled = true;
+                const originalText = btn.textContent;
+                btn.textContent = 'Fetching...';
+            }
             list.innerHTML = '<div class="text-center py-8 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Fetching emails from server...</span></div></div>';
             
             adminFetch(`${BACKEND_URL}/api/admin/inbox/fetch`, {
@@ -1638,8 +1650,9 @@
             })
             .then(data => {
                 if (data.success) {
-                    alert(`Fetched ${data.fetched} emails, ${data.new} new emails added`);
-                    loadInbox();
+                    alert(`Fetched ${data.fetched || 0} emails from server. ${data.new || 0} new emails added. Total: ${data.total || 0} emails in inbox.`);
+                    loadInbox(); // Reload to show all emails
+                    updateBadges();
                 } else {
                     throw new Error(data.error || 'Failed to fetch emails');
                 }
@@ -1648,6 +1661,12 @@
                 console.error('Error fetching emails:', err);
                 list.innerHTML = originalHtml;
                 alert('Error fetching emails: ' + err.message);
+            })
+            .finally(() => {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = 'Fetch Emails';
+                }
             });
         }
         
@@ -1763,13 +1782,34 @@
             button.closest('.email-section').remove();
         }
         
+        let emailBuilderSections = null; // Store sections when entering preview
+        
         function toggleEmailPreview() {
             const previewMode = document.getElementById('preview-mode').checked;
             const builder = document.getElementById('email-builder');
             
             if (previewMode) {
-                // Generate HTML preview
+                // Save current sections before showing preview
                 const sections = builder.querySelectorAll('.email-section');
+                emailBuilderSections = Array.from(sections).map(section => {
+                    const type = section.dataset.type;
+                    const sectionData = { type: type };
+                    
+                    // Save input values
+                    if (type === 'text') {
+                        sectionData.value = section.querySelector('textarea')?.value || '';
+                    } else if (type === 'heading') {
+                        sectionData.selectValue = section.querySelector('select')?.value || 'h2';
+                        sectionData.inputValue = section.querySelector('input')?.value || '';
+                    } else if (type === 'image' || type === 'button') {
+                        sectionData.inputs = Array.from(section.querySelectorAll('input')).map(inp => inp.value || '');
+                    } else if (type === 'spacer') {
+                        sectionData.value = section.querySelector('input')?.value || 20;
+                    }
+                    return sectionData;
+                });
+                
+                // Generate HTML preview
                 let html = '';
                 
                 sections.forEach(section => {
