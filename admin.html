@@ -838,9 +838,10 @@
     <script>
         const ADMIN_PASSWORD = 'WEAR3+H3$@!N+$*';
         
-        // Initialize data arrays at the top level to avoid initialization errors
+        // Initialize data arrays and variables at the top level to avoid initialization errors
         let allInventoryData = [];
         let allOrdersData = [];
+        let currentViewingEmail = null;
         
         // Auto-detect backend URL based on environment (same as index.html)
         function getBackendUrl() {
@@ -1566,7 +1567,7 @@
                 });
         }
 
-        let currentViewingEmail = null;
+        // currentViewingEmail is declared at the top of the script
         
         function viewEmail(emailId) {
             adminFetch(`${BACKEND_URL}/api/admin/inbox`)
@@ -2849,56 +2850,70 @@ Thank you!</textarea>
             document.getElementById('add-fulfiller-form').reset();
         }
 
-        document.getElementById('add-fulfiller-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const name = document.getElementById('fulfiller-name').value.trim();
-            const email = document.getElementById('fulfiller-email').value.trim();
-            const phone = document.getElementById('fulfiller-phone').value.trim();
-            
-            // Validate inputs
-            if (!name || !email || !phone) {
-                alert('Please fill in all fields');
-                return;
-            }
-            
-            // Validate email format
-            if (!email.includes('@') || !email.includes('.')) {
-                alert('Please enter a valid email address');
-                return;
-            }
-
-            const submitBtn = e.target.querySelector('button[type="submit"]');
-            const originalText = submitBtn.textContent;
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Adding...';
-
-            adminFetch(`${BACKEND_URL}/api/admin/fulfillers`, {
-                method: 'POST',
-                body: JSON.stringify({ name, email, phone })
-            })
-            .then(data => {
-                if (data.success) {
-                    closeAddFulfillerModal();
-                    loadFulfillers();
-                    // Show success notification
-                    const notification = document.createElement('div');
-                    notification.className = 'fixed top-20 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
-                    notification.textContent = 'Fulfiller added successfully!';
-                    document.body.appendChild(notification);
-                    setTimeout(() => notification.remove(), 3000);
-                } else {
-                    alert('Error: ' + (data.error || 'Failed to add fulfiller'));
+        // Set up fulfiller form event listener safely
+        const fulfillerForm = document.getElementById('add-fulfiller-form');
+        if (fulfillerForm) {
+            fulfillerForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const name = document.getElementById('fulfiller-name')?.value.trim();
+                const email = document.getElementById('fulfiller-email')?.value.trim();
+                const phone = document.getElementById('fulfiller-phone')?.value.trim();
+                
+                // Validate inputs
+                if (!name || !email || !phone) {
+                    alert('Please fill in all fields');
+                    return;
                 }
-            })
-            .catch(err => {
-                console.error('Error adding fulfiller:', err);
-                alert('Error: ' + (err.message || 'Failed to add fulfiller. Please check your connection.'));
-            })
-            .finally(() => {
-                submitBtn.disabled = false;
-                submitBtn.textContent = originalText;
+                
+                // Validate email format
+                if (!email.includes('@') || !email.includes('.')) {
+                    alert('Please enter a valid email address');
+                    return;
+                }
+
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                if (!submitBtn) {
+                    alert('Error: Submit button not found');
+                    return;
+                }
+                
+                const originalText = submitBtn.textContent;
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Adding...';
+
+                adminFetch(`${BACKEND_URL}/api/admin/fulfillers`, {
+                    method: 'POST',
+                    body: JSON.stringify({ name, email, phone })
+                })
+                .then(data => {
+                    console.log('Fulfiller add response:', data);
+                    if (data.success) {
+                        closeAddFulfillerModal();
+                        loadFulfillers();
+                        // Show success notification
+                        const notification = document.createElement('div');
+                        notification.className = 'fixed top-20 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+                        notification.textContent = 'Fulfiller added successfully!';
+                        document.body.appendChild(notification);
+                        setTimeout(() => notification.remove(), 3000);
+                    } else {
+                        alert('Error: ' + (data.error || 'Failed to add fulfiller'));
+                    }
+                })
+                .catch(err => {
+                    console.error('Error adding fulfiller:', err);
+                    alert('Error: ' + (err.message || 'Failed to add fulfiller. Please check your connection.'));
+                })
+                .finally(() => {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = originalText;
+                    }
+                });
             });
-        });
+        } else {
+            console.warn('Fulfiller form not found when setting up event listener');
+        }
 
         function deleteFulfiller(id) {
             if (!confirm('Delete this fulfiller?')) return;
