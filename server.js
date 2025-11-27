@@ -1513,6 +1513,85 @@ app.post('/api/admin/inbox/add', adminAuth, async (req, res) => {
   }
 });
 
+// Fetch emails from IMAP manually
+app.post('/api/admin/inbox/fetch', adminAuth, async (req, res) => {
+  try {
+    const imapEmails = await fetchEmailsFromIMAP();
+    const inbox = await readDataFile('inbox');
+    let newEmails = 0;
+    
+    if (imapEmails && imapEmails.length > 0) {
+      for (const imapEmail of imapEmails) {
+        const exists = inbox.find(e => 
+          e.from === imapEmail.from && 
+          e.subject === imapEmail.subject &&
+          Math.abs(new Date(e.date) - new Date(imapEmail.date)) < 60000
+        );
+        if (!exists) {
+          inbox.push(imapEmail);
+          newEmails++;
+        }
+      }
+      await writeDataFile('inbox', inbox);
+    }
+    
+    res.json({ success: true, fetched: imapEmails ? imapEmails.length : 0, new: newEmails });
+  } catch (error) {
+    console.error('Error fetching emails from IMAP:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Send email (compose)
+app.post('/api/admin/inbox/send', adminAuth, async (req, res) => {
+  try {
+    const { to, subject, body, replyTo } = req.body;
+    
+    if (!to || !subject || !body) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'To, subject, and body are required' 
+      });
+    }
+    
+    if (!emailTransporter) {
+      return res.status(500).json({ 
+        success: false,
+        error: 'Email transporter not configured' 
+      });
+    }
+    
+    await emailTransporter.sendMail({
+      from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
+      to: to,
+      replyTo: replyTo || process.env.EMAIL_USER,
+      subject: subject,
+      text: body,
+      html: body.replace(/\n/g, '<br>')
+    });
+    
+    // Store sent email in inbox
+    const inbox = await readDataFile('inbox');
+    inbox.push({
+      id: Date.now().toString(),
+      from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
+      name: 'You',
+      to: to,
+      subject: `Sent: ${subject}`,
+      body: body,
+      date: new Date().toISOString(),
+      read: true,
+      sent: true
+    });
+    await writeDataFile('inbox', inbox);
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error sending email:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Store contact form emails in inbox
 app.post('/api/contact-form', async (req, res) => {
   try {
