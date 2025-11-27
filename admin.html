@@ -23,14 +23,17 @@
             background-color: transparent;
             color: #000;
             border: 2px solid transparent;
+            transition: all 0.2s ease;
         }
         .sidebar-item.active {
             background-color: transparent !important;
             color: #000 !important;
             border: 2px solid #000 !important;
+            font-weight: 600;
         }
         .sidebar-item:hover:not(.active) {
-            background-color: #f3f4f6;
+            background-color: #f9fafb;
+            transform: translateX(2px);
         }
         .sidebar-item.active:hover {
             background-color: transparent !important;
@@ -276,15 +279,15 @@
         <div class="flex pt-16">
             <!-- Sidebar -->
             <aside id="sidebar" class="sidebar w-64 bg-white border-r border-gray-200 min-h-screen fixed left-0 top-16 z-40 md:z-40 shadow-lg md:shadow-none" style="z-index: 60;">
-                <div class="p-4 border-b border-gray-200">
+                <div class="pt-6 pb-4 px-4">
                     <button onclick="toggleSidebar()" class="w-full flex items-center justify-between px-4 py-2 hover:bg-gray-100 rounded-lg transition">
-                        <span class="font-semibold sidebar-text">Menu</span>
+                        <span class="font-semibold sidebar-text text-lg">Menu</span>
                         <svg id="sidebar-toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="15,18 9,12 15,6"></polyline>
                         </svg>
                     </button>
                 </div>
-                <nav class="p-4 space-y-2">
+                <nav class="px-4 pb-4 space-y-1">
                     <a href="#" onclick="showSection('dashboard')" class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition" data-section="dashboard">
                         <span>📊</span>
                         <span class="sidebar-text">Dashboard</span>
@@ -337,63 +340,63 @@
                 <div id="dashboard-section" class="section">
                     <h2 class="text-2xl md:text-3xl font-bold mb-8">Dashboard Overview</h2>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 mb-8">
-                        <div class="bg-white border border-gray-200 rounded-lg p-6 md:p-8 shadow-sm">
+                        <div class="bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-xl p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow">
                             <div class="flex items-center justify-between mb-4">
-                                <p class="text-sm md:text-base text-gray-600">Total Revenue</p>
+                                <p class="text-sm md:text-base text-gray-600 font-medium">Total Revenue</p>
                                 <span class="text-2xl md:text-3xl">💰</span>
                             </div>
-                            <p id="stat-total-revenue" class="text-2xl md:text-3xl font-bold">R0.00</p>
+                            <p id="stat-total-revenue" class="text-2xl md:text-3xl font-bold text-black">R0.00</p>
                         </div>
-                        <div class="bg-white border border-gray-200 rounded-lg p-6 md:p-8 shadow-sm">
+                        <div class="bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-xl p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow">
                             <div class="flex items-center justify-between mb-4">
-                                <p class="text-sm md:text-base text-gray-600">Completed Orders</p>
+                                <p class="text-sm md:text-base text-gray-600 font-medium">Completed Orders</p>
                                 <span class="text-2xl md:text-3xl">📋</span>
                             </div>
-                            <p id="stat-total-orders" class="text-2xl md:text-3xl font-bold">0</p>
+                            <p id="stat-total-orders" class="text-2xl md:text-3xl font-bold text-black">0</p>
                         </div>
-                        <div class="bg-white border border-gray-200 rounded-lg p-6 md:p-8 shadow-sm">
+                        <div class="bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-xl p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow">
                             <div class="flex items-center justify-between mb-4">
-                                <p class="text-sm md:text-base text-gray-600">Pending Orders</p>
+                                <p class="text-sm md:text-base text-gray-600 font-medium">Pending Orders</p>
                                 <span class="text-2xl md:text-3xl">⏳</span>
                             </div>
-                            <p id="stat-pending-orders" class="text-2xl md:text-3xl font-bold">0</p>
+                            <p id="stat-pending-orders" class="text-2xl md:text-3xl font-bold text-black">0</p>
                         </div>
-                        <div class="bg-white border border-gray-200 rounded-lg p-6 md:p-8 shadow-sm">
+                        <div class="bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-xl p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow">
                             <div class="flex items-center justify-between mb-4">
-                                <p class="text-sm md:text-base text-gray-600">Subscribers</p>
+                                <p class="text-sm md:text-base text-gray-600 font-medium">Subscribers</p>
                                 <span class="text-2xl md:text-3xl">👥</span>
                             </div>
-                            <p id="stat-subscribers" class="text-2xl md:text-3xl font-bold">0</p>
+                            <p id="stat-subscribers" class="text-2xl md:text-3xl font-bold text-black">0</p>
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 mb-8">
-                        <div class="bg-white border border-gray-200 rounded-lg p-6 md:p-8 shadow-sm">
+                        <div class="bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-xl p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow">
                             <div class="flex items-center justify-between mb-4">
-                                <p class="text-sm md:text-base text-gray-600">Low Stock Items</p>
+                                <p class="text-sm md:text-base text-gray-600 font-medium">Low Stock Items</p>
                                 <span class="text-2xl md:text-3xl">⚠️</span>
                             </div>
                             <p id="stat-low-stock" class="text-2xl md:text-3xl font-bold text-red-600">0</p>
                         </div>
-                        <div class="bg-white border border-gray-200 rounded-lg p-6 md:p-8 shadow-sm">
+                        <div class="bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-xl p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow">
                             <div class="flex items-center justify-between mb-4">
-                                <p class="text-sm md:text-base text-gray-600">Unread Notifications</p>
+                                <p class="text-sm md:text-base text-gray-600 font-medium">Unread Notifications</p>
                                 <span class="text-2xl md:text-3xl">🔔</span>
                             </div>
-                            <p id="stat-notifications" class="text-2xl md:text-3xl font-bold">0</p>
+                            <p id="stat-notifications" class="text-2xl md:text-3xl font-bold text-black">0</p>
                         </div>
-                        <div class="bg-white border border-gray-200 rounded-lg p-6 md:p-8 shadow-sm">
+                        <div class="bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-xl p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow">
                             <div class="flex items-center justify-between mb-4">
-                                <p class="text-sm md:text-base text-gray-600">Unread Emails</p>
+                                <p class="text-sm md:text-base text-gray-600 font-medium">Unread Emails</p>
                                 <span class="text-2xl md:text-3xl">📧</span>
                             </div>
-                            <p id="stat-emails" class="text-2xl md:text-3xl font-bold">0</p>
+                            <p id="stat-emails" class="text-2xl md:text-3xl font-bold text-black">0</p>
                         </div>
-                        <div class="bg-white border border-gray-200 rounded-lg p-6 md:p-8 shadow-sm">
+                        <div class="bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-xl p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow">
                             <div class="flex items-center justify-between mb-4">
-                                <p class="text-sm md:text-base text-gray-600">Abandoned Carts</p>
+                                <p class="text-sm md:text-base text-gray-600 font-medium">Abandoned Carts</p>
                                 <span class="text-2xl md:text-3xl">🛒</span>
                             </div>
-                            <p id="stat-carts" class="text-2xl md:text-3xl font-bold">0</p>
+                            <p id="stat-carts" class="text-2xl md:text-3xl font-bold text-black">0</p>
                         </div>
                     </div>
                     <div class="bg-white border border-gray-200 rounded-lg p-6 md:p-8 shadow-sm mb-8">
@@ -567,29 +570,23 @@
 
                 <!-- Broadcast Section -->
                 <div id="broadcast-section" class="section hidden">
-                    <h2 class="text-2xl md:text-3xl font-bold mb-8">Email Broadcast</h2>
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <div class="bg-white rounded-lg shadow p-6 md:p-8">
-                            <h3 class="text-xl md:text-2xl font-semibold mb-6">Subscribers</h3>
-                            <div class="mb-6">
-                                <p class="text-base md:text-lg text-gray-600">Total Subscribers: <span id="subscriber-count" class="font-bold">0</span></p>
+                    <div class="mb-8">
+                        <h2 class="text-2xl md:text-3xl font-bold mb-2">Email Broadcast</h2>
+                        <p class="text-gray-600">Send newsletters, promotions, and updates to all subscribers</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg border border-gray-100 p-6 md:p-8 mb-8">
+                        <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-6">
+                            <div>
+                                <h3 class="text-xl md:text-2xl font-semibold mb-2">Subscriber Overview</h3>
+                                <p class="text-gray-600">Total Subscribers: <span id="subscriber-count" class="font-bold text-black text-lg">0</span></p>
                             </div>
-                            <div class="max-h-96 overflow-y-auto">
-                                <div id="subscribers-list" class="space-y-4">
-                                    <div class="text-center py-4 text-gray-500">Loading subscribers...</div>
-                                </div>
-                            </div>
+                            <button onclick="openBroadcastEmailComposer()" class="mt-4 md:mt-0 w-full md:w-auto px-6 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition shadow-md hover:shadow-lg">
+                                ✉️ Compose Broadcast Email
+                            </button>
                         </div>
-                        <div class="bg-white rounded-lg shadow p-6 md:p-8">
-                            <h3 class="text-xl md:text-2xl font-semibold mb-6">Send Broadcast</h3>
-                            <div class="space-y-6">
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Select Products (optional - for product promotion)</label>
-                                    <select id="broadcast-products" multiple class="w-full px-4 py-2 border border-gray-300 rounded-lg">
-                                        <option value="">Loading products...</option>
-                                    </select>
-                                </div>
-                                <button onclick="openBroadcastEmailComposer()" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition">Compose Broadcast Email</button>
+                        <div class="bg-white rounded-xl border border-gray-200 p-4 max-h-96 overflow-y-auto">
+                            <div id="subscribers-list" class="space-y-2">
+                                <div class="text-center py-4 text-gray-500">Loading subscribers...</div>
                             </div>
                         </div>
                     </div>
@@ -720,10 +717,27 @@
                 <button onclick="closeComposeEmail()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
             </div>
             <form id="compose-email-form" class="space-y-4">
+                <!-- Email Template Selection -->
+                <div id="email-template-section" class="hidden">
+                    <label class="block text-sm font-medium mb-2">Email Template</label>
+                    <select id="email-template-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black" onchange="loadEmailTemplate()">
+                        <option value="">Select a template...</option>
+                        <optgroup label="Broadcast Templates">
+                            <option value="promotion">Promotion / Sale</option>
+                            <option value="new-product">New Product Launch</option>
+                            <option value="news">News / Update</option>
+                        </optgroup>
+                        <optgroup label="Fulfiller Templates">
+                            <option value="fulfiller-order">Completed Order Notification</option>
+                        </optgroup>
+                    </select>
+                </div>
+                
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium mb-2">To</label>
-                        <input type="email" id="compose-to" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required placeholder="recipient@example.com">
+                        <label class="block text-sm font-medium mb-2">To <span class="text-gray-500 text-xs">(comma-separated for multiple)</span></label>
+                        <textarea id="compose-to" class="w-full px-4 py-2 border border-gray-300 rounded-lg min-h-[60px] resize-y" required placeholder="recipient@example.com or recipient1@example.com, recipient2@example.com"></textarea>
+                        <button type="button" onclick="addAllSubscribers()" id="add-subscribers-btn" class="hidden mt-2 text-xs text-blue-600 hover:text-blue-800 underline">Add All Subscribers</button>
                     </div>
                     <div>
                         <label class="block text-sm font-medium mb-2">Subject</label>
@@ -971,16 +985,65 @@
         }
 
 
+        // Real-time sync for all admin users
+        let syncInterval = null;
+        
+        function startRealTimeSync() {
+            // Clear existing interval if any
+            if (syncInterval) clearInterval(syncInterval);
+            
+            // Sync every 30 seconds
+            syncInterval = setInterval(() => {
+                // Update badges (notifications, emails, carts)
+                updateBadges();
+                
+                // Refresh current section data
+                if (currentSection === 'dashboard') {
+                    loadDashboardData();
+                } else if (currentSection === 'orders') {
+                    loadOrders();
+                } else if (currentSection === 'inventory') {
+                    loadInventory();
+                } else if (currentSection === 'inbox') {
+                    // Auto-fetch new emails every 2 minutes when on inbox page
+                    const now = Date.now();
+                    if (!window.lastEmailFetch || (now - window.lastEmailFetch) > 120000) {
+                        adminFetch(`${BACKEND_URL}/api/admin/inbox/fetch`, {
+                            method: 'POST'
+                        })
+                        .then(data => {
+                            if (data.success && data.new > 0) {
+                                loadInbox();
+                                updateBadges();
+                            }
+                        })
+                        .catch(err => console.error('Auto-fetch error:', err));
+                        window.lastEmailFetch = now;
+                    } else {
+                        loadInbox();
+                    }
+                } else if (currentSection === 'broadcast') {
+                    loadBroadcast();
+                } else if (currentSection === 'fulfillers') {
+                    loadFulfillers();
+                } else if (currentSection === 'notifications') {
+                    loadNotifications();
+                }
+            }, 30000); // Update every 30 seconds
+        }
+        
+        function stopRealTimeSync() {
+            if (syncInterval) {
+                clearInterval(syncInterval);
+                syncInterval = null;
+            }
+        }
+        
         function loadDashboard() {
             showSection('dashboard');
             loadDashboardData();
             updateBadges();
-            setInterval(() => {
-                updateBadges();
-                if (currentSection === 'dashboard') {
-                    loadDashboardData();
-                }
-            }, 30000); // Update every 30 seconds
+            startRealTimeSync();
         }
         
         function loadDashboardData() {
@@ -1676,6 +1739,25 @@
                 form.reset();
             }
             
+            // Reset template section visibility based on context
+            const context = window.currentEmailContext || {};
+            const templateSection = document.getElementById('email-template-section');
+            const addSubscribersBtn = document.getElementById('add-subscribers-btn');
+            const templateSelect = document.getElementById('email-template-select');
+            
+            if (context.type === 'broadcast' || context.type === 'fulfiller') {
+                if (templateSection) templateSection.classList.remove('hidden');
+                if (templateSelect) templateSelect.value = '';
+            } else {
+                if (templateSection) templateSection.classList.add('hidden');
+            }
+            
+            if (context.type === 'broadcast') {
+                if (addSubscribersBtn) addSubscribersBtn.classList.remove('hidden');
+            } else {
+                if (addSubscribersBtn) addSubscribersBtn.classList.add('hidden');
+            }
+            
             // Reset preview mode
             document.getElementById('preview-mode').checked = false;
             
@@ -1728,23 +1810,42 @@
                                 window.currentEmailContext = { type: 'fulfiller', fulfillerId, orderId, orderDetails };
                                 showComposeEmail(fulfiller.email, subject);
                                 
-                                // Pre-fill order details in first text section if available
-                                if (orderDetails) {
-                                    setTimeout(() => {
-                                        const firstTextArea = document.querySelector('#email-builder .email-section[data-type="text"] textarea');
-                                        if (firstTextArea) {
-                                            firstTextArea.value = orderDetails;
-                                        }
-                                    }, 100);
-                                }
+                                // Show template section and set fulfiller template
+                                setTimeout(() => {
+                                    const templateSection = document.getElementById('email-template-section');
+                                    const templateSelect = document.getElementById('email-template-select');
+                                    if (templateSection) templateSection.classList.remove('hidden');
+                                    if (templateSelect) {
+                                        templateSelect.value = 'fulfiller-order';
+                                        loadEmailTemplate();
+                                    }
+                                }, 100);
                             })
                             .catch(err => {
                                 window.currentEmailContext = { type: 'fulfiller', fulfillerId, orderId };
                                 showComposeEmail(fulfiller.email, subject);
+                                setTimeout(() => {
+                                    const templateSection = document.getElementById('email-template-section');
+                                    const templateSelect = document.getElementById('email-template-select');
+                                    if (templateSection) templateSection.classList.remove('hidden');
+                                    if (templateSelect) {
+                                        templateSelect.value = 'fulfiller-order';
+                                        loadEmailTemplate();
+                                    }
+                                }, 100);
                             });
                     } else {
                         window.currentEmailContext = { type: 'fulfiller', fulfillerId };
                         showComposeEmail(fulfiller.email, subject);
+                        setTimeout(() => {
+                            const templateSection = document.getElementById('email-template-section');
+                            const templateSelect = document.getElementById('email-template-select');
+                            if (templateSection) templateSection.classList.remove('hidden');
+                            if (templateSelect) {
+                                templateSelect.value = 'fulfiller-order';
+                                loadEmailTemplate();
+                            }
+                        }, 100);
                     }
                 })
                 .catch(err => {
@@ -1763,10 +1864,18 @@
                                 subscribers: subscribers || [],
                                 products: products || []
                             };
-                            showComposeEmail('', 'Newsletter Update');
                             
-                            // Add product selection UI after modal opens
+                            // Add all subscriber emails to "to" field
+                            const subscriberEmails = (subscribers || []).map(s => s.email).join(', ');
+                            showComposeEmail(subscriberEmails, 'Newsletter Update');
+                            
+                            // Show template section and add subscribers button
                             setTimeout(() => {
+                                const templateSection = document.getElementById('email-template-section');
+                                const addSubscribersBtn = document.getElementById('add-subscribers-btn');
+                                if (templateSection) templateSection.classList.remove('hidden');
+                                if (addSubscribersBtn) addSubscribersBtn.classList.remove('hidden');
+                                
                                 const builder = document.getElementById('email-builder');
                                 const productSelectHtml = `
                                     <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="product-select">
@@ -1784,15 +1893,190 @@
                         })
                         .catch(err => {
                             console.error('Error loading products:', err);
-                            window.currentEmailContext = { type: 'broadcast' };
-                            showComposeEmail('', 'Newsletter Update');
+                            window.currentEmailContext = { type: 'broadcast', subscribers: subscribers || [] };
+                            const subscriberEmails = (subscribers || []).map(s => s.email).join(', ');
+                            showComposeEmail(subscriberEmails, 'Newsletter Update');
+                            setTimeout(() => {
+                                const templateSection = document.getElementById('email-template-section');
+                                const addSubscribersBtn = document.getElementById('add-subscribers-btn');
+                                if (templateSection) templateSection.classList.remove('hidden');
+                                if (addSubscribersBtn) addSubscribersBtn.classList.remove('hidden');
+                            }, 100);
                         });
                 })
                 .catch(err => {
                     console.error('Error loading subscribers:', err);
                     window.currentEmailContext = { type: 'broadcast' };
                     showComposeEmail('', 'Newsletter Update');
+                    setTimeout(() => {
+                        const templateSection = document.getElementById('email-template-section');
+                        if (templateSection) templateSection.classList.remove('hidden');
+                    }, 100);
                 });
+        }
+        
+        function addAllSubscribers() {
+            const context = window.currentEmailContext || {};
+            const subscribers = context.subscribers || [];
+            if (subscribers.length === 0) {
+                // Try to fetch subscribers
+                adminFetch(`${BACKEND_URL}/api/admin/subscribers`)
+                    .then(data => {
+                        const emails = (data || []).map(s => s.email).join(', ');
+                        document.getElementById('compose-to').value = emails;
+                    })
+                    .catch(err => {
+                        alert('Error loading subscribers: ' + err.message);
+                    });
+            } else {
+                const emails = subscribers.map(s => s.email).join(', ');
+                document.getElementById('compose-to').value = emails;
+            }
+        }
+        
+        function loadEmailTemplate() {
+            const templateSelect = document.getElementById('email-template-select');
+            const template = templateSelect.value;
+            const context = window.currentEmailContext || {};
+            
+            if (!template) return;
+            
+            const builder = document.getElementById('email-builder');
+            let templateHtml = '';
+            let subject = document.getElementById('compose-subject').value || '';
+            
+            switch(template) {
+                case 'promotion':
+                    subject = subject || '🎉 Special Promotion - Limited Time Offer!';
+                    templateHtml = `
+                        <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="heading">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs text-gray-500 font-medium">Heading Section</span>
+                                <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
+                            </div>
+                            <select class="w-full mb-2 px-2 py-1 border border-gray-200 rounded text-sm">
+                                <option value="h1">H1 (Large)</option>
+                                <option value="h2" selected>H2 (Medium)</option>
+                                <option value="h3">H3 (Small)</option>
+                            </select>
+                            <input type="text" class="w-full px-3 py-2 border border-gray-200 rounded text-sm font-bold" placeholder="Enter heading text..." value="🎉 Special Promotion - Limited Time Offer!">
+                        </div>
+                        <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="text">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs text-gray-500 font-medium">Text Section</span>
+                                <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
+                            </div>
+                            <textarea class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="4" placeholder="Enter text content...">Don't miss out on our amazing promotion! Shop now and save big on selected items.</textarea>
+                        </div>
+                        <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="button">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs text-gray-500 font-medium">Button Section</span>
+                                <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
+                            </div>
+                            <input type="text" class="w-full mb-2 px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Button text..." value="Shop Now">
+                            <input type="url" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Button URL..." value="https://saintventura.co.za">
+                        </div>
+                    `;
+                    break;
+                case 'new-product':
+                    subject = subject || '✨ New Product Launch - Check It Out!';
+                    templateHtml = `
+                        <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="heading">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs text-gray-500 font-medium">Heading Section</span>
+                                <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
+                            </div>
+                            <select class="w-full mb-2 px-2 py-1 border border-gray-200 rounded text-sm">
+                                <option value="h1" selected>H1 (Large)</option>
+                                <option value="h2">H2 (Medium)</option>
+                                <option value="h3">H3 (Small)</option>
+                            </select>
+                            <input type="text" class="w-full px-3 py-2 border border-gray-200 rounded text-sm font-bold" placeholder="Enter heading text..." value="✨ New Product Launch!">
+                        </div>
+                        <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="text">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs text-gray-500 font-medium">Text Section</span>
+                                <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
+                            </div>
+                            <textarea class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="4" placeholder="Enter text content...">We're excited to introduce our latest collection! Discover new styles and be the first to get your hands on these exclusive pieces.</textarea>
+                        </div>
+                        <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="button">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs text-gray-500 font-medium">Button Section</span>
+                                <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
+                            </div>
+                            <input type="text" class="w-full mb-2 px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Button text..." value="View New Products">
+                            <input type="url" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Button URL..." value="https://saintventura.co.za">
+                        </div>
+                    `;
+                    break;
+                case 'news':
+                    subject = subject || '📰 Saint Ventura News & Updates';
+                    templateHtml = `
+                        <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="heading">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs text-gray-500 font-medium">Heading Section</span>
+                                <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
+                            </div>
+                            <select class="w-full mb-2 px-2 py-1 border border-gray-200 rounded text-sm">
+                                <option value="h1">H1 (Large)</option>
+                                <option value="h2" selected>H2 (Medium)</option>
+                                <option value="h3">H3 (Small)</option>
+                            </select>
+                            <input type="text" class="w-full px-3 py-2 border border-gray-200 rounded text-sm font-bold" placeholder="Enter heading text..." value="📰 Latest News & Updates">
+                        </div>
+                        <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="text">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs text-gray-500 font-medium">Text Section</span>
+                                <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
+                            </div>
+                            <textarea class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="6" placeholder="Enter text content...">Stay updated with the latest news from Saint Ventura. We have exciting updates to share with you!</textarea>
+                        </div>
+                    `;
+                    break;
+                case 'fulfiller-order':
+                    if (context.type === 'fulfiller' && context.orderDetails) {
+                        templateHtml = `
+                            <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="text">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-xs text-gray-500 font-medium">Text Section</span>
+                                    <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
+                                </div>
+                                <textarea class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="8" placeholder="Enter text content...">Hi there,
+
+You have a new order to fulfill:
+
+${context.orderDetails}
+
+Please process this order as soon as possible.
+
+Thank you!</textarea>
+                            </div>
+                        `;
+                    } else {
+                        templateHtml = `
+                            <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="text">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-xs text-gray-500 font-medium">Text Section</span>
+                                    <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
+                                </div>
+                                <textarea class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="8" placeholder="Enter order details...">Hi there,
+
+You have a new order to fulfill. Please check the order details and process it as soon as possible.
+
+Thank you!</textarea>
+                            </div>
+                        `;
+                    }
+                    break;
+            }
+            
+            if (templateHtml) {
+                builder.innerHTML = templateHtml;
+                if (subject) {
+                    document.getElementById('compose-subject').value = subject;
+                }
+            }
         }
         
         function openAbandonedCartEmailComposer() {
@@ -2126,16 +2410,20 @@
                     submitBtn.textContent = originalText;
                 });
             } else if (context.type === 'broadcast') {
-                // Send to all subscribers
+                // Send to all subscribers (use "to" field which already has all subscribers)
                 const productSelect = document.getElementById('broadcast-products');
                 const products = productSelect ? Array.from(productSelect.selectedOptions || []).map(o => o.value) : [];
+                const templateSelect = document.getElementById('email-template-select');
+                const template = templateSelect ? templateSelect.value : '';
                 adminFetch(`${BACKEND_URL}/api/admin/broadcast`, {
                     method: 'POST',
                     body: JSON.stringify({ 
                         subject: subject, 
                         message: body,
                         html: html,
-                        products: products
+                        products: products,
+                        template: template,
+                        recipients: to // Include recipients in case user modified them
                     })
                 })
                 .then(data => {
@@ -2186,10 +2474,12 @@
                     submitBtn.textContent = originalText;
                 });
             } else {
-                // Default: send to inbox (single recipient)
+                // Default: send to inbox (supports multiple recipients)
+                // Parse multiple recipients (comma-separated)
+                const recipients = to.split(',').map(r => r.trim()).filter(r => r);
                 adminFetch(`${BACKEND_URL}/api/admin/inbox/send`, {
                     method: 'POST',
-                    body: JSON.stringify({ to, subject, body, html: html })
+                    body: JSON.stringify({ to: recipients.join(', '), subject, body, html: html })
                 })
                 .then(data => {
                     if (data.success) {
@@ -2248,7 +2538,34 @@
         });
 
         function refreshInbox() {
-            loadInbox();
+            // First fetch new emails from IMAP, then load inbox
+            const list = document.getElementById('inbox-list');
+            list.innerHTML = '<div class="text-center py-8 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Fetching latest emails...</span></div></div>';
+            
+            adminFetch(`${BACKEND_URL}/api/admin/inbox/fetch`, {
+                method: 'POST'
+            })
+            .then(data => {
+                console.log('Email fetch result:', data);
+                if (data.success) {
+                    console.log(`Fetched ${data.fetched || 0} emails, ${data.new || 0} new emails added`);
+                    if (data.new > 0) {
+                        // Show notification
+                        const notification = document.createElement('div');
+                        notification.className = 'fixed top-20 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+                        notification.textContent = `Fetched ${data.new} new email(s)`;
+                        document.body.appendChild(notification);
+                        setTimeout(() => notification.remove(), 3000);
+                    }
+                }
+                // Load inbox regardless of fetch result
+                loadInbox();
+            })
+            .catch(err => {
+                console.error('Error fetching emails:', err);
+                // Still load inbox even if fetch fails
+                loadInbox();
+            });
         }
 
         // Broadcast functions
@@ -2519,9 +2836,26 @@
 
         document.getElementById('add-fulfiller-form').addEventListener('submit', (e) => {
             e.preventDefault();
-            const name = document.getElementById('fulfiller-name').value;
-            const email = document.getElementById('fulfiller-email').value;
-            const phone = document.getElementById('fulfiller-phone').value;
+            const name = document.getElementById('fulfiller-name').value.trim();
+            const email = document.getElementById('fulfiller-email').value.trim();
+            const phone = document.getElementById('fulfiller-phone').value.trim();
+            
+            // Validate inputs
+            if (!name || !email || !phone) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            // Validate email format
+            if (!email.includes('@') || !email.includes('.')) {
+                alert('Please enter a valid email address');
+                return;
+            }
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Adding...';
 
             adminFetch(`${BACKEND_URL}/api/admin/fulfillers`, {
                 method: 'POST',
@@ -2531,13 +2865,23 @@
                 if (data.success) {
                     closeAddFulfillerModal();
                     loadFulfillers();
+                    // Show success notification
+                    const notification = document.createElement('div');
+                    notification.className = 'fixed top-20 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+                    notification.textContent = 'Fulfiller added successfully!';
+                    document.body.appendChild(notification);
+                    setTimeout(() => notification.remove(), 3000);
                 } else {
                     alert('Error: ' + (data.error || 'Failed to add fulfiller'));
                 }
             })
             .catch(err => {
                 console.error('Error adding fulfiller:', err);
-                alert('Error: ' + err.message);
+                alert('Error: ' + (err.message || 'Failed to add fulfiller. Please check your connection.'));
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
             });
         });
 

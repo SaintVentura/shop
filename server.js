@@ -1266,13 +1266,13 @@ async function fetchEmailsFromIMAP() {
         const totalMessages = box.messages.total;
         console.log(`Total messages in inbox: ${totalMessages}`);
         
-        // Fetch all recent emails (up to 500 for better coverage)
-        const fetchCount = Math.min(totalMessages, 500);
+        // Fetch ALL emails (or up to 1000 for very large inboxes)
+        const fetchCount = Math.min(totalMessages, 1000);
         const fetchRange = totalMessages > 0 ? `1:${fetchCount}` : '1:1';
         
-        console.log(`Fetching emails: ${fetchRange}`);
+        console.log(`Fetching emails: ${fetchRange} (${fetchCount} emails)`);
         
-        // Fetch recent emails
+        // Fetch emails
         const fetch = imap.seq.fetch(fetchRange, {
           bodies: '',
           struct: true
@@ -1685,16 +1685,39 @@ app.post('/api/admin/inbox/send', adminAuth, async (req, res) => {
     // Strip HTML tags for plain text version
     const emailText = body.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim() || body;
     
-    await emailTransporter.sendMail({
-      from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
-      to: to,
-      replyTo: replyTo || process.env.EMAIL_USER,
-      subject: subject,
-      text: emailText,
-      html: emailHtml
-    });
+    // Parse multiple recipients (comma-separated)
+    const recipients = to.split(',').map(r => r.trim()).filter(r => r);
     
-    // Store sent email in inbox
+    let sentCount = 0;
+    let errors = [];
+    
+    // Send to each recipient
+    for (const recipient of recipients) {
+      try {
+        await emailTransporter.sendMail({
+          from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
+          to: recipient,
+          replyTo: replyTo || process.env.EMAIL_USER,
+          subject: subject,
+          text: emailText,
+          html: emailHtml
+        });
+        sentCount++;
+        console.log(`✅ Email sent to: ${recipient}`);
+      } catch (error) {
+        console.error(`❌ Error sending to ${recipient}:`, error.message);
+        errors.push(recipient);
+      }
+    }
+    
+    if (sentCount === 0) {
+      return res.status(500).json({ 
+        success: false,
+        error: `Failed to send emails. Errors: ${errors.slice(0, 3).join(', ')}${errors.length > 3 ? '...' : ''}` 
+      });
+    }
+    
+    // Store sent email in inbox (one entry for all recipients)
     const inbox = await readDataFile('inbox');
     inbox.push({
       id: Date.now().toString(),
@@ -1709,7 +1732,7 @@ app.post('/api/admin/inbox/send', adminAuth, async (req, res) => {
     });
     await writeDataFile('inbox', inbox);
     
-    res.json({ success: true });
+    res.json({ success: true, sent: sentCount, total: recipients.length, errors: errors.length });
   } catch (error) {
     console.error('Error sending email:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1890,27 +1913,36 @@ app.get('/api/admin/products', adminAuth, async (req, res) => {
 
 app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
   try {
-    const { template, subject, message, products } = req.body;
+    const { template, subject, message, products, html, recipients } = req.body;
     
     // Validate required fields
-    if (!subject || !message) {
+    if (!subject || (!message && !html)) {
       return res.status(400).json({ success: false, error: 'Subject and message are required' });
     }
     
-    const subscribers = await readDataFile('subscribers');
+    let targetSubscribers = await readDataFile('subscribers');
     
-    if (subscribers.length === 0) {
+    // If recipients are provided, use those instead of all subscribers
+    if (recipients && recipients.trim()) {
+      const recipientEmails = recipients.split(',').map(r => r.trim()).filter(r => r);
+      targetSubscribers = targetSubscribers.filter(s => recipientEmails.includes(s.email));
+    }
+    
+    if (targetSubscribers.length === 0) {
       return res.json({ success: false, error: 'No subscribers found' });
     }
 
     // Build email content based on template
     let emailSubject = subject || 'Saint Ventura Update';
     let emailBody = message || '';
+    let emailHtml = html || message.replace(/\n/g, '<br>');
 
     if (template === 'promotion' && products && products.length > 0) {
       const selectedProducts = PRODUCTS.filter(p => products.includes(p.id.toString()) || products.includes(String(p.id)));
       if (selectedProducts.length > 0) {
-        emailBody = `Check out our latest products:\n\n${selectedProducts.map(p => `- ${p.name}: R${(p.price || 0).toFixed(2)}`).join('\n')}\n\n${message}`;
+        const productList = selectedProducts.map(p => `- ${p.name}: R${(p.price || 0).toFixed(2)}`).join('\n');
+        emailBody = `Check out our latest products:\n\n${productList}\n\n${message}`;
+        emailHtml = `<p>Check out our latest products:</p><ul>${selectedProducts.map(p => `<li>${p.name}: R${(p.price || 0).toFixed(2)}</li>`).join('')}</ul><p>${message.replace(/\n/g, '<br>')}</p>`;
       }
     }
 
@@ -1925,14 +1957,14 @@ app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
     }
     
     if (emailTransporter) {
-      for (const subscriber of subscribers) {
+      for (const subscriber of targetSubscribers) {
         try {
           await emailTransporter.sendMail({
             from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
             to: subscriber.email,
             subject: emailSubject,
             text: emailBody,
-            html: emailBody.replace(/\n/g, '<br>')
+            html: emailHtml
           });
           sent++;
           console.log(`✅ Email sent to subscriber: ${subscriber.email}`);
@@ -1956,7 +1988,7 @@ app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
       });
     }
 
-    res.json({ success: true, sent, total: subscribers.length, errors: errors.length });
+    res.json({ success: true, sent, total: targetSubscribers.length, errors: errors.length });
   } catch (error) {
     console.error('Broadcast error:', error);
     res.status(500).json({ success: false, error: error.message || 'Failed to send broadcast' });
