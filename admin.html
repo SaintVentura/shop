@@ -842,6 +842,7 @@
         let allInventoryData = [];
         let allOrdersData = [];
         let currentViewingEmail = null;
+        let emailBuilderSections = null; // Store sections when entering preview
         
         // Auto-detect backend URL based on environment (same as index.html)
         function getBackendUrl() {
@@ -1728,10 +1729,33 @@
             });
         }
         
+        // Make showComposeEmail globally accessible
         function showComposeEmail(replyTo = null, replySubject = null) {
-            const modal = document.getElementById('compose-email-modal');
-            const form = document.getElementById('compose-email-form');
-            const builder = document.getElementById('email-builder');
+            console.log('showComposeEmail called with:', { replyTo, replySubject });
+            
+            try {
+                const modal = document.getElementById('compose-email-modal');
+                const form = document.getElementById('compose-email-form');
+                const builder = document.getElementById('email-builder');
+                
+                // Check if required elements exist
+                if (!modal) {
+                    console.error('Compose email modal not found');
+                    alert('Error: Email composer modal not found. Please refresh the page.');
+                    return;
+                }
+                
+                if (!form) {
+                    console.error('Compose email form not found');
+                    alert('Error: Email composer form not found. Please refresh the page.');
+                    return;
+                }
+                
+                if (!builder) {
+                    console.error('Email builder not found');
+                    alert('Error: Email builder not found. Please refresh the page.');
+                    return;
+                }
             
             // Clear saved sections when opening new compose
             emailBuilderSections = null;
@@ -1749,8 +1773,12 @@
             
             // Reset form
             if (replyTo) {
-                document.getElementById('compose-to').value = replyTo;
-                document.getElementById('compose-subject').value = replySubject ? (replySubject.startsWith('Re:') ? replySubject : `Re: ${replySubject}`) : 'Re: ';
+                const toField = document.getElementById('compose-to');
+                const subjectField = document.getElementById('compose-subject');
+                if (toField) toField.value = replyTo;
+                if (subjectField) {
+                    subjectField.value = replySubject ? (replySubject.startsWith('Re:') ? replySubject : `Re: ${replySubject}`) : 'Re: ';
+                }
             } else {
                 form.reset();
             }
@@ -1775,21 +1803,42 @@
             }
             
             // Reset preview mode
-            document.getElementById('preview-mode').checked = false;
+            const previewMode = document.getElementById('preview-mode');
+            if (previewMode) previewMode.checked = false;
             
-            // Show modal
-            modal.classList.remove('hidden');
-        }
-        
-        function closeComposeEmail() {
-            document.getElementById('compose-email-modal').classList.add('hidden');
-            document.getElementById('compose-email-form').reset();
-            document.getElementById('email-builder').innerHTML = '';
-            // Clear context
-            if (window.currentEmailContext) {
-                window.currentEmailContext = null;
+                // Show modal
+                modal.classList.remove('hidden');
+                console.log('Compose email modal opened successfully');
+            } catch (error) {
+                console.error('Error in showComposeEmail:', error);
+                alert('Error opening email composer: ' + error.message);
             }
         }
+        
+        // Ensure function is accessible globally
+        window.showComposeEmail = showComposeEmail;
+        
+        function closeComposeEmail() {
+            try {
+                const modal = document.getElementById('compose-email-modal');
+                const form = document.getElementById('compose-email-form');
+                const builder = document.getElementById('email-builder');
+                
+                if (modal) modal.classList.add('hidden');
+                if (form) form.reset();
+                if (builder) builder.innerHTML = '';
+                
+                // Clear context
+                if (window.currentEmailContext) {
+                    window.currentEmailContext = null;
+                }
+            } catch (error) {
+                console.error('Error closing compose email:', error);
+            }
+        }
+        
+        // Ensure function is accessible globally
+        window.closeComposeEmail = closeComposeEmail;
         
         // Context-specific email composer functions
         function openFulfillerEmailComposer() {
@@ -2216,7 +2265,7 @@ Thank you!</textarea>
             button.closest('.email-section').remove();
         }
         
-        let emailBuilderSections = null; // Store sections when entering preview
+        // emailBuilderSections is declared at the top of the script
         
         function toggleEmailPreview() {
             const previewMode = document.getElementById('preview-mode').checked;
