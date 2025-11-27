@@ -1197,21 +1197,51 @@ if (process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS) 
 async function fetchEmailsFromIMAP() {
   return new Promise((resolve, reject) => {
     if (!process.env.IMAP_HOST || !process.env.IMAP_USER || !process.env.IMAP_PASS) {
+      console.log('IMAP not configured - skipping email fetch');
       return resolve([]);
     }
     
+    // Properly handle password with special characters
+    const imapUser = String(process.env.IMAP_USER).trim();
+    const imapPass = String(process.env.IMAP_PASS).trim().replace(/^["']|["']$/g, ''); // Remove surrounding quotes if present
+    const imapHost = String(process.env.IMAP_HOST).trim();
+    const imapPort = parseInt(process.env.IMAP_PORT || 993);
+    
+    console.log('Connecting to IMAP:', {
+      host: imapHost,
+      port: imapPort,
+      user: imapUser,
+      passLength: imapPass.length
+    });
+    
     const imap = new Imap({
-      user: process.env.IMAP_USER,
-      password: process.env.IMAP_PASS,
-      host: process.env.IMAP_HOST,
-      port: parseInt(process.env.IMAP_PORT || 993),
+      user: imapUser,
+      password: imapPass,
+      host: imapHost,
+      port: imapPort,
       tls: true,
-      tlsOptions: { rejectUnauthorized: false }
+      tlsOptions: { 
+        rejectUnauthorized: false,
+        servername: imapHost
+      },
+      connTimeout: 10000,
+      authTimeout: 5000
     });
     
     const emails = [];
+    let connectionTimeout;
+    
+    // Set connection timeout
+    connectionTimeout = setTimeout(() => {
+      if (imap && imap.state !== 'authenticated') {
+        imap.end();
+        reject(new Error('IMAP connection timeout'));
+      }
+    }, 15000);
     
     imap.once('ready', () => {
+      clearTimeout(connectionTimeout);
+      console.log('IMAP connected successfully');
       imap.openBox('INBOX', false, (err, box) => {
         if (err) {
           console.error('Error opening inbox:', err);
@@ -1219,13 +1249,22 @@ async function fetchEmailsFromIMAP() {
           return reject(err);
         }
         
+        console.log('IMAP inbox opened, fetching emails...');
+        
+        // Get total messages
+        const totalMessages = box.messages.total;
+        const fetchRange = totalMessages > 50 ? `${totalMessages - 49}:${totalMessages}` : `1:${totalMessages}`;
+        
         // Fetch recent emails (last 50)
-        const fetch = imap.seq.fetch('1:50', {
+        const fetch = imap.seq.fetch(fetchRange, {
           bodies: '',
           struct: true
         });
         
+        let messageCount = 0;
+        
         fetch.on('message', (msg, seqno) => {
+          messageCount++;
           msg.on('body', (stream, info) => {
             simpleParser(stream, (err, parsed) => {
               if (err) {
@@ -1248,18 +1287,42 @@ async function fetchEmailsFromIMAP() {
         });
         
         fetch.once('end', () => {
+          console.log(`Fetched ${messageCount} emails from IMAP`);
           imap.end();
           resolve(emails);
+        });
+        
+        fetch.once('error', (err) => {
+          console.error('Error fetching emails:', err);
+          imap.end();
+          reject(err);
         });
       });
     });
     
     imap.once('error', (err) => {
-      console.error('IMAP error:', err);
-      reject(err);
+      clearTimeout(connectionTimeout);
+      console.error('IMAP connection error:', err);
+      console.error('Error details:', {
+        message: err.message,
+        code: err.code,
+        source: err.source
+      });
+      reject(new Error(`IMAP connection failed: ${err.message}`));
     });
     
-    imap.connect();
+    imap.once('end', () => {
+      clearTimeout(connectionTimeout);
+      console.log('IMAP connection ended');
+    });
+    
+    try {
+      imap.connect();
+    } catch (error) {
+      clearTimeout(connectionTimeout);
+      console.error('Error initiating IMAP connection:', error);
+      reject(error);
+    }
   });
 }
 
@@ -1516,6 +1579,13 @@ app.post('/api/admin/inbox/add', adminAuth, async (req, res) => {
 // Fetch emails from IMAP manually
 app.post('/api/admin/inbox/fetch', adminAuth, async (req, res) => {
   try {
+    if (!process.env.IMAP_HOST || !process.env.IMAP_USER || !process.env.IMAP_PASS) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'IMAP not configured. Please set IMAP_HOST, IMAP_USER, and IMAP_PASS in .env file' 
+      });
+    }
+    
     const imapEmails = await fetchEmailsFromIMAP();
     const inbox = await readDataFile('inbox');
     let newEmails = 0;
@@ -1538,7 +1608,10 @@ app.post('/api/admin/inbox/fetch', adminAuth, async (req, res) => {
     res.json({ success: true, fetched: imapEmails ? imapEmails.length : 0, new: newEmails });
   } catch (error) {
     console.error('Error fetching emails from IMAP:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Failed to fetch emails. Check IMAP settings and password.' 
+    });
   }
 });
 
