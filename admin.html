@@ -734,26 +734,58 @@
     </div>
 
     <!-- Compose Email Modal -->
-    <div id="compose-email-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-4">
+    <div id="compose-email-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4" style="padding-top: 5rem;">
+        <div class="bg-white rounded-lg p-6 w-full max-w-5xl max-h-[85vh] overflow-y-auto shadow-2xl" style="margin-top: 2rem;">
+            <div class="flex justify-between items-center mb-4 sticky top-0 bg-white pb-4 border-b">
                 <h3 class="text-xl font-semibold">Compose Email</h3>
                 <button onclick="closeComposeEmail()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
             </div>
             <form id="compose-email-form" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium mb-2">To</label>
-                    <input type="email" id="compose-to" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required placeholder="recipient@example.com">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">To</label>
+                        <input type="email" id="compose-to" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required placeholder="recipient@example.com">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Subject</label>
+                        <input type="text" id="compose-subject" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required placeholder="Email subject">
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium mb-2">Subject</label>
-                    <input type="text" id="compose-subject" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required placeholder="Email subject">
+                
+                <!-- Email Builder Toolbar -->
+                <div class="border border-gray-300 rounded-lg p-3 bg-gray-50">
+                    <p class="text-sm font-medium mb-2">Add Section:</p>
+                    <div class="flex flex-wrap gap-2">
+                        <button type="button" onclick="addEmailSection('text')" class="px-3 py-1 bg-white border border-gray-300 rounded text-sm hover:bg-gray-100">Text</button>
+                        <button type="button" onclick="addEmailSection('heading')" class="px-3 py-1 bg-white border border-gray-300 rounded text-sm hover:bg-gray-100">Heading</button>
+                        <button type="button" onclick="addEmailSection('image')" class="px-3 py-1 bg-white border border-gray-300 rounded text-sm hover:bg-gray-100">Image</button>
+                        <button type="button" onclick="addEmailSection('button')" class="px-3 py-1 bg-white border border-gray-300 rounded text-sm hover:bg-gray-100">Button</button>
+                        <button type="button" onclick="addEmailSection('divider')" class="px-3 py-1 bg-white border border-gray-300 rounded text-sm hover:bg-gray-100">Divider</button>
+                        <button type="button" onclick="addEmailSection('spacer')" class="px-3 py-1 bg-white border border-gray-300 rounded text-sm hover:bg-gray-100">Spacer</button>
+                    </div>
                 </div>
+                
+                <!-- Email Builder Canvas -->
                 <div>
-                    <label class="block text-sm font-medium mb-2">Message</label>
-                    <textarea id="compose-body" rows="10" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required placeholder="Your message here..."></textarea>
+                    <label class="block text-sm font-medium mb-2">Email Content</label>
+                    <div id="email-builder" class="border border-gray-300 rounded-lg p-4 min-h-[400px] bg-white space-y-4">
+                        <div class="email-section" data-type="text">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs text-gray-500">Text Section</span>
+                                <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
+                            </div>
+                            <textarea class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="3" placeholder="Enter text content..."></textarea>
+                        </div>
+                    </div>
                 </div>
-                <div class="flex space-x-2">
+                
+                <!-- Preview Toggle -->
+                <div class="flex items-center space-x-2">
+                    <input type="checkbox" id="preview-mode" onchange="toggleEmailPreview()" class="rounded">
+                    <label for="preview-mode" class="text-sm">Preview Mode</label>
+                </div>
+                
+                <div class="flex space-x-2 sticky bottom-0 bg-white pt-4 border-t">
                     <button type="submit" class="flex-1 bg-black text-white py-2 rounded-lg hover:bg-gray-800 font-medium">Send</button>
                     <button type="button" onclick="closeComposeEmail()" class="flex-1 bg-gray-300 text-black py-2 rounded-lg hover:bg-gray-400">Cancel</button>
                 </div>
@@ -762,9 +794,9 @@
     </div>
 
     <!-- View/Reply Email Modal -->
-    <div id="view-email-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-4">
+    <div id="view-email-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4" style="padding-top: 5rem;">
+        <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[85vh] overflow-y-auto shadow-2xl" style="margin-top: 2rem;">
+            <div class="flex justify-between items-center mb-4 sticky top-0 bg-white pb-4 border-b">
                 <h3 class="text-xl font-semibold" id="view-email-subject">Email</h3>
                 <button onclick="closeViewEmail()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
             </div>
@@ -774,10 +806,11 @@
                     <p class="text-sm text-gray-600">Date: <span id="view-email-date" class="font-medium"></span></p>
                 </div>
                 <div class="border-t pt-4">
-                    <div id="view-email-body" class="whitespace-pre-wrap text-gray-800"></div>
+                    <div id="view-email-body" class="email-content-container"></div>
                 </div>
-                <div class="flex space-x-2 pt-4 border-t">
+                <div class="flex space-x-2 pt-4 border-t sticky bottom-0 bg-white">
                     <button onclick="replyToEmail()" class="flex-1 bg-black text-white py-2 rounded-lg hover:bg-gray-800 font-medium">Reply</button>
+                    <button onclick="deleteEmail()" class="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 font-medium">Delete</button>
                     <button onclick="closeViewEmail()" class="flex-1 bg-gray-300 text-black py-2 rounded-lg hover:bg-gray-400">Close</button>
                 </div>
             </div>
@@ -1485,7 +1518,41 @@
                     document.getElementById('view-email-subject').textContent = email.subject || '(No Subject)';
                     document.getElementById('view-email-from').textContent = email.name || email.from || email.to || 'Unknown';
                     document.getElementById('view-email-date').textContent = email.date ? new Date(email.date).toLocaleString() : 'Unknown';
-                    document.getElementById('view-email-body').textContent = email.body || email.message || '(No content)';
+                    
+                    // Render email content with HTML support
+                    const emailBody = document.getElementById('view-email-body');
+                    const emailContent = email.html || email.body || email.message || '(No content)';
+                    
+                    // Use iframe for safe HTML rendering
+                    emailBody.innerHTML = '';
+                    const iframe = document.createElement('iframe');
+                    iframe.style.width = '100%';
+                    iframe.style.minHeight = '400px';
+                    iframe.style.border = '1px solid #e5e7eb';
+                    iframe.style.borderRadius = '8px';
+                    iframe.srcdoc = `
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta charset="utf-8">
+                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                            <style>
+                                body { 
+                                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                                    padding: 20px;
+                                    margin: 0;
+                                    line-height: 1.6;
+                                    color: #333;
+                                }
+                                img { max-width: 100%; height: auto; }
+                                a { color: #000; text-decoration: underline; }
+                                table { width: 100%; border-collapse: collapse; }
+                            </style>
+                        </head>
+                        <body>${emailContent}</body>
+                        </html>
+                    `;
+                    emailBody.appendChild(iframe);
                     
                     document.getElementById('view-email-modal').classList.remove('hidden');
                     
@@ -1498,6 +1565,28 @@
                     console.error('Error loading email:', err);
                     alert('Error loading email: ' + err.message);
                 });
+        }
+        
+        function deleteEmail() {
+            if (!currentViewingEmail) return;
+            if (!confirm('Delete this email?')) return;
+            
+            adminFetch(`${BACKEND_URL}/api/admin/inbox/${currentViewingEmail.id}`, {
+                method: 'DELETE'
+            })
+            .then(data => {
+                if (data.success) {
+                    closeViewEmail();
+                    loadInbox();
+                    updateBadges();
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to delete email'));
+                }
+            })
+            .catch(err => {
+                console.error('Error deleting email:', err);
+                alert('Error deleting email: ' + err.message);
+            });
         }
         
         function closeViewEmail() {
@@ -1553,12 +1642,17 @@
         function showComposeEmail(replyTo = null, replySubject = null) {
             const modal = document.getElementById('compose-email-modal');
             const form = document.getElementById('compose-email-form');
+            const builder = document.getElementById('email-builder');
+            
+            // Reset builder
+            builder.innerHTML = '<div class="email-section" data-type="text"><div class="flex justify-between items-center mb-2"><span class="text-xs text-gray-500">Text Section</span><button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button></div><textarea class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="3" placeholder="Enter text content..."></textarea></div>';
             
             if (replyTo) {
                 document.getElementById('compose-to').value = replyTo;
                 document.getElementById('compose-subject').value = replySubject ? `Re: ${replySubject}` : 'Re: ';
             } else {
                 form.reset();
+                builder.innerHTML = '<div class="email-section" data-type="text"><div class="flex justify-between items-center mb-2"><span class="text-xs text-gray-500">Text Section</span><button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button></div><textarea class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="3" placeholder="Enter text content..."></textarea></div>';
             }
             
             modal.classList.remove('hidden');
@@ -1567,6 +1661,155 @@
         function closeComposeEmail() {
             document.getElementById('compose-email-modal').classList.add('hidden');
             document.getElementById('compose-email-form').reset();
+            document.getElementById('email-builder').innerHTML = '';
+        }
+        
+        function addEmailSection(type) {
+            const builder = document.getElementById('email-builder');
+            let sectionHtml = '';
+            
+            switch(type) {
+                case 'text':
+                    sectionHtml = `
+                        <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="text">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs text-gray-500 font-medium">Text Section</span>
+                                <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
+                            </div>
+                            <textarea class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="4" placeholder="Enter text content..."></textarea>
+                        </div>
+                    `;
+                    break;
+                case 'heading':
+                    sectionHtml = `
+                        <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="heading">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs text-gray-500 font-medium">Heading Section</span>
+                                <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
+                            </div>
+                            <select class="w-full mb-2 px-2 py-1 border border-gray-200 rounded text-sm">
+                                <option value="h1">H1 (Large)</option>
+                                <option value="h2">H2 (Medium)</option>
+                                <option value="h3">H3 (Small)</option>
+                            </select>
+                            <input type="text" class="w-full px-3 py-2 border border-gray-200 rounded text-sm font-bold" placeholder="Enter heading text...">
+                        </div>
+                    `;
+                    break;
+                case 'image':
+                    sectionHtml = `
+                        <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="image">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs text-gray-500 font-medium">Image Section</span>
+                                <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
+                            </div>
+                            <input type="url" class="w-full mb-2 px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Image URL...">
+                            <input type="text" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Alt text (optional)">
+                        </div>
+                    `;
+                    break;
+                case 'button':
+                    sectionHtml = `
+                        <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="button">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs text-gray-500 font-medium">Button Section</span>
+                                <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
+                            </div>
+                            <input type="text" class="w-full mb-2 px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Button text...">
+                            <input type="url" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Button URL...">
+                        </div>
+                    `;
+                    break;
+                case 'divider':
+                    sectionHtml = `
+                        <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="divider">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs text-gray-500 font-medium">Divider Section</span>
+                                <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
+                            </div>
+                            <div class="border-t-2 border-gray-300"></div>
+                        </div>
+                    `;
+                    break;
+                case 'spacer':
+                    sectionHtml = `
+                        <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="spacer">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs text-gray-500 font-medium">Spacer Section</span>
+                                <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
+                            </div>
+                            <input type="number" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Height in pixels (e.g., 20)" value="20" min="10" max="100">
+                        </div>
+                    `;
+                    break;
+            }
+            
+            builder.insertAdjacentHTML('beforeend', sectionHtml);
+        }
+        
+        function removeEmailSection(button) {
+            button.closest('.email-section').remove();
+        }
+        
+        function toggleEmailPreview() {
+            const previewMode = document.getElementById('preview-mode').checked;
+            const builder = document.getElementById('email-builder');
+            
+            if (previewMode) {
+                // Generate HTML preview
+                const sections = builder.querySelectorAll('.email-section');
+                let html = '';
+                
+                sections.forEach(section => {
+                    const type = section.dataset.type;
+                    switch(type) {
+                        case 'text':
+                            const text = section.querySelector('textarea').value;
+                            html += `<p style="margin: 10px 0; line-height: 1.6;">${text.replace(/\n/g, '<br>')}</p>`;
+                            break;
+                        case 'heading':
+                            const headingLevel = section.querySelector('select').value;
+                            const headingText = section.querySelector('input').value;
+                            html += `<${headingLevel} style="margin: 15px 0; font-weight: bold;">${headingText}</${headingLevel}>`;
+                            break;
+                        case 'image':
+                            const imgUrl = section.querySelectorAll('input')[0].value;
+                            const altText = section.querySelectorAll('input')[1].value;
+                            if (imgUrl) {
+                                html += `<img src="${imgUrl}" alt="${altText || ''}" style="max-width: 100%; height: auto; margin: 10px 0; display: block;">`;
+                            }
+                            break;
+                        case 'button':
+                            const btnText = section.querySelectorAll('input')[0].value;
+                            const btnUrl = section.querySelectorAll('input')[1].value;
+                            if (btnText && btnUrl) {
+                                html += `<div style="margin: 15px 0; text-align: center;"><a href="${btnUrl}" style="display: inline-block; padding: 12px 24px; background-color: #000; color: #fff; text-decoration: none; border-radius: 4px; font-weight: bold;">${btnText}</a></div>`;
+                            }
+                            break;
+                        case 'divider':
+                            html += `<hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">`;
+                            break;
+                        case 'spacer':
+                            const height = section.querySelector('input').value || 20;
+                            html += `<div style="height: ${height}px;"></div>`;
+                            break;
+                    }
+                });
+                
+                builder.innerHTML = `
+                    <div class="border-2 border-blue-300 rounded p-4 bg-gray-50">
+                        <div class="mb-2 text-xs text-blue-600 font-medium">Preview Mode</div>
+                        <div class="bg-white p-4 rounded border" style="font-family: Arial, sans-serif;">
+                            ${html || '<p class="text-gray-400">No content to preview</p>'}
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Restore builder
+                loadInbox(); // This will reset, but we need to preserve sections
+                // For now, just show a message to refresh
+                builder.innerHTML = '<div class="text-center py-4 text-gray-500">Exit preview mode to edit sections</div>';
+            }
         }
         
         // Compose email form handler
@@ -1574,7 +1817,60 @@
             e.preventDefault();
             const to = document.getElementById('compose-to').value;
             const subject = document.getElementById('compose-subject').value;
-            const body = document.getElementById('compose-body').value;
+            
+            // Build HTML from sections
+            const builder = document.getElementById('email-builder');
+            const sections = builder.querySelectorAll('.email-section');
+            let html = '';
+            let text = '';
+            
+            sections.forEach(section => {
+                const type = section.dataset.type;
+                switch(type) {
+                    case 'text':
+                        const textContent = section.querySelector('textarea').value;
+                        html += `<p style="margin: 10px 0; line-height: 1.6; font-family: Arial, sans-serif;">${textContent.replace(/\n/g, '<br>')}</p>`;
+                        text += textContent + '\n\n';
+                        break;
+                    case 'heading':
+                        const headingLevel = section.querySelector('select').value;
+                        const headingText = section.querySelector('input').value;
+                        html += `<${headingLevel} style="margin: 15px 0; font-weight: bold; font-family: Arial, sans-serif;">${headingText}</${headingLevel}>`;
+                        text += headingText + '\n\n';
+                        break;
+                    case 'image':
+                        const imgUrl = section.querySelectorAll('input')[0].value;
+                        const altText = section.querySelectorAll('input')[1].value;
+                        if (imgUrl) {
+                            html += `<img src="${imgUrl}" alt="${altText || ''}" style="max-width: 100%; height: auto; margin: 10px 0; display: block;">`;
+                            text += `[Image: ${altText || imgUrl}]\n\n`;
+                        }
+                        break;
+                    case 'button':
+                        const btnText = section.querySelectorAll('input')[0].value;
+                        const btnUrl = section.querySelectorAll('input')[1].value;
+                        if (btnText && btnUrl) {
+                            html += `<div style="margin: 15px 0; text-align: center;"><a href="${btnUrl}" style="display: inline-block; padding: 12px 24px; background-color: #000; color: #fff; text-decoration: none; border-radius: 4px; font-weight: bold; font-family: Arial, sans-serif;">${btnText}</a></div>`;
+                            text += `${btnText}: ${btnUrl}\n\n`;
+                        }
+                        break;
+                    case 'divider':
+                        html += `<hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">`;
+                        text += '---\n\n';
+                        break;
+                    case 'spacer':
+                        const height = section.querySelector('input').value || 20;
+                        html += `<div style="height: ${height}px;"></div>`;
+                        break;
+                }
+            });
+            
+            const body = html || text || '';
+            
+            if (!body.trim()) {
+                alert('Please add some content to your email');
+                return;
+            }
             
             const submitBtn = e.target.querySelector('button[type="submit"]');
             const originalText = submitBtn.textContent;
@@ -1583,7 +1879,7 @@
             
             adminFetch(`${BACKEND_URL}/api/admin/inbox/send`, {
                 method: 'POST',
-                body: JSON.stringify({ to, subject, body })
+                body: JSON.stringify({ to, subject, body, html: html })
             })
             .then(data => {
                 if (data.success) {

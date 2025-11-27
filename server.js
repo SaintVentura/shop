@@ -1253,9 +1253,15 @@ async function fetchEmailsFromIMAP() {
         
         // Get total messages
         const totalMessages = box.messages.total;
-        const fetchRange = totalMessages > 50 ? `${totalMessages - 49}:${totalMessages}` : `1:${totalMessages}`;
+        console.log(`Total messages in inbox: ${totalMessages}`);
         
-        // Fetch recent emails (last 50)
+        // Fetch all recent emails (up to 200)
+        const fetchCount = Math.min(totalMessages, 200);
+        const fetchRange = totalMessages > 0 ? `1:${fetchCount}` : '1:1';
+        
+        console.log(`Fetching emails: ${fetchRange}`);
+        
+        // Fetch recent emails
         const fetch = imap.seq.fetch(fetchRange, {
           bodies: '',
           struct: true
@@ -1272,15 +1278,25 @@ async function fetchEmailsFromIMAP() {
                 return;
               }
               
+              // Use HTML if available, otherwise use text
+              const emailBody = parsed.html || parsed.textAsHtml || parsed.text || '';
+              
               emails.push({
                 id: `imap-${seqno}-${Date.now()}`,
                 from: parsed.from?.text || parsed.from?.value?.[0]?.address || 'unknown',
                 name: parsed.from?.value?.[0]?.name || '',
                 subject: parsed.subject || '(No Subject)',
-                body: parsed.text || parsed.html || '',
+                body: emailBody,
+                html: parsed.html || '',
+                text: parsed.text || '',
                 date: parsed.date ? parsed.date.toISOString() : new Date().toISOString(),
                 read: false,
-                source: 'imap'
+                source: 'imap',
+                attachments: parsed.attachments ? parsed.attachments.map(a => ({
+                  filename: a.filename,
+                  contentType: a.contentType,
+                  size: a.size
+                })) : []
               });
             });
           });
