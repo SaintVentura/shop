@@ -553,7 +553,11 @@
                     <div class="bg-white rounded-lg shadow p-6 md:p-8">
                         <div class="mb-6 flex flex-col md:flex-row justify-between items-stretch md:items-center space-y-4 md:space-y-0 md:space-x-6">
                             <input type="text" id="inbox-search" placeholder="Search emails..." class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm md:text-base">
-                            <button onclick="refreshInbox()" class="w-full md:w-auto px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 text-sm md:text-base">Refresh</button>
+                            <div class="flex space-x-2">
+                                <button onclick="showComposeEmail()" class="w-full md:w-auto px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm md:text-base font-medium">Compose</button>
+                                <button onclick="fetchEmails()" class="w-full md:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm md:text-base">Fetch Emails</button>
+                                <button onclick="refreshInbox()" class="w-full md:w-auto px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 text-sm md:text-base">Refresh</button>
+                            </div>
                         </div>
                         <div id="inbox-list" class="space-y-4">
                             <div class="text-center py-8 text-gray-500">Loading emails...</div>
@@ -726,6 +730,57 @@
                     </div>
                 </div>
             </main>
+        </div>
+    </div>
+
+    <!-- Compose Email Modal -->
+    <div id="compose-email-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold">Compose Email</h3>
+                <button onclick="closeComposeEmail()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            <form id="compose-email-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">To</label>
+                    <input type="email" id="compose-to" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required placeholder="recipient@example.com">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Subject</label>
+                    <input type="text" id="compose-subject" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required placeholder="Email subject">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Message</label>
+                    <textarea id="compose-body" rows="10" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required placeholder="Your message here..."></textarea>
+                </div>
+                <div class="flex space-x-2">
+                    <button type="submit" class="flex-1 bg-black text-white py-2 rounded-lg hover:bg-gray-800 font-medium">Send</button>
+                    <button type="button" onclick="closeComposeEmail()" class="flex-1 bg-gray-300 text-black py-2 rounded-lg hover:bg-gray-400">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- View/Reply Email Modal -->
+    <div id="view-email-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold" id="view-email-subject">Email</h3>
+                <button onclick="closeViewEmail()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <p class="text-sm text-gray-600">From: <span id="view-email-from" class="font-medium"></span></p>
+                    <p class="text-sm text-gray-600">Date: <span id="view-email-date" class="font-medium"></span></p>
+                </div>
+                <div class="border-t pt-4">
+                    <div id="view-email-body" class="whitespace-pre-wrap text-gray-800"></div>
+                </div>
+                <div class="flex space-x-2 pt-4 border-t">
+                    <button onclick="replyToEmail()" class="flex-1 bg-black text-white py-2 rounded-lg hover:bg-gray-800 font-medium">Reply</button>
+                    <button onclick="closeViewEmail()" class="flex-1 bg-gray-300 text-black py-2 rounded-lg hover:bg-gray-400">Close</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1394,16 +1449,18 @@
                         return;
                     }
                     list.innerHTML = data.map(email => `
-                        <div class="border border-gray-200 rounded-lg p-4 ${email.read ? 'bg-gray-50' : 'bg-white'}">
-                            <div class="flex justify-between items-start mb-2">
-                                <div>
-                                    <p class="font-semibold">${email.from || email.name || 'Unknown'}</p>
-                                    <p class="text-sm text-gray-600">${email.subject || 'No subject'}</p>
+                        <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition cursor-pointer ${email.read ? '' : 'bg-blue-50 border-blue-200'} ${email.sent ? 'bg-green-50 border-green-200' : ''}" onclick="viewEmail('${email.id}')">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <p class="font-semibold ${email.read ? 'text-gray-700' : 'text-black'}">${email.subject || '(No Subject)'}</p>
+                                    <p class="text-sm text-gray-600 mt-1">${email.sent ? 'To:' : 'From:'} ${email.name || email.from || email.to || 'Unknown'}</p>
+                                    <p class="text-xs text-gray-500 mt-1">${email.date ? new Date(email.date).toLocaleString() : 'Unknown date'}</p>
                                 </div>
-                                <span class="text-xs text-gray-500">${new Date(email.date).toLocaleString()}</span>
+                                <div class="flex items-center space-x-2">
+                                    ${email.sent ? '<span class="px-2 py-1 bg-green-500 text-white rounded-full text-xs">Sent</span>' : ''}
+                                    ${!email.read ? '<span class="px-2 py-1 bg-blue-500 text-white rounded-full text-xs">New</span>' : ''}
+                                </div>
                             </div>
-                            <p class="text-sm text-gray-700">${(email.body || email.message || '').substring(0, 200)}...</p>
-                            ${!email.read ? `<button onclick="markEmailRead('${email.id}')" class="mt-2 text-sm text-blue-600 hover:underline">Mark as Read</button>` : ''}
                         </div>
                     `).join('');
                 })
@@ -1413,7 +1470,48 @@
                 });
         }
 
-        function markEmailRead(emailId) {
+        let currentViewingEmail = null;
+        
+        function viewEmail(emailId) {
+            adminFetch(`${BACKEND_URL}/api/admin/inbox`)
+                .then(data => {
+                    const email = data.find(e => e.id === emailId);
+                    if (!email) {
+                        alert('Email not found');
+                        return;
+                    }
+                    
+                    currentViewingEmail = email;
+                    document.getElementById('view-email-subject').textContent = email.subject || '(No Subject)';
+                    document.getElementById('view-email-from').textContent = email.name || email.from || email.to || 'Unknown';
+                    document.getElementById('view-email-date').textContent = email.date ? new Date(email.date).toLocaleString() : 'Unknown';
+                    document.getElementById('view-email-body').textContent = email.body || email.message || '(No content)';
+                    
+                    document.getElementById('view-email-modal').classList.remove('hidden');
+                    
+                    // Mark as read
+                    if (!email.read) {
+                        markEmailAsRead(emailId);
+                    }
+                })
+                .catch(err => {
+                    console.error('Error loading email:', err);
+                    alert('Error loading email: ' + err.message);
+                });
+        }
+        
+        function closeViewEmail() {
+            document.getElementById('view-email-modal').classList.add('hidden');
+            currentViewingEmail = null;
+        }
+        
+        function replyToEmail() {
+            if (!currentViewingEmail) return;
+            closeViewEmail();
+            showComposeEmail(currentViewingEmail.from, currentViewingEmail.subject);
+        }
+        
+        function markEmailAsRead(emailId) {
             adminFetch(`${BACKEND_URL}/api/admin/inbox/read`, {
                 method: 'POST',
                 body: JSON.stringify({ emailId })
@@ -1422,15 +1520,124 @@
                 if (data.success) {
                     loadInbox();
                     updateBadges();
-                } else {
-                    alert('Error: ' + (data.error || 'Failed to mark email as read'));
                 }
             })
             .catch(err => {
                 console.error('Error marking email as read:', err);
-                alert('Error: ' + err.message);
             });
         }
+        
+        function fetchEmails() {
+            const list = document.getElementById('inbox-list');
+            const originalHtml = list.innerHTML;
+            list.innerHTML = '<div class="text-center py-8 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Fetching emails from server...</span></div></div>';
+            
+            adminFetch(`${BACKEND_URL}/api/admin/inbox/fetch`, {
+                method: 'POST'
+            })
+            .then(data => {
+                if (data.success) {
+                    alert(`Fetched ${data.fetched} emails, ${data.new} new emails added`);
+                    loadInbox();
+                } else {
+                    throw new Error(data.error || 'Failed to fetch emails');
+                }
+            })
+            .catch(err => {
+                console.error('Error fetching emails:', err);
+                list.innerHTML = originalHtml;
+                alert('Error fetching emails: ' + err.message);
+            });
+        }
+        
+        function showComposeEmail(replyTo = null, replySubject = null) {
+            const modal = document.getElementById('compose-email-modal');
+            const form = document.getElementById('compose-email-form');
+            
+            if (replyTo) {
+                document.getElementById('compose-to').value = replyTo;
+                document.getElementById('compose-subject').value = replySubject ? `Re: ${replySubject}` : 'Re: ';
+            } else {
+                form.reset();
+            }
+            
+            modal.classList.remove('hidden');
+        }
+        
+        function closeComposeEmail() {
+            document.getElementById('compose-email-modal').classList.add('hidden');
+            document.getElementById('compose-email-form').reset();
+        }
+        
+        // Compose email form handler
+        document.getElementById('compose-email-form')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const to = document.getElementById('compose-to').value;
+            const subject = document.getElementById('compose-subject').value;
+            const body = document.getElementById('compose-body').value;
+            
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Sending...';
+            
+            adminFetch(`${BACKEND_URL}/api/admin/inbox/send`, {
+                method: 'POST',
+                body: JSON.stringify({ to, subject, body })
+            })
+            .then(data => {
+                if (data.success) {
+                    alert('Email sent successfully!');
+                    closeComposeEmail();
+                    loadInbox();
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to send email'));
+                }
+            })
+            .catch(err => {
+                console.error('Error sending email:', err);
+                alert('Error sending email: ' + err.message);
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            });
+        });
+        
+        // Search inbox
+        document.getElementById('inbox-search')?.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            adminFetch(`${BACKEND_URL}/api/admin/inbox`)
+                .then(data => {
+                    if (!Array.isArray(data)) return;
+                    const filtered = data.filter(email => 
+                        (email.subject || '').toLowerCase().includes(searchTerm) ||
+                        (email.from || '').toLowerCase().includes(searchTerm) ||
+                        (email.name || '').toLowerCase().includes(searchTerm) ||
+                        (email.body || email.message || '').toLowerCase().includes(searchTerm)
+                    );
+                    const list = document.getElementById('inbox-list');
+                    if (filtered.length === 0) {
+                        list.innerHTML = '<div class="text-center py-8 text-gray-500">No emails found</div>';
+                        return;
+                    }
+                    list.innerHTML = filtered.map(email => `
+                        <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition cursor-pointer ${email.read ? '' : 'bg-blue-50 border-blue-200'} ${email.sent ? 'bg-green-50 border-green-200' : ''}" onclick="viewEmail('${email.id}')">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <p class="font-semibold ${email.read ? 'text-gray-700' : 'text-black'}">${email.subject || '(No Subject)'}</p>
+                                    <p class="text-sm text-gray-600 mt-1">${email.sent ? 'To:' : 'From:'} ${email.name || email.from || email.to || 'Unknown'}</p>
+                                    <p class="text-xs text-gray-500 mt-1">${email.date ? new Date(email.date).toLocaleString() : 'Unknown date'}</p>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    ${email.sent ? '<span class="px-2 py-1 bg-green-500 text-white rounded-full text-xs">Sent</span>' : ''}
+                                    ${!email.read ? '<span class="px-2 py-1 bg-blue-500 text-white rounded-full text-xs">New</span>' : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                });
+        });
 
         function refreshInbox() {
             loadInbox();

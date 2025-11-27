@@ -5,6 +5,8 @@ const TelegramBot = require('node-telegram-bot-api');
 const fs = require('fs').promises;
 const path = require('path');
 const nodemailer = require('nodemailer');
+const Imap = require('imap');
+const { simpleParser } = require('mailparser');
 require('dotenv').config();
 
 const app = express();
@@ -1149,7 +1151,10 @@ async function ensureDataDir() {
 
 // Email transporter setup (using nodemailer)
 let emailTransporter = null;
+let imapConnection = null;
+
 if (process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+  // SMTP setup for sending emails
   emailTransporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
     port: process.env.EMAIL_PORT || 587,
@@ -1173,9 +1178,89 @@ if (process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS) 
       console.log('✅ Email transporter verified - ready to send emails');
     }
   });
+  
+  // IMAP setup for receiving emails (if IMAP settings provided)
+  if (process.env.IMAP_HOST && process.env.IMAP_USER && process.env.IMAP_PASS) {
+    console.log('✅ IMAP configured for receiving emails');
+    console.log('   IMAP Host:', process.env.IMAP_HOST);
+    console.log('   IMAP Port:', process.env.IMAP_PORT || 993);
+  } else {
+    console.warn('⚠️  IMAP not configured - email receiving will be limited');
+    console.warn('   Optional: IMAP_HOST, IMAP_USER, IMAP_PASS, IMAP_PORT');
+  }
 } else {
   console.warn('⚠️  Email not configured - broadcast and email features will be limited');
   console.warn('   Required: EMAIL_HOST, EMAIL_USER, EMAIL_PASS');
+}
+
+// Function to fetch emails via IMAP
+async function fetchEmailsFromIMAP() {
+  return new Promise((resolve, reject) => {
+    if (!process.env.IMAP_HOST || !process.env.IMAP_USER || !process.env.IMAP_PASS) {
+      return resolve([]);
+    }
+    
+    const imap = new Imap({
+      user: process.env.IMAP_USER,
+      password: process.env.IMAP_PASS,
+      host: process.env.IMAP_HOST,
+      port: parseInt(process.env.IMAP_PORT || 993),
+      tls: true,
+      tlsOptions: { rejectUnauthorized: false }
+    });
+    
+    const emails = [];
+    
+    imap.once('ready', () => {
+      imap.openBox('INBOX', false, (err, box) => {
+        if (err) {
+          console.error('Error opening inbox:', err);
+          imap.end();
+          return reject(err);
+        }
+        
+        // Fetch recent emails (last 50)
+        const fetch = imap.seq.fetch('1:50', {
+          bodies: '',
+          struct: true
+        });
+        
+        fetch.on('message', (msg, seqno) => {
+          msg.on('body', (stream, info) => {
+            simpleParser(stream, (err, parsed) => {
+              if (err) {
+                console.error('Error parsing email:', err);
+                return;
+              }
+              
+              emails.push({
+                id: `imap-${seqno}-${Date.now()}`,
+                from: parsed.from?.text || parsed.from?.value?.[0]?.address || 'unknown',
+                name: parsed.from?.value?.[0]?.name || '',
+                subject: parsed.subject || '(No Subject)',
+                body: parsed.text || parsed.html || '',
+                date: parsed.date ? parsed.date.toISOString() : new Date().toISOString(),
+                read: false,
+                source: 'imap'
+              });
+            });
+          });
+        });
+        
+        fetch.once('end', () => {
+          imap.end();
+          resolve(emails);
+        });
+      });
+    });
+    
+    imap.once('error', (err) => {
+      console.error('IMAP error:', err);
+      reject(err);
+    });
+    
+    imap.connect();
+  });
 }
 
 // Admin authentication middleware
