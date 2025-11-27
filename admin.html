@@ -1806,9 +1806,12 @@
             const previewMode = document.getElementById('preview-mode');
             if (previewMode) previewMode.checked = false;
             
-            // Show modal
-            modal.classList.remove('hidden');
+                // Show modal
+                modal.classList.remove('hidden');
                 console.log('Compose email modal opened successfully');
+                
+                // Re-setup form listener when modal is opened
+                setTimeout(setupComposeEmailForm, 100);
             } catch (error) {
                 console.error('Error in showComposeEmail:', error);
                 alert('Error opening email composer: ' + error.message);
@@ -1818,6 +1821,7 @@
         // Ensure function is accessible globally
         window.showComposeEmail = showComposeEmail;
         
+        // Function to close compose email modal
         function closeComposeEmail() {
             try {
                 const modal = document.getElementById('compose-email-modal');
@@ -2395,6 +2399,9 @@ Thank you!</textarea>
                 e.stopPropagation();
                 console.log('Compose email form submitted');
                 
+                let submitBtn = null;
+                let originalText = '';
+                
                 try {
                     const toField = document.getElementById('compose-to');
                     const subjectField = document.getElementById('compose-subject');
@@ -2497,14 +2504,14 @@ Thank you!</textarea>
                         return;
                     }
                     
-                    const submitBtn = newForm.querySelector('button[type="submit"]');
+                    submitBtn = newForm.querySelector('button[type="submit"]');
                     if (!submitBtn) {
                         console.error('Submit button not found');
                         alert('Error: Submit button not found');
                         return;
                     }
                     
-                    const originalText = submitBtn.textContent;
+                    originalText = submitBtn.textContent;
                     submitBtn.disabled = true;
                     submitBtn.textContent = 'Sending...';
                     
@@ -2512,132 +2519,136 @@ Thank you!</textarea>
                     
                     // Handle different contexts
                     const context = window.currentEmailContext || { type: 'inbox' };
-            
-            if (context.type === 'fulfiller') {
-                // Send to fulfiller
-                adminFetch(`${BACKEND_URL}/api/admin/fulfillers/notify`, {
-                    method: 'POST',
-                    body: JSON.stringify({ 
-                        fulfillerId: context.fulfillerId, 
-                        orderDetails: body,
-                        subject: subject,
-                        html: html
-                    })
-                })
-                .then(data => {
-                    if (data.success) {
-                        alert('Email sent to fulfiller successfully!');
-                        closeComposeEmail();
-                        loadFulfillers();
+                    
+                    if (context.type === 'fulfiller') {
+                        // Send to fulfiller
+                        adminFetch(`${BACKEND_URL}/api/admin/fulfillers/notify`, {
+                            method: 'POST',
+                            body: JSON.stringify({ 
+                                fulfillerId: context.fulfillerId, 
+                                orderDetails: body,
+                                subject: subject,
+                                html: html
+                            })
+                        })
+                        .then(data => {
+                            if (data && data.success) {
+                                alert('Email sent to fulfiller successfully!');
+                                closeComposeEmail();
+                                loadFulfillers();
+                            } else {
+                                alert('Error: ' + (data?.error || 'Failed to send email'));
+                            }
+                        })
+                        .catch(err => {
+                            console.error('Error sending email:', err);
+                            alert('Error sending email: ' + (err.message || 'Unknown error'));
+                        })
+                        .finally(() => {
+                            if (submitBtn) {
+                                submitBtn.disabled = false;
+                                submitBtn.textContent = originalText;
+                            }
+                        });
+                    } else if (context.type === 'broadcast') {
+                        // Send to all subscribers (use "to" field which already has all subscribers)
+                        const productSelect = document.getElementById('broadcast-products');
+                        const products = productSelect ? Array.from(productSelect.selectedOptions || []).map(o => o.value) : [];
+                        const templateSelect = document.getElementById('email-template-select');
+                        const template = templateSelect ? templateSelect.value : '';
+                        adminFetch(`${BACKEND_URL}/api/admin/broadcast`, {
+                            method: 'POST',
+                            body: JSON.stringify({ 
+                                subject: subject, 
+                                message: body,
+                                html: html,
+                                products: products,
+                                template: template,
+                                recipients: to // Include recipients in case user modified them
+                            })
+                        })
+                        .then(data => {
+                            if (data && data.success) {
+                                alert(`Email sent to ${data.sent || 0} subscribers${data.total ? ` out of ${data.total}` : ''}`);
+                                closeComposeEmail();
+                                loadBroadcast();
+                            } else {
+                                alert('Error: ' + (data?.error || 'Failed to send broadcast'));
+                            }
+                        })
+                        .catch(err => {
+                            console.error('Error sending broadcast:', err);
+                            alert('Error sending broadcast: ' + (err.message || 'Unknown error'));
+                        })
+                        .finally(() => {
+                            if (submitBtn) {
+                                submitBtn.disabled = false;
+                                submitBtn.textContent = originalText;
+                            }
+                        });
+                    } else if (context.type === 'abandoned-cart') {
+                        // Send to selected or all abandoned carts
+                        const cartSelect = document.getElementById('abandoned-cart-select');
+                        const selectedCarts = cartSelect ? Array.from(cartSelect.selectedOptions || []).map(o => o.value) : [];
+                        adminFetch(`${BACKEND_URL}/api/admin/abandoned-carts/remind-all`, {
+                            method: 'POST',
+                            body: JSON.stringify({ 
+                                subject: subject, 
+                                message: body,
+                                html: html,
+                                cartIds: selectedCarts.length > 0 ? selectedCarts : null // null means all
+                            })
+                        })
+                        .then(data => {
+                            if (data && data.success) {
+                                alert(`Reminder emails sent to ${data.sent || 0} customers`);
+                                closeComposeEmail();
+                                loadAbandonedCarts();
+                            } else {
+                                alert('Error: ' + (data?.error || 'Failed to send reminders'));
+                            }
+                        })
+                        .catch(err => {
+                            console.error('Error sending reminders:', err);
+                            alert('Error sending reminders: ' + (err.message || 'Unknown error'));
+                        })
+                        .finally(() => {
+                            if (submitBtn) {
+                                submitBtn.disabled = false;
+                                submitBtn.textContent = originalText;
+                            }
+                        });
                     } else {
-                        alert('Error: ' + (data.error || 'Failed to send email'));
+                        // Default: send to inbox (supports multiple recipients)
+                        // Parse multiple recipients (comma-separated)
+                        const recipients = to.split(',').map(r => r.trim()).filter(r => r);
+                        console.log('Sending to recipients:', recipients);
+                        adminFetch(`${BACKEND_URL}/api/admin/inbox/send`, {
+                            method: 'POST',
+                            body: JSON.stringify({ to: recipients.join(', '), subject, body, html: html })
+                        })
+                        .then(data => {
+                            console.log('Email send response:', data);
+                            if (data && data.success) {
+                                alert('Email sent successfully!');
+                                closeComposeEmail();
+                                loadInbox();
+                                updateBadges();
+                            } else {
+                                alert('Error: ' + (data?.error || 'Failed to send email'));
+                            }
+                        })
+                        .catch(err => {
+                            console.error('Error sending email:', err);
+                            alert('Error sending email: ' + (err.message || 'Unknown error'));
+                        })
+                        .finally(() => {
+                            if (submitBtn) {
+                                submitBtn.disabled = false;
+                                submitBtn.textContent = originalText;
+                            }
+                        });
                     }
-                })
-                .catch(err => {
-                    console.error('Error sending email:', err);
-                    alert('Error sending email: ' + err.message);
-                })
-                .finally(() => {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = originalText;
-                });
-            } else if (context.type === 'broadcast') {
-                // Send to all subscribers (use "to" field which already has all subscribers)
-                const productSelect = document.getElementById('broadcast-products');
-                const products = productSelect ? Array.from(productSelect.selectedOptions || []).map(o => o.value) : [];
-                const templateSelect = document.getElementById('email-template-select');
-                const template = templateSelect ? templateSelect.value : '';
-                adminFetch(`${BACKEND_URL}/api/admin/broadcast`, {
-                    method: 'POST',
-                    body: JSON.stringify({ 
-                        subject: subject, 
-                        message: body,
-                        html: html,
-                        products: products,
-                        template: template,
-                        recipients: to // Include recipients in case user modified them
-                    })
-                })
-                .then(data => {
-                    if (data.success) {
-                        alert(`Email sent to ${data.sent || 0} subscribers${data.total ? ` out of ${data.total}` : ''}`);
-                        closeComposeEmail();
-                        loadBroadcast();
-                    } else {
-                        alert('Error: ' + (data.error || 'Failed to send broadcast'));
-                    }
-                })
-                .catch(err => {
-                    console.error('Error sending broadcast:', err);
-                    alert('Error sending broadcast: ' + err.message);
-                })
-                .finally(() => {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = originalText;
-                });
-            } else if (context.type === 'abandoned-cart') {
-                // Send to selected or all abandoned carts
-                const cartSelect = document.getElementById('abandoned-cart-select');
-                const selectedCarts = cartSelect ? Array.from(cartSelect.selectedOptions || []).map(o => o.value) : [];
-                adminFetch(`${BACKEND_URL}/api/admin/abandoned-carts/remind-all`, {
-                    method: 'POST',
-                    body: JSON.stringify({ 
-                        subject: subject, 
-                        message: body,
-                        html: html,
-                        cartIds: selectedCarts.length > 0 ? selectedCarts : null // null means all
-                    })
-                })
-                .then(data => {
-                    if (data.success) {
-                        alert(`Reminder emails sent to ${data.sent || 0} customers`);
-                        closeComposeEmail();
-                        loadAbandonedCarts();
-                    } else {
-                        alert('Error: ' + (data.error || 'Failed to send reminders'));
-                    }
-                })
-                .catch(err => {
-                    console.error('Error sending reminders:', err);
-                    alert('Error sending reminders: ' + err.message);
-                })
-                .finally(() => {
-                    if (submitBtn) {
-                        submitBtn.disabled = false;
-                        submitBtn.textContent = originalText;
-                    }
-                });
-            } else {
-                // Default: send to inbox (supports multiple recipients)
-                // Parse multiple recipients (comma-separated)
-                const recipients = to.split(',').map(r => r.trim()).filter(r => r);
-                console.log('Sending to recipients:', recipients);
-                adminFetch(`${BACKEND_URL}/api/admin/inbox/send`, {
-                    method: 'POST',
-                    body: JSON.stringify({ to: recipients.join(', '), subject, body, html: html })
-                })
-                .then(data => {
-                    console.log('Email send response:', data);
-                    if (data && data.success) {
-                        alert('Email sent successfully!');
-                        closeComposeEmail();
-                        loadInbox();
-                        updateBadges();
-                    } else {
-                        alert('Error: ' + (data?.error || 'Failed to send email'));
-                    }
-                })
-                .catch(err => {
-                    console.error('Error sending email:', err);
-                    alert('Error sending email: ' + (err.message || 'Unknown error'));
-                })
-                .finally(() => {
-                    if (submitBtn) {
-                        submitBtn.disabled = false;
-                        submitBtn.textContent = originalText;
-                    }
-                });
-            }
                 } catch (error) {
                     console.error('Error in compose email form submission:', error);
                     alert('Error: ' + (error.message || 'Failed to process email'));
@@ -2657,15 +2668,17 @@ Thank you!</textarea>
             setupComposeEmailForm();
         }
         
-        // Re-setup form listener when modal is opened
-        const originalShowComposeEmail = window.showComposeEmail;
-        window.showComposeEmail = function(replyTo = null, replySubject = null) {
+        // Re-setup form listener when modal is opened - wrap the original function after it's defined
+        setTimeout(function() {
+            const originalShowComposeEmail = window.showComposeEmail;
             if (originalShowComposeEmail) {
-                originalShowComposeEmail(replyTo, replySubject);
+                window.showComposeEmail = function(replyTo = null, replySubject = null) {
+                    originalShowComposeEmail(replyTo, replySubject);
+                    // Re-setup form listener when modal is opened
+                    setTimeout(setupComposeEmailForm, 100);
+                };
             }
-            // Re-setup form listener when modal is opened
-            setTimeout(setupComposeEmailForm, 100);
-        };
+        }, 0);
         
         // Search inbox
         document.getElementById('inbox-search')?.addEventListener('input', (e) => {
@@ -2990,79 +3003,115 @@ Thank you!</textarea>
             }
         });
 
-        function showAddFulfillerModal() {
-            document.getElementById('add-fulfiller-modal').classList.remove('hidden');
-        }
+        // showAddFulfillerModal is defined below after setupFulfillerForm
 
         function closeAddFulfillerModal() {
             document.getElementById('add-fulfiller-modal').classList.add('hidden');
             document.getElementById('add-fulfiller-form').reset();
         }
 
-        // Set up fulfiller form event listener safely
-        const fulfillerForm = document.getElementById('add-fulfiller-form');
-        if (fulfillerForm) {
-            fulfillerForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-                const name = document.getElementById('fulfiller-name')?.value.trim();
-                const email = document.getElementById('fulfiller-email')?.value.trim();
-                const phone = document.getElementById('fulfiller-phone')?.value.trim();
+        // Set up fulfiller form event listener safely - wait for DOM to be ready
+        function setupFulfillerForm() {
+            const fulfillerForm = document.getElementById('add-fulfiller-form');
+            if (fulfillerForm) {
+                console.log('Setting up fulfiller form event listener');
+                // Remove any existing listeners to avoid duplicates
+                const newForm = fulfillerForm.cloneNode(true);
+                fulfillerForm.parentNode.replaceChild(newForm, fulfillerForm);
                 
-                // Validate inputs
-                if (!name || !email || !phone) {
-                    alert('Please fill in all fields');
-                    return;
-                }
-                
-                // Validate email format
-                if (!email.includes('@') || !email.includes('.')) {
-                    alert('Please enter a valid email address');
-                    return;
-                }
-
-                const submitBtn = e.target.querySelector('button[type="submit"]');
-                if (!submitBtn) {
-                    alert('Error: Submit button not found');
-                    return;
-                }
-                
-                const originalText = submitBtn.textContent;
-                submitBtn.disabled = true;
-                submitBtn.textContent = 'Adding...';
-
-            adminFetch(`${BACKEND_URL}/api/admin/fulfillers`, {
-                method: 'POST',
-                body: JSON.stringify({ name, email, phone })
-            })
-            .then(data => {
-                    console.log('Fulfiller add response:', data);
-                if (data.success) {
-                    closeAddFulfillerModal();
-                    loadFulfillers();
-                        // Show success notification
-                        const notification = document.createElement('div');
-                        notification.className = 'fixed top-20 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
-                        notification.textContent = 'Fulfiller added successfully!';
-                        document.body.appendChild(notification);
-                        setTimeout(() => notification.remove(), 3000);
-                } else {
-                    alert('Error: ' + (data.error || 'Failed to add fulfiller'));
-                }
-            })
-            .catch(err => {
-                console.error('Error adding fulfiller:', err);
-                    alert('Error: ' + (err.message || 'Failed to add fulfiller. Please check your connection.'));
-                })
-                .finally(() => {
-                    if (submitBtn) {
-                        submitBtn.disabled = false;
-                        submitBtn.textContent = originalText;
+                newForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Fulfiller form submitted');
+                    
+                    const name = document.getElementById('fulfiller-name')?.value.trim();
+                    const email = document.getElementById('fulfiller-email')?.value.trim();
+                    const phone = document.getElementById('fulfiller-phone')?.value.trim();
+                    
+                    console.log('Form values:', { name, email, phone });
+                    
+                    // Validate inputs
+                    if (!name || !email || !phone) {
+                        alert('Please fill in all fields');
+                        return;
                     }
-            });
-        });
-        } else {
-            console.warn('Fulfiller form not found when setting up event listener');
+                    
+                    // Validate email format
+                    if (!email.includes('@') || !email.includes('.')) {
+                        alert('Please enter a valid email address');
+                        return;
+                    }
+
+                    const submitBtn = newForm.querySelector('button[type="submit"]');
+                    if (!submitBtn) {
+                        console.error('Submit button not found');
+                        alert('Error: Submit button not found');
+                        return;
+                    }
+                    
+                    const originalText = submitBtn.textContent;
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Adding...';
+                    
+                    console.log('Sending request to:', `${BACKEND_URL}/api/admin/fulfillers`);
+                    console.log('Request body:', { name, email, phone });
+
+                    adminFetch(`${BACKEND_URL}/api/admin/fulfillers`, {
+                        method: 'POST',
+                        body: JSON.stringify({ name, email, phone })
+                    })
+                    .then(data => {
+                        console.log('Fulfiller add response:', data);
+                        if (data && data.success) {
+                            closeAddFulfillerModal();
+                            loadFulfillers();
+                            // Show success notification
+                            const notification = document.createElement('div');
+                            notification.className = 'fixed top-20 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+                            notification.textContent = 'Fulfiller added successfully!';
+                            document.body.appendChild(notification);
+                            setTimeout(() => notification.remove(), 3000);
+                        } else {
+                            const errorMsg = data?.error || 'Failed to add fulfiller';
+                            console.error('Failed to add fulfiller:', errorMsg);
+                            alert('Error: ' + errorMsg);
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error adding fulfiller:', err);
+                        alert('Error: ' + (err.message || 'Failed to add fulfiller. Please check your connection.'));
+                    })
+                    .finally(() => {
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = originalText;
+                        }
+                    });
+                });
+                console.log('Fulfiller form event listener set up successfully');
+            } else {
+                console.warn('Fulfiller form not found when setting up event listener');
+            }
         }
+        
+        // Set up form listener when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setupFulfillerForm);
+        } else {
+            setupFulfillerForm();
+        }
+        
+        // Also set up when the modal is opened (in case form is dynamically created)
+        window.showAddFulfillerModal = function() {
+            const modal = document.getElementById('add-fulfiller-modal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                // Re-setup form listener when modal is opened
+                setTimeout(setupFulfillerForm, 100);
+            } else {
+                console.error('Add fulfiller modal not found');
+            }
+        };
 
         function deleteFulfiller(id) {
             if (!confirm('Delete this fulfiller?')) return;
