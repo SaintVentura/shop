@@ -582,32 +582,15 @@
                         </div>
                         <div class="bg-white rounded-lg shadow p-6 md:p-8">
                             <h3 class="text-xl md:text-2xl font-semibold mb-6">Send Broadcast</h3>
-                            <form id="broadcast-form" class="space-y-6">
+                            <div class="space-y-6">
                                 <div>
-                                    <label class="block text-sm font-medium mb-2">Template</label>
-                                    <select id="broadcast-template" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
-                                        <option value="promotion">Product Promotion</option>
-                                        <option value="sale">Sale Announcement</option>
-                                        <option value="new-arrival">New Arrival</option>
-                                        <option value="custom">Custom Message</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Subject</label>
-                                    <input type="text" id="broadcast-subject" class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="Email subject">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Message</label>
-                                    <textarea id="broadcast-message" rows="8" class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="Email message"></textarea>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Select Products (for promotion template)</label>
+                                    <label class="block text-sm font-medium mb-2">Select Products (optional - for product promotion)</label>
                                     <select id="broadcast-products" multiple class="w-full px-4 py-2 border border-gray-300 rounded-lg">
                                         <option value="">Loading products...</option>
                                     </select>
                                 </div>
-                                <button type="submit" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition">Send to All Subscribers</button>
-                            </form>
+                                <button onclick="openBroadcastEmailComposer()" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition">Compose Broadcast Email</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -617,7 +600,7 @@
                     <h2 class="text-2xl md:text-3xl font-bold mb-8">Abandoned Carts</h2>
                     <div class="bg-white rounded-lg shadow p-6 md:p-8">
                         <div class="mb-6 flex flex-col md:flex-row justify-between items-stretch md:items-center space-y-4 md:space-y-0 md:space-x-6">
-                            <button onclick="sendAbandonedCartEmails()" class="w-full md:w-auto px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm md:text-base">Send Reminder Emails</button>
+                            <button onclick="openAbandonedCartEmailComposer()" class="w-full md:w-auto px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm md:text-base">Compose Reminder Email</button>
                             <button onclick="refreshAbandonedCarts()" class="w-full md:w-auto px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 text-sm md:text-base">Refresh</button>
                         </div>
                         <div id="abandoned-carts-list" class="space-y-6">
@@ -641,7 +624,7 @@
                         </div>
                         <div class="bg-white rounded-lg shadow p-6 md:p-8">
                             <h3 class="text-xl md:text-2xl font-semibold mb-6">Send Order Notification</h3>
-                            <form id="fulfiller-email-form" class="space-y-6">
+                            <div class="space-y-6">
                                 <div>
                                     <label class="block text-sm font-medium mb-2">Select Fulfiller</label>
                                     <select id="fulfiller-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
@@ -654,12 +637,8 @@
                                         <option value="">Select an order...</option>
                                     </select>
                                 </div>
-                                <div>
-                                    <label class="block text-sm font-medium mb-2">Order Details</label>
-                                    <textarea id="fulfiller-order-details" rows="8" class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="Order details will be auto-filled when you select an order, or enter manually..."></textarea>
-                                </div>
-                                <button type="submit" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition">Send Email to Fulfiller</button>
-                            </form>
+                                <button onclick="openFulfillerEmailComposer()" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition">Compose Email to Fulfiller</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1693,6 +1672,146 @@
             document.getElementById('compose-email-modal').classList.add('hidden');
             document.getElementById('compose-email-form').reset();
             document.getElementById('email-builder').innerHTML = '';
+            // Clear context
+            if (window.currentEmailContext) {
+                window.currentEmailContext = null;
+            }
+        }
+        
+        // Context-specific email composer functions
+        function openFulfillerEmailComposer() {
+            const fulfillerId = document.getElementById('fulfiller-select').value;
+            const orderId = document.getElementById('fulfiller-order-select').value;
+            
+            if (!fulfillerId) {
+                alert('Please select a fulfiller first');
+                return;
+            }
+            
+            // Get fulfiller email
+            adminFetch(`${BACKEND_URL}/api/admin/fulfillers`)
+                .then(data => {
+                    const fulfiller = data.find(f => f.id === fulfillerId);
+                    if (!fulfiller) {
+                        alert('Fulfiller not found');
+                        return;
+                    }
+                    
+                    // Get order details if order is selected
+                    let orderDetails = '';
+                    let subject = `Order Notification - ${fulfiller.name}`;
+                    
+                    if (orderId) {
+                        adminFetch(`${BACKEND_URL}/api/admin/orders`)
+                            .then(orders => {
+                                const order = orders.find(o => o.id === orderId);
+                                if (order) {
+                                    orderDetails = `Order ID: ${order.id}\nCustomer: ${order.customerName}\nEmail: ${order.customerEmail}\nPhone: ${order.customerPhone}\n\nItems:\n${order.items.map(i => `- ${i.name} (${i.variant || 'N/A'}) x${i.quantity} - R${i.price.toFixed(2)}`).join('\n')}\n\nTotal: R${order.total.toFixed(2)}\n\nShipping: ${order.shippingMethod}\nAddress: ${order.deliveryAddress || 'N/A'}`;
+                                    subject = `Order #${order.id} - ${fulfiller.name}`;
+                                }
+                                
+                                window.currentEmailContext = { type: 'fulfiller', fulfillerId, orderId, orderDetails };
+                                showComposeEmail(fulfiller.email, subject);
+                                
+                                // Pre-fill order details in first text section if available
+                                if (orderDetails) {
+                                    setTimeout(() => {
+                                        const firstTextArea = document.querySelector('#email-builder .email-section[data-type="text"] textarea');
+                                        if (firstTextArea) {
+                                            firstTextArea.value = orderDetails;
+                                        }
+                                    }, 100);
+                                }
+                            })
+                            .catch(err => {
+                                window.currentEmailContext = { type: 'fulfiller', fulfillerId, orderId };
+                                showComposeEmail(fulfiller.email, subject);
+                            });
+                    } else {
+                        window.currentEmailContext = { type: 'fulfiller', fulfillerId };
+                        showComposeEmail(fulfiller.email, subject);
+                    }
+                })
+                .catch(err => {
+                    alert('Error loading fulfiller: ' + err.message);
+                });
+        }
+        
+        function openBroadcastEmailComposer() {
+            // Load subscribers and products for selection
+            adminFetch(`${BACKEND_URL}/api/admin/subscribers`)
+                .then(subscribers => {
+                    adminFetch(`${BACKEND_URL}/api/admin/inventory`)
+                        .then(products => {
+                            window.currentEmailContext = { 
+                                type: 'broadcast',
+                                subscribers: subscribers || [],
+                                products: products || []
+                            };
+                            showComposeEmail('', 'Newsletter Update');
+                            
+                            // Add product selection UI after modal opens
+                            setTimeout(() => {
+                                const builder = document.getElementById('email-builder');
+                                const productSelectHtml = `
+                                    <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="product-select">
+                                        <div class="flex justify-between items-center mb-2">
+                                            <span class="text-xs text-gray-500 font-medium">Featured Products (Optional)</span>
+                                        </div>
+                                        <select id="broadcast-products" multiple class="w-full px-3 py-2 border border-gray-200 rounded text-sm" size="5">
+                                            ${(products || []).map(p => `<option value="${p.id}">${p.productName || p.name} - R${(p.price || 0).toFixed(2)}</option>`).join('')}
+                                        </select>
+                                        <p class="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple products</p>
+                                    </div>
+                                `;
+                                builder.insertAdjacentHTML('afterbegin', productSelectHtml);
+                            }, 100);
+                        })
+                        .catch(err => {
+                            console.error('Error loading products:', err);
+                            window.currentEmailContext = { type: 'broadcast' };
+                            showComposeEmail('', 'Newsletter Update');
+                        });
+                })
+                .catch(err => {
+                    console.error('Error loading subscribers:', err);
+                    window.currentEmailContext = { type: 'broadcast' };
+                    showComposeEmail('', 'Newsletter Update');
+                });
+        }
+        
+        function openAbandonedCartEmailComposer() {
+            // Load abandoned carts for selection
+            adminFetch(`${BACKEND_URL}/api/admin/abandoned-carts`)
+                .then(carts => {
+                    window.currentEmailContext = { 
+                        type: 'abandoned-cart',
+                        carts: carts || []
+                    };
+                    showComposeEmail('', 'Complete Your Purchase');
+                    
+                    // Add cart selection UI after modal opens
+                    setTimeout(() => {
+                        const builder = document.getElementById('email-builder');
+                        const cartSelectHtml = `
+                            <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="cart-select">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-xs text-gray-500 font-medium">Select Abandoned Carts (Leave empty to send to all)</span>
+                                </div>
+                                <select id="abandoned-cart-select" multiple class="w-full px-3 py-2 border border-gray-200 rounded text-sm" size="5">
+                                    ${(carts || []).map(c => `<option value="${c.id}">${c.customerEmail || c.email || 'Unknown'} - R${(c.total || 0).toFixed(2)}</option>`).join('')}
+                                </select>
+                                <p class="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select specific carts, or leave empty to send to all</p>
+                            </div>
+                        `;
+                        builder.insertAdjacentHTML('afterbegin', cartSelectHtml);
+                    }, 100);
+                })
+                .catch(err => {
+                    console.error('Error loading abandoned carts:', err);
+                    window.currentEmailContext = { type: 'abandoned-cart' };
+                    showComposeEmail('', 'Complete Your Purchase');
+                });
         }
         
         function addEmailSection(type) {
@@ -1857,10 +1976,41 @@
                     </div>
                 `;
             } else {
-                // Restore builder
-                loadInbox(); // This will reset, but we need to preserve sections
-                // For now, just show a message to refresh
-                builder.innerHTML = '<div class="text-center py-4 text-gray-500">Exit preview mode to edit sections</div>';
+                // Restore builder with saved sections
+                if (emailBuilderSections && emailBuilderSections.length > 0) {
+                    builder.innerHTML = '';
+                    emailBuilderSections.forEach(sectionData => {
+                        // Recreate section HTML with saved values
+                        let sectionHtml = '';
+                        switch(sectionData.type) {
+                            case 'text':
+                                sectionHtml = `<div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="text"><div class="flex justify-between items-center mb-2"><span class="text-xs text-gray-500 font-medium">Text Section</span><button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button></div><textarea class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="4" placeholder="Enter text content...">${(sectionData.value || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea></div>`;
+                                break;
+                            case 'heading':
+                                sectionHtml = `<div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="heading"><div class="flex justify-between items-center mb-2"><span class="text-xs text-gray-500 font-medium">Heading Section</span><button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button></div><select class="w-full mb-2 px-2 py-1 border border-gray-200 rounded text-sm"><option value="h1" ${sectionData.selectValue === 'h1' ? 'selected' : ''}>H1 (Large)</option><option value="h2" ${sectionData.selectValue === 'h2' ? 'selected' : ''}>H2 (Medium)</option><option value="h3" ${sectionData.selectValue === 'h3' ? 'selected' : ''}>H3 (Small)</option></select><input type="text" class="w-full px-3 py-2 border border-gray-200 rounded text-sm font-bold" placeholder="Enter heading text..." value="${(sectionData.inputValue || '').replace(/"/g, '&quot;')}"></div>`;
+                                break;
+                            case 'image':
+                                sectionHtml = `<div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="image"><div class="flex justify-between items-center mb-2"><span class="text-xs text-gray-500 font-medium">Image Section</span><button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button></div><input type="url" class="w-full mb-2 px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Image URL..." value="${(sectionData.inputs?.[0] || '').replace(/"/g, '&quot;')}"><input type="text" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Alt text (optional)" value="${(sectionData.inputs?.[1] || '').replace(/"/g, '&quot;')}"></div>`;
+                                break;
+                            case 'button':
+                                sectionHtml = `<div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="button"><div class="flex justify-between items-center mb-2"><span class="text-xs text-gray-500 font-medium">Button Section</span><button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button></div><input type="text" class="w-full mb-2 px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Button text..." value="${(sectionData.inputs?.[0] || '').replace(/"/g, '&quot;')}"><input type="url" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Button URL..." value="${(sectionData.inputs?.[1] || '').replace(/"/g, '&quot;')}"></div>`;
+                                break;
+                            case 'divider':
+                                sectionHtml = `<div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="divider"><div class="flex justify-between items-center mb-2"><span class="text-xs text-gray-500 font-medium">Divider Section</span><button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button></div><div class="border-t-2 border-gray-300"></div></div>`;
+                                break;
+                            case 'spacer':
+                                sectionHtml = `<div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="spacer"><div class="flex justify-between items-center mb-2"><span class="text-xs text-gray-500 font-medium">Spacer Section</span><button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button></div><input type="number" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Height in pixels (e.g., 20)" value="${sectionData.value || 20}" min="10" max="100"></div>`;
+                                break;
+                        }
+                        if (sectionHtml) {
+                            builder.insertAdjacentHTML('beforeend', sectionHtml);
+                        }
+                    });
+                    emailBuilderSections = null;
+                } else {
+                    // If no saved sections, restore default
+                    builder.innerHTML = '<div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="text"><div class="flex justify-between items-center mb-2"><span class="text-xs text-gray-500 font-medium">Text Section</span><button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button></div><textarea class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="4" placeholder="Enter text content..."></textarea></div>';
+                }
             }
         }
         
@@ -1929,27 +2079,122 @@
             submitBtn.disabled = true;
             submitBtn.textContent = 'Sending...';
             
-            adminFetch(`${BACKEND_URL}/api/admin/inbox/send`, {
-                method: 'POST',
-                body: JSON.stringify({ to, subject, body, html: html })
-            })
-            .then(data => {
-                if (data.success) {
-                    alert('Email sent successfully!');
-                    closeComposeEmail();
-                    loadInbox();
-                } else {
-                    alert('Error: ' + (data.error || 'Failed to send email'));
-                }
-            })
-            .catch(err => {
-                console.error('Error sending email:', err);
-                alert('Error sending email: ' + err.message);
-            })
-            .finally(() => {
-                submitBtn.disabled = false;
-                submitBtn.textContent = originalText;
-            });
+            // Handle different contexts
+            const context = window.currentEmailContext || { type: 'inbox' };
+            
+            if (context.type === 'fulfiller') {
+                // Send to fulfiller
+                adminFetch(`${BACKEND_URL}/api/admin/fulfillers/notify`, {
+                    method: 'POST',
+                    body: JSON.stringify({ 
+                        fulfillerId: context.fulfillerId, 
+                        orderDetails: body,
+                        subject: subject,
+                        html: html
+                    })
+                })
+                .then(data => {
+                    if (data.success) {
+                        alert('Email sent to fulfiller successfully!');
+                        closeComposeEmail();
+                        loadFulfillers();
+                    } else {
+                        alert('Error: ' + (data.error || 'Failed to send email'));
+                    }
+                })
+                .catch(err => {
+                    console.error('Error sending email:', err);
+                    alert('Error sending email: ' + err.message);
+                })
+                .finally(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                });
+            } else if (context.type === 'broadcast') {
+                // Send to all subscribers
+                const productSelect = document.getElementById('broadcast-products');
+                const products = productSelect ? Array.from(productSelect.selectedOptions || []).map(o => o.value) : [];
+                adminFetch(`${BACKEND_URL}/api/admin/broadcast`, {
+                    method: 'POST',
+                    body: JSON.stringify({ 
+                        subject: subject, 
+                        message: body,
+                        html: html,
+                        products: products
+                    })
+                })
+                .then(data => {
+                    if (data.success) {
+                        alert(`Email sent to ${data.sent || 0} subscribers${data.total ? ` out of ${data.total}` : ''}`);
+                        closeComposeEmail();
+                        loadBroadcast();
+                    } else {
+                        alert('Error: ' + (data.error || 'Failed to send broadcast'));
+                    }
+                })
+                .catch(err => {
+                    console.error('Error sending broadcast:', err);
+                    alert('Error sending broadcast: ' + err.message);
+                })
+                .finally(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                });
+            } else if (context.type === 'abandoned-cart') {
+                // Send to selected or all abandoned carts
+                const cartSelect = document.getElementById('abandoned-cart-select');
+                const selectedCarts = cartSelect ? Array.from(cartSelect.selectedOptions || []).map(o => o.value) : [];
+                adminFetch(`${BACKEND_URL}/api/admin/abandoned-carts/remind-all`, {
+                    method: 'POST',
+                    body: JSON.stringify({ 
+                        subject: subject, 
+                        message: body,
+                        html: html,
+                        cartIds: selectedCarts.length > 0 ? selectedCarts : null // null means all
+                    })
+                })
+                .then(data => {
+                    if (data.success) {
+                        alert(`Reminder emails sent to ${data.sent || 0} customers`);
+                        closeComposeEmail();
+                        loadAbandonedCarts();
+                    } else {
+                        alert('Error: ' + (data.error || 'Failed to send reminders'));
+                    }
+                })
+                .catch(err => {
+                    console.error('Error sending reminders:', err);
+                    alert('Error sending reminders: ' + err.message);
+                })
+                .finally(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                });
+            } else {
+                // Default: send to inbox (single recipient)
+                adminFetch(`${BACKEND_URL}/api/admin/inbox/send`, {
+                    method: 'POST',
+                    body: JSON.stringify({ to, subject, body, html: html })
+                })
+                .then(data => {
+                    if (data.success) {
+                        alert('Email sent successfully!');
+                        closeComposeEmail();
+                        loadInbox();
+                        updateBadges();
+                    } else {
+                        alert('Error: ' + (data.error || 'Failed to send email'));
+                    }
+                })
+                .catch(err => {
+                    console.error('Error sending email:', err);
+                    alert('Error sending email: ' + err.message);
+                })
+                .finally(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                });
+            }
         });
         
         // Search inbox

@@ -1163,12 +1163,17 @@ if (process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS) 
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS
     },
-    connectionTimeout: 20000, // 20 seconds
-    greetingTimeout: 20000,
-    socketTimeout: 20000,
-    pool: true,
-    maxConnections: 1,
-    maxMessages: 3
+    connectionTimeout: 60000, // 60 seconds
+    greetingTimeout: 60000,
+    socketTimeout: 60000,
+    pool: false, // Disable pooling for better reliability
+    requireTLS: true,
+    tls: {
+      rejectUnauthorized: false, // Allow self-signed certificates
+      ciphers: 'SSLv3'
+    },
+    debug: false,
+    logger: false
   });
   console.log('✅ Email transporter configured');
   console.log('   Host:', process.env.EMAIL_HOST);
