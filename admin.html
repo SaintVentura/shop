@@ -573,13 +573,13 @@
                     <div class="mb-8">
                         <h2 class="text-2xl md:text-3xl font-bold mb-2">Email Broadcast</h2>
                         <p class="text-gray-600">Send newsletters, promotions, and updates to all subscribers</p>
-                    </div>
+                            </div>
                     <div class="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg border border-gray-100 p-6 md:p-8 mb-8">
                         <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-6">
-                            <div>
+                                <div>
                                 <h3 class="text-xl md:text-2xl font-semibold mb-2">Subscriber Overview</h3>
                                 <p class="text-gray-600">Total Subscribers: <span id="subscriber-count" class="font-bold text-black text-lg">0</span></p>
-                            </div>
+                                </div>
                             <button onclick="openBroadcastEmailComposer()" class="mt-4 md:mt-0 w-full md:w-auto px-6 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition shadow-md hover:shadow-lg">
                                 ✉️ Compose Broadcast Email
                             </button>
@@ -1001,7 +1001,7 @@
             // Sync every 30 seconds
             syncInterval = setInterval(() => {
                 // Update badges (notifications, emails, carts)
-                updateBadges();
+            updateBadges();
                 
                 // Refresh current section data
                 if (currentSection === 'dashboard') {
@@ -1443,17 +1443,17 @@
         document.getElementById('inventory-search')?.addEventListener('input', (e) => {
             // Only filter if data is loaded
             if (allInventoryData && allInventoryData.length > 0) {
-                const searchTerm = e.target.value.toLowerCase();
-                const category = document.getElementById('inventory-filter-category')?.value || '';
-                filterInventory(searchTerm, category);
+            const searchTerm = e.target.value.toLowerCase();
+            const category = document.getElementById('inventory-filter-category')?.value || '';
+            filterInventory(searchTerm, category);
             }
         });
         
         document.getElementById('inventory-filter-category')?.addEventListener('change', (e) => {
             // Only filter if data is loaded
             if (allInventoryData && allInventoryData.length > 0) {
-                const searchTerm = document.getElementById('inventory-search')?.value.toLowerCase() || '';
-                filterInventory(searchTerm, e.target.value);
+            const searchTerm = document.getElementById('inventory-search')?.value.toLowerCase() || '';
+            filterInventory(searchTerm, e.target.value);
             }
         });
         
@@ -1734,9 +1734,9 @@
             console.log('showComposeEmail called with:', { replyTo, replySubject });
             
             try {
-                const modal = document.getElementById('compose-email-modal');
-                const form = document.getElementById('compose-email-form');
-                const builder = document.getElementById('email-builder');
+            const modal = document.getElementById('compose-email-modal');
+            const form = document.getElementById('compose-email-form');
+            const builder = document.getElementById('email-builder');
                 
                 // Check if required elements exist
                 if (!modal) {
@@ -1806,8 +1806,8 @@
             const previewMode = document.getElementById('preview-mode');
             if (previewMode) previewMode.checked = false;
             
-                // Show modal
-                modal.classList.remove('hidden');
+            // Show modal
+            modal.classList.remove('hidden');
                 console.log('Compose email modal opened successfully');
             } catch (error) {
                 console.error('Error in showComposeEmail:', error);
@@ -1828,9 +1828,9 @@
                 if (form) form.reset();
                 if (builder) builder.innerHTML = '';
                 
-                // Clear context
-                if (window.currentEmailContext) {
-                    window.currentEmailContext = null;
+            // Clear context
+            if (window.currentEmailContext) {
+                window.currentEmailContext = null;
                 }
             } catch (error) {
                 console.error('Error closing compose email:', error);
@@ -1876,15 +1876,15 @@
                                 showComposeEmail(fulfiller.email, subject);
                                 
                                 // Show template section and set fulfiller template
-                                setTimeout(() => {
+                                    setTimeout(() => {
                                     const templateSection = document.getElementById('email-template-section');
                                     const templateSelect = document.getElementById('email-template-select');
                                     if (templateSection) templateSection.classList.remove('hidden');
                                     if (templateSelect) {
                                         templateSelect.value = 'fulfiller-order';
                                         loadEmailTemplate();
-                                    }
-                                }, 100);
+                                        }
+                                    }, 100);
                             })
                             .catch(err => {
                                 window.currentEmailContext = { type: 'fulfiller', fulfillerId, orderId };
@@ -2378,73 +2378,140 @@ Thank you!</textarea>
             }
         }
         
-        // Compose email form handler
-        document.getElementById('compose-email-form')?.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const to = document.getElementById('compose-to').value;
-            const subject = document.getElementById('compose-subject').value;
-            
-            // Build HTML from sections
-            const builder = document.getElementById('email-builder');
-            const sections = builder.querySelectorAll('.email-section');
-            let html = '';
-            let text = '';
-            
-            sections.forEach(section => {
-                const type = section.dataset.type;
-                switch(type) {
-                    case 'text':
-                        const textContent = section.querySelector('textarea').value;
-                        html += `<p style="margin: 10px 0; line-height: 1.6; font-family: Arial, sans-serif;">${textContent.replace(/\n/g, '<br>')}</p>`;
-                        text += textContent + '\n\n';
-                        break;
-                    case 'heading':
-                        const headingLevel = section.querySelector('select').value;
-                        const headingText = section.querySelector('input').value;
-                        html += `<${headingLevel} style="margin: 15px 0; font-weight: bold; font-family: Arial, sans-serif;">${headingText}</${headingLevel}>`;
-                        text += headingText + '\n\n';
-                        break;
-                    case 'image':
-                        const imgUrl = section.querySelectorAll('input')[0].value;
-                        const altText = section.querySelectorAll('input')[1].value;
-                        if (imgUrl) {
-                            html += `<img src="${imgUrl}" alt="${altText || ''}" style="max-width: 100%; height: auto; margin: 10px 0; display: block;">`;
-                            text += `[Image: ${altText || imgUrl}]\n\n`;
-                        }
-                        break;
-                    case 'button':
-                        const btnText = section.querySelectorAll('input')[0].value;
-                        const btnUrl = section.querySelectorAll('input')[1].value;
-                        if (btnText && btnUrl) {
-                            html += `<div style="margin: 15px 0; text-align: center;"><a href="${btnUrl}" style="display: inline-block; padding: 12px 24px; background-color: #000; color: #fff; text-decoration: none; border-radius: 4px; font-weight: bold; font-family: Arial, sans-serif;">${btnText}</a></div>`;
-                            text += `${btnText}: ${btnUrl}\n\n`;
-                        }
-                        break;
-                    case 'divider':
-                        html += `<hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">`;
-                        text += '---\n\n';
-                        break;
-                    case 'spacer':
-                        const height = section.querySelector('input').value || 20;
-                        html += `<div style="height: ${height}px;"></div>`;
-                        break;
-                }
-            });
-            
-            const body = html || text || '';
-            
-            if (!body.trim()) {
-                alert('Please add some content to your email');
+        // Compose email form handler - set up when form is available
+        function setupComposeEmailForm() {
+            const composeForm = document.getElementById('compose-email-form');
+            if (!composeForm) {
+                console.warn('Compose email form not found');
                 return;
             }
             
-            const submitBtn = e.target.querySelector('button[type="submit"]');
-            const originalText = submitBtn.textContent;
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Sending...';
+            // Remove existing listener to avoid duplicates
+            const newForm = composeForm.cloneNode(true);
+            composeForm.parentNode.replaceChild(newForm, composeForm);
             
-            // Handle different contexts
-            const context = window.currentEmailContext || { type: 'inbox' };
+            newForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Compose email form submitted');
+                
+                try {
+                    const toField = document.getElementById('compose-to');
+                    const subjectField = document.getElementById('compose-subject');
+                    
+                    if (!toField || !subjectField) {
+                        console.error('Compose form fields not found');
+                        alert('Error: Email form fields not found. Please refresh the page.');
+                        return;
+                    }
+                    
+                    const to = toField.value.trim();
+                    const subject = subjectField.value.trim();
+                    
+                    console.log('Email form values:', { to, subject });
+                    
+                    // Validate required fields
+                    if (!to) {
+                        alert('Please enter a recipient email address');
+                        return;
+                    }
+                    
+                    if (!subject) {
+                        alert('Please enter an email subject');
+                        return;
+                    }
+                    
+                    // Build HTML from sections
+                    const builder = document.getElementById('email-builder');
+                    if (!builder) {
+                        console.error('Email builder not found');
+                        alert('Error: Email builder not found. Please refresh the page.');
+                        return;
+                    }
+                    
+                    const sections = builder.querySelectorAll('.email-section');
+                    let html = '';
+                    let text = '';
+                    
+                    sections.forEach(section => {
+                        const type = section.dataset.type;
+                        switch(type) {
+                            case 'text':
+                                const textArea = section.querySelector('textarea');
+                                if (textArea) {
+                                    const textContent = textArea.value;
+                                    html += `<p style="margin: 10px 0; line-height: 1.6; font-family: Arial, sans-serif;">${textContent.replace(/\n/g, '<br>')}</p>`;
+                                    text += textContent + '\n\n';
+                                }
+                                break;
+                            case 'heading':
+                                const headingSelect = section.querySelector('select');
+                                const headingInput = section.querySelector('input');
+                                if (headingSelect && headingInput) {
+                                    const headingLevel = headingSelect.value;
+                                    const headingText = headingInput.value;
+                                    html += `<${headingLevel} style="margin: 15px 0; font-weight: bold; font-family: Arial, sans-serif;">${headingText}</${headingLevel}>`;
+                                    text += headingText + '\n\n';
+                                }
+                                break;
+                            case 'image':
+                                const imgInputs = section.querySelectorAll('input');
+                                if (imgInputs.length >= 1) {
+                                    const imgUrl = imgInputs[0].value;
+                                    const altText = imgInputs[1]?.value || '';
+                                    if (imgUrl) {
+                                        html += `<img src="${imgUrl}" alt="${altText || ''}" style="max-width: 100%; height: auto; margin: 10px 0; display: block;">`;
+                                        text += `[Image: ${altText || imgUrl}]\n\n`;
+                                    }
+                                }
+                                break;
+                            case 'button':
+                                const btnInputs = section.querySelectorAll('input');
+                                if (btnInputs.length >= 2) {
+                                    const btnText = btnInputs[0].value;
+                                    const btnUrl = btnInputs[1].value;
+                                    if (btnText && btnUrl) {
+                                        html += `<div style="margin: 15px 0; text-align: center;"><a href="${btnUrl}" style="display: inline-block; padding: 12px 24px; background-color: #000; color: #fff; text-decoration: none; border-radius: 4px; font-weight: bold; font-family: Arial, sans-serif;">${btnText}</a></div>`;
+                                        text += `${btnText}: ${btnUrl}\n\n`;
+                                    }
+                                }
+                                break;
+                            case 'divider':
+                                html += `<hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">`;
+                                text += '---\n\n';
+                                break;
+                            case 'spacer':
+                                const spacerInput = section.querySelector('input');
+                                if (spacerInput) {
+                                    const height = spacerInput.value || 20;
+                                    html += `<div style="height: ${height}px;"></div>`;
+                                }
+                                break;
+                        }
+                    });
+                    
+                    const body = html || text || '';
+                    
+                    if (!body.trim()) {
+                        alert('Please add some content to your email');
+                        return;
+                    }
+                    
+                    const submitBtn = newForm.querySelector('button[type="submit"]');
+                    if (!submitBtn) {
+                        console.error('Submit button not found');
+                        alert('Error: Submit button not found');
+                        return;
+                    }
+                    
+                    const originalText = submitBtn.textContent;
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Sending...';
+                    
+                    console.log('Sending email with context:', window.currentEmailContext);
+                    
+                    // Handle different contexts
+                    const context = window.currentEmailContext || { type: 'inbox' };
             
             if (context.type === 'fulfiller') {
                 // Send to fulfiller
@@ -2535,37 +2602,70 @@ Thank you!</textarea>
                     alert('Error sending reminders: ' + err.message);
                 })
                 .finally(() => {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = originalText;
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = originalText;
+                    }
                 });
             } else {
                 // Default: send to inbox (supports multiple recipients)
                 // Parse multiple recipients (comma-separated)
                 const recipients = to.split(',').map(r => r.trim()).filter(r => r);
+                console.log('Sending to recipients:', recipients);
                 adminFetch(`${BACKEND_URL}/api/admin/inbox/send`, {
                     method: 'POST',
                     body: JSON.stringify({ to: recipients.join(', '), subject, body, html: html })
                 })
                 .then(data => {
-                    if (data.success) {
+                    console.log('Email send response:', data);
+                    if (data && data.success) {
                         alert('Email sent successfully!');
                         closeComposeEmail();
                         loadInbox();
                         updateBadges();
                     } else {
-                        alert('Error: ' + (data.error || 'Failed to send email'));
+                        alert('Error: ' + (data?.error || 'Failed to send email'));
                     }
                 })
                 .catch(err => {
                     console.error('Error sending email:', err);
-                    alert('Error sending email: ' + err.message);
+                    alert('Error sending email: ' + (err.message || 'Unknown error'));
                 })
                 .finally(() => {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = originalText;
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = originalText;
+                    }
                 });
             }
-        });
+                } catch (error) {
+                    console.error('Error in compose email form submission:', error);
+                    alert('Error: ' + (error.message || 'Failed to process email'));
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = originalText;
+                    }
+                }
+            });
+            console.log('Compose email form event listener set up successfully');
+        }
+        
+        // Set up form listener when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setupComposeEmailForm);
+        } else {
+            setupComposeEmailForm();
+        }
+        
+        // Re-setup form listener when modal is opened
+        const originalShowComposeEmail = window.showComposeEmail;
+        window.showComposeEmail = function(replyTo = null, replySubject = null) {
+            if (originalShowComposeEmail) {
+                originalShowComposeEmail(replyTo, replySubject);
+            }
+            // Re-setup form listener when modal is opened
+            setTimeout(setupComposeEmailForm, 100);
+        };
         
         // Search inbox
         document.getElementById('inbox-search')?.addEventListener('input', (e) => {
@@ -2624,7 +2724,7 @@ Thank you!</textarea>
                     }
                 }
                 // Load inbox regardless of fetch result
-                loadInbox();
+            loadInbox();
             })
             .catch(err => {
                 console.error('Error fetching emails:', err);
@@ -2903,7 +3003,7 @@ Thank you!</textarea>
         const fulfillerForm = document.getElementById('add-fulfiller-form');
         if (fulfillerForm) {
             fulfillerForm.addEventListener('submit', (e) => {
-                e.preventDefault();
+            e.preventDefault();
                 const name = document.getElementById('fulfiller-name')?.value.trim();
                 const email = document.getElementById('fulfiller-email')?.value.trim();
                 const phone = document.getElementById('fulfiller-phone')?.value.trim();
@@ -2930,27 +3030,27 @@ Thank you!</textarea>
                 submitBtn.disabled = true;
                 submitBtn.textContent = 'Adding...';
 
-                adminFetch(`${BACKEND_URL}/api/admin/fulfillers`, {
-                    method: 'POST',
-                    body: JSON.stringify({ name, email, phone })
-                })
-                .then(data => {
+            adminFetch(`${BACKEND_URL}/api/admin/fulfillers`, {
+                method: 'POST',
+                body: JSON.stringify({ name, email, phone })
+            })
+            .then(data => {
                     console.log('Fulfiller add response:', data);
-                    if (data.success) {
-                        closeAddFulfillerModal();
-                        loadFulfillers();
+                if (data.success) {
+                    closeAddFulfillerModal();
+                    loadFulfillers();
                         // Show success notification
                         const notification = document.createElement('div');
                         notification.className = 'fixed top-20 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
                         notification.textContent = 'Fulfiller added successfully!';
                         document.body.appendChild(notification);
                         setTimeout(() => notification.remove(), 3000);
-                    } else {
-                        alert('Error: ' + (data.error || 'Failed to add fulfiller'));
-                    }
-                })
-                .catch(err => {
-                    console.error('Error adding fulfiller:', err);
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to add fulfiller'));
+                }
+            })
+            .catch(err => {
+                console.error('Error adding fulfiller:', err);
                     alert('Error: ' + (err.message || 'Failed to add fulfiller. Please check your connection.'));
                 })
                 .finally(() => {
@@ -2958,8 +3058,8 @@ Thank you!</textarea>
                         submitBtn.disabled = false;
                         submitBtn.textContent = originalText;
                     }
-                });
             });
+        });
         } else {
             console.warn('Fulfiller form not found when setting up event listener');
         }
@@ -3238,17 +3338,17 @@ Thank you!</textarea>
         document.getElementById('orders-search')?.addEventListener('input', (e) => {
             // Only filter if data is loaded
             if (allOrdersData && allOrdersData.length > 0) {
-                const searchTerm = e.target.value.toLowerCase();
-                const status = document.getElementById('orders-filter-status')?.value || '';
-                filterOrders(searchTerm, status);
+            const searchTerm = e.target.value.toLowerCase();
+            const status = document.getElementById('orders-filter-status')?.value || '';
+            filterOrders(searchTerm, status);
             }
         });
         
         document.getElementById('orders-filter-status')?.addEventListener('change', (e) => {
             // Only filter if data is loaded
             if (allOrdersData && allOrdersData.length > 0) {
-                const searchTerm = document.getElementById('orders-search')?.value.toLowerCase() || '';
-                filterOrders(searchTerm, e.target.value);
+            const searchTerm = document.getElementById('orders-search')?.value.toLowerCase() || '';
+            filterOrders(searchTerm, e.target.value);
             }
         });
         
