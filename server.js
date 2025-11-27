@@ -1658,13 +1658,18 @@ app.post('/api/admin/inbox/send', adminAuth, async (req, res) => {
       });
     }
     
+    // Use HTML if provided, otherwise convert text to HTML
+    const emailHtml = req.body.html || body.replace(/\n/g, '<br>');
+    // Strip HTML tags for plain text version
+    const emailText = body.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim() || body;
+    
     await emailTransporter.sendMail({
       from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
       to: to,
       replyTo: replyTo || process.env.EMAIL_USER,
       subject: subject,
-      text: body,
-      html: body.replace(/\n/g, '<br>')
+      text: emailText,
+      html: emailHtml
     });
     
     // Store sent email in inbox
