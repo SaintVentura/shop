@@ -1163,9 +1163,9 @@ if (process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS) 
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS
     },
-    connectionTimeout: 60000, // 60 seconds
-    greetingTimeout: 60000,
-    socketTimeout: 60000,
+    connectionTimeout: 30000, // 30 seconds
+    greetingTimeout: 30000,
+    socketTimeout: 30000,
     pool: false, // Disable pooling for better reliability
     requireTLS: true,
     tls: {
@@ -1181,10 +1181,11 @@ if (process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS) 
   console.log('   User:', process.env.EMAIL_USER);
   console.log('   From:', process.env.FROM_EMAIL || process.env.EMAIL_USER);
   
-  // Test email connection
+  // Test email connection (non-blocking, don't fail if verification times out)
   emailTransporter.verify(function(error, success) {
     if (error) {
       console.error('❌ Email transporter verification failed:', error.message);
+      console.warn('⚠️  Email sending may still work. Verification is just a connectivity test.');
     } else {
       console.log('✅ Email transporter verified - ready to send emails');
     }
@@ -1280,20 +1281,38 @@ async function fetchEmailsFromIMAP() {
         
         let messageCount = 0;
         
+        let parsedCount = 0;
+        const pendingEmails = [];
+        
         fetch.on('message', (msg, seqno) => {
           messageCount++;
+          const emailData = {
+            seqno: seqno,
+            parsed: false
+          };
+          pendingEmails.push(emailData);
+          
           msg.on('body', (stream, info) => {
             simpleParser(stream, (err, parsed) => {
               if (err) {
-                console.error('Error parsing email:', err);
+                console.error(`Error parsing email ${seqno}:`, err);
+                emailData.parsed = true;
+                parsedCount++;
+                // Remove from pending if parsing failed
+                const index = pendingEmails.indexOf(emailData);
+                if (index > -1) pendingEmails.splice(index, 1);
+                checkComplete();
                 return;
               }
               
               // Use HTML if available, otherwise use text
               const emailBody = parsed.html || parsed.textAsHtml || parsed.text || '';
               
-              emails.push({
-                id: `imap-${seqno}-${Date.now()}`,
+              // Create a stable ID based on email content, not timestamp
+              const emailId = `imap-${seqno}-${parsed.date ? new Date(parsed.date).getTime() : Date.now()}-${parsed.from?.value?.[0]?.address || 'unknown'}-${parsed.subject || 'nosubject'}`.replace(/[^a-zA-Z0-9-]/g, '-');
+              
+              const emailObj = {
+                id: emailId,
                 from: parsed.from?.text || parsed.from?.value?.[0]?.address || 'unknown',
                 name: parsed.from?.value?.[0]?.name || '',
                 subject: parsed.subject || '(No Subject)',
@@ -1308,15 +1327,40 @@ async function fetchEmailsFromIMAP() {
                   contentType: a.contentType,
                   size: a.size
                 })) : []
-              });
+              };
+              
+              emails.push(emailObj);
+              emailData.parsed = true;
+              parsedCount++;
+              checkComplete();
             });
           });
         });
         
+        function checkComplete() {
+          // Wait for all messages to be parsed before resolving
+          if (parsedCount === messageCount) {
+            console.log(`Fetched ${messageCount} emails from IMAP, successfully parsed ${emails.length} emails`);
+            imap.end();
+            resolve(emails);
+          }
+        }
+        
         fetch.once('end', () => {
-          console.log(`Fetched ${messageCount} emails from IMAP`);
-          imap.end();
-          resolve(emails);
+          console.log(`IMAP fetch ended. Messages: ${messageCount}, Parsed: ${parsedCount}`);
+          // If all messages were already parsed, resolve immediately
+          if (parsedCount === messageCount) {
+            console.log(`Fetched ${messageCount} emails from IMAP, successfully parsed ${emails.length} emails`);
+            imap.end();
+            resolve(emails);
+          } else {
+            // Wait a bit more for remaining messages to parse
+            setTimeout(() => {
+              console.log(`Final check - Messages: ${messageCount}, Parsed: ${parsedCount}, Emails collected: ${emails.length}`);
+              imap.end();
+              resolve(emails);
+            }, 2000);
+          }
         });
         
         fetch.once('error', (err) => {
@@ -1622,23 +1666,27 @@ app.post('/api/admin/inbox/fetch', adminAuth, async (req, res) => {
       imapEmails.sort((a, b) => new Date(b.date) - new Date(a.date));
       
       for (const imapEmail of imapEmails) {
-        // Better duplicate detection - check by unique ID first, then by content
+        // Better duplicate detection - check by unique ID first
         const existsById = inbox.find(e => e.id === imapEmail.id);
         if (existsById) {
+          console.log(`Skipping duplicate email by ID: ${imapEmail.id}`);
           continue; // Skip if exact ID match
         }
         
-        // Check for duplicates by content (within 10 minutes window)
+        // Check for duplicates by content (within 1 hour window for same sender/subject)
         const exists = inbox.find(e => {
           const timeDiff = Math.abs(new Date(e.date) - new Date(imapEmail.date));
-          return e.from === imapEmail.from && 
-                 e.subject === imapEmail.subject &&
-                 timeDiff < 600000; // 10 minutes
+          const sameFrom = (e.from || '').toLowerCase() === (imapEmail.from || '').toLowerCase();
+          const sameSubject = (e.subject || '').toLowerCase() === (imapEmail.subject || '').toLowerCase();
+          return sameFrom && sameSubject && timeDiff < 3600000; // 1 hour
         });
         
         if (!exists) {
+          console.log(`Adding new email: ${imapEmail.subject} from ${imapEmail.from}`);
           inbox.push(imapEmail);
           newEmails++;
+        } else {
+          console.log(`Skipping duplicate email by content: ${imapEmail.subject} from ${imapEmail.from}`);
         }
       }
       
