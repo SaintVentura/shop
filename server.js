@@ -1607,17 +1607,25 @@ app.post('/api/admin/inbox/fetch', adminAuth, async (req, res) => {
     let newEmails = 0;
     
     if (imapEmails && imapEmails.length > 0) {
+      // Sort by date (newest first) to process latest emails first
+      imapEmails.sort((a, b) => new Date(b.date) - new Date(a.date));
+      
       for (const imapEmail of imapEmails) {
-        const exists = inbox.find(e => 
-          e.from === imapEmail.from && 
-          e.subject === imapEmail.subject &&
-          Math.abs(new Date(e.date) - new Date(imapEmail.date)) < 60000
-        );
+        // Better duplicate detection - check by subject, from, and date (within 5 minutes)
+        const exists = inbox.find(e => {
+          const timeDiff = Math.abs(new Date(e.date) - new Date(imapEmail.date));
+          return e.from === imapEmail.from && 
+                 e.subject === imapEmail.subject &&
+                 timeDiff < 300000; // 5 minutes
+        });
         if (!exists) {
           inbox.push(imapEmail);
           newEmails++;
         }
       }
+      
+      // Sort inbox by date (newest first)
+      inbox.sort((a, b) => new Date(b.date) - new Date(a.date));
       await writeDataFile('inbox', inbox);
     }
     
