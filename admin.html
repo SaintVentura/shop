@@ -1654,17 +1654,32 @@
             const form = document.getElementById('compose-email-form');
             const builder = document.getElementById('email-builder');
             
-            // Reset builder
-            builder.innerHTML = '<div class="email-section" data-type="text"><div class="flex justify-between items-center mb-2"><span class="text-xs text-gray-500">Text Section</span><button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button></div><textarea class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="3" placeholder="Enter text content..."></textarea></div>';
+            // Clear saved sections when opening new compose
+            emailBuilderSections = null;
             
+            // Reset builder with proper styling
+            builder.innerHTML = `
+                <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="text">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs text-gray-500 font-medium">Text Section</span>
+                        <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
+                    </div>
+                    <textarea class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="4" placeholder="Enter text content..."></textarea>
+                </div>
+            `;
+            
+            // Reset form
             if (replyTo) {
                 document.getElementById('compose-to').value = replyTo;
-                document.getElementById('compose-subject').value = replySubject ? `Re: ${replySubject}` : 'Re: ';
+                document.getElementById('compose-subject').value = replySubject ? (replySubject.startsWith('Re:') ? replySubject : `Re: ${replySubject}`) : 'Re: ';
             } else {
                 form.reset();
-                builder.innerHTML = '<div class="email-section" data-type="text"><div class="flex justify-between items-center mb-2"><span class="text-xs text-gray-500">Text Section</span><button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button></div><textarea class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="3" placeholder="Enter text content..."></textarea></div>';
             }
             
+            // Reset preview mode
+            document.getElementById('preview-mode').checked = false;
+            
+            // Show modal
             modal.classList.remove('hidden');
         }
         
