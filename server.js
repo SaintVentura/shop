@@ -1261,8 +1261,8 @@ async function fetchEmailsFromIMAP() {
         const totalMessages = box.messages.total;
         console.log(`Total messages in inbox: ${totalMessages}`);
         
-        // Fetch all recent emails (up to 200)
-        const fetchCount = Math.min(totalMessages, 200);
+        // Fetch all recent emails (up to 500 for better coverage)
+        const fetchCount = Math.min(totalMessages, 500);
         const fetchRange = totalMessages > 0 ? `1:${fetchCount}` : '1:1';
         
         console.log(`Fetching emails: ${fetchRange}`);
@@ -1617,13 +1617,20 @@ app.post('/api/admin/inbox/fetch', adminAuth, async (req, res) => {
       imapEmails.sort((a, b) => new Date(b.date) - new Date(a.date));
       
       for (const imapEmail of imapEmails) {
-        // Better duplicate detection - check by subject, from, and date (within 5 minutes)
+        // Better duplicate detection - check by unique ID first, then by content
+        const existsById = inbox.find(e => e.id === imapEmail.id);
+        if (existsById) {
+          continue; // Skip if exact ID match
+        }
+        
+        // Check for duplicates by content (within 10 minutes window)
         const exists = inbox.find(e => {
           const timeDiff = Math.abs(new Date(e.date) - new Date(imapEmail.date));
           return e.from === imapEmail.from && 
                  e.subject === imapEmail.subject &&
-                 timeDiff < 300000; // 5 minutes
+                 timeDiff < 600000; // 10 minutes
         });
+        
         if (!exists) {
           inbox.push(imapEmail);
           newEmails++;
@@ -1635,7 +1642,11 @@ app.post('/api/admin/inbox/fetch', adminAuth, async (req, res) => {
       await writeDataFile('inbox', inbox);
     }
     
-    res.json({ success: true, fetched: imapEmails ? imapEmails.length : 0, new: newEmails });
+    console.log(`Fetched ${imapEmails ? imapEmails.length : 0} emails from IMAP`);
+    console.log(`Current inbox has ${inbox.length} emails`);
+    console.log(`Added ${newEmails} new emails. Total inbox: ${inbox.length}`);
+    
+    res.json({ success: true, fetched: imapEmails ? imapEmails.length : 0, new: newEmails, total: inbox.length });
   } catch (error) {
     console.error('Error fetching emails from IMAP:', error);
     res.status(500).json({ 
