@@ -1423,7 +1423,7 @@ const SOCIAL_MEDIA = {
 };
 
 function generateEmailTemplate(type, data = {}) {
-  const { 
+  let { 
     heading = '', 
     content = '', 
     ctaText = 'Shop Now', 
