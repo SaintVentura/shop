@@ -4157,15 +4157,6 @@ async function handleCheckout(event) {
     // Check if newsletter subscription is checked
     const newsletterChecked = document.getElementById('newsletter-subscribe')?.checked || false;
     if (newsletterChecked && email) {
-        // Get backend base URL (same logic as other API calls)
-        function getBackendBaseUrl() {
-            const hostname = window.location.hostname;
-            if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '' || hostname === '0.0.0.0') {
-                return 'http://localhost:3000';
-            }
-            return 'https://saint-ventura-backend.onrender.com';
-        }
-        
         // Add to subscribers in background (don't block payment)
         const backendBaseUrl = getBackendBaseUrl();
         fetch(`${backendBaseUrl}/api/newsletter-subscribe`, {
