@@ -834,7 +834,14 @@ app.post('/api/send-checkout-email', async (req, res) => {
       filteredCarts.push({
         id: Date.now().toString(),
         email: emailLower,
+        customerName: customerName,
+        customerPhone: customerPhone || '',
+        shippingMethod: shippingMethod,
+        deliveryAddress: deliveryAddress,
+        deliveryDetails: req.body.deliveryDetails || {},
         items: cartItems,
+        subtotal: subtotal || 0,
+        shipping: shipping || 0,
         total: total || 0,
         date: new Date().toISOString()
       });
@@ -1081,6 +1088,40 @@ Thank you for choosing Saint Ventura!
       await writeDataFile('notifications', notifications);
     } catch (error) {
       console.error('Error creating order notification:', error);
+    }
+
+    // Save completed order to orders.json
+    try {
+      const orders = await readDataFile('orders');
+      const finalOrderId = orderId || `ORDER-${Date.now()}`;
+      
+      // Check if order already exists (avoid duplicates)
+      const existingOrder = orders.find(o => o.id === finalOrderId);
+      if (!existingOrder) {
+        orders.push({
+          id: finalOrderId,
+          customerName,
+          customerEmail,
+          customerPhone: req.body.customerPhone || '', // Optional field
+          shippingMethod,
+          deliveryAddress,
+          deliveryDetails,
+          items: orderItems, // Store as array
+          subtotal,
+          shipping,
+          total,
+          date: new Date().toISOString(),
+          status: 'completed',
+          paymentMethod: 'yoco' // Assuming Yoco payment gateway
+        });
+        await writeDataFile('orders', orders);
+        console.log(`✅ Saved completed order to orders.json: ${finalOrderId}`);
+      } else {
+        console.log(`⚠️ Order ${finalOrderId} already exists in orders.json, skipping duplicate`);
+      }
+    } catch (error) {
+      console.error('Error saving completed order to orders.json:', error);
+      // Don't fail the order confirmation if order saving fails
     }
 
     // Remove from abandoned carts when payment is completed
@@ -3059,17 +3100,36 @@ app.post('/api/admin/abandoned-carts/remind-all', adminAuth, async (req, res) =>
 // Track abandoned carts (called from frontend)
 app.post('/api/track-abandoned-cart', async (req, res) => {
   try {
-    const { email, items, total } = req.body;
+    const { 
+      email, 
+      items, 
+      total, 
+      customerName, 
+      customerPhone, 
+      shippingMethod, 
+      deliveryAddress, 
+      deliveryDetails,
+      subtotal,
+      shipping
+    } = req.body;
     const carts = await readDataFile('abandonedCarts');
     
     // Remove old cart for this email if exists
-    const filteredCarts = carts.filter(c => c.email !== email);
+    const emailLower = email?.toLowerCase().trim() || '';
+    const filteredCarts = carts.filter(c => c.email?.toLowerCase().trim() !== emailLower);
     
     filteredCarts.push({
       id: Date.now().toString(),
-      email: email,
-      items: items,
-      total: total,
+      email: emailLower,
+      customerName: customerName || '',
+      customerPhone: customerPhone || '',
+      shippingMethod: shippingMethod || '',
+      deliveryAddress: deliveryAddress || '',
+      deliveryDetails: deliveryDetails || {},
+      items: items || [],
+      subtotal: subtotal || (total - (shipping || 0)),
+      shipping: shipping || 0,
+      total: total || 0,
       date: new Date().toISOString()
     });
     
@@ -3315,13 +3375,51 @@ app.get('/api/admin/dashboard', adminAuth, async (req, res) => {
 app.get('/api/admin/orders', adminAuth, async (req, res) => {
   try {
     const orders = await readDataFile('orders');
+    const abandonedCarts = await readDataFile('abandonedCarts');
+    
+    // Convert abandoned carts to pending orders
+    const pendingOrdersFromCarts = abandonedCarts.map(cart => {
+      // Check if this cart already exists as an order (by email and similar items)
+      const existingOrder = orders.find(o => 
+        o.customerEmail?.toLowerCase().trim() === cart.email?.toLowerCase().trim() &&
+        o.status === 'pending'
+      );
+      
+      // If order already exists, don't create duplicate
+      if (existingOrder) {
+        return null;
+      }
+      
+      // Convert cart to order format
+      return {
+        id: cart.id || `CART-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        customerName: cart.customerName || 'Unknown',
+        customerEmail: cart.email || '',
+        customerPhone: cart.customerPhone || '',
+        shippingMethod: cart.shippingMethod || '',
+        deliveryAddress: cart.deliveryAddress || '',
+        deliveryDetails: cart.deliveryDetails || {},
+        items: cart.items || [],
+        subtotal: cart.subtotal || (cart.total - (cart.shipping || 0)),
+        shipping: cart.shipping || 0,
+        total: cart.total || 0,
+        date: cart.date || new Date().toISOString(),
+        status: 'pending',
+        paymentMethod: '',
+        isAbandonedCart: true // Flag to identify abandoned carts
+      };
+    }).filter(order => order !== null); // Remove null entries
+    
+    // Merge orders and pending orders from carts
+    const allOrders = [...orders, ...pendingOrdersFromCarts];
+    
     // Sort by date, newest first
-    orders.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+    allOrders.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
     
     // Check for abandoned carts (pending orders > 10 minutes)
     await checkAbandonedCarts(orders);
     
-    res.json(orders);
+    res.json(allOrders);
   } catch (error) {
     console.error('Error fetching orders:', error);
     res.status(500).json({ success: false, error: error.message });
