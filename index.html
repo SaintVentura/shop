@@ -1710,6 +1710,15 @@
                             <p class="text-xs text-gray-500 mt-1">Order tracking link will be sent to your email</p>
                         </div>
 
+                        <!-- Newsletter Subscription Checkbox -->
+                        <div class="flex items-start space-x-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <input type="checkbox" id="newsletter-subscribe" name="newsletter-subscribe" class="mt-1 w-5 h-5 border-gray-300 rounded text-black focus:ring-black">
+                            <label for="newsletter-subscribe" class="text-sm text-gray-700 cursor-pointer">
+                                <span class="font-medium">Yes, I want to receive promotion updates, newsletters, and more!</span>
+                                <span class="block text-xs text-gray-500 mt-1">Get exclusive offers, new product launches, and special deals delivered to your inbox.</span>
+                            </label>
+                        </div>
+
                         <div>
                             <label class="block mb-2 font-medium">Phone Number <span class="text-red-500">*</span></label>
                             <input id="customer-phone" type="tel" required class="w-full border border-gray-300 rounded-lg px-4 py-3" placeholder="+27 12 345 6789">
@@ -4144,6 +4153,41 @@ async function handleCheckout(event) {
         timestamp: new Date().toISOString()
     };
     localStorage.setItem('pendingOrderDetails', JSON.stringify(orderDetails));
+
+    // Check if newsletter subscription is checked
+    const newsletterChecked = document.getElementById('newsletter-subscribe')?.checked || false;
+    if (newsletterChecked && email) {
+        // Get backend base URL (same logic as other API calls)
+        function getBackendBaseUrl() {
+            const hostname = window.location.hostname;
+            if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '' || hostname === '0.0.0.0') {
+                return 'http://localhost:3000';
+            }
+            return 'https://saint-ventura-backend.onrender.com';
+        }
+        
+        // Add to subscribers in background (don't block payment)
+        const backendBaseUrl = getBackendBaseUrl();
+        fetch(`${backendBaseUrl}/api/newsletter-subscribe`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email: email })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('✅ Subscriber added:', email);
+            } else {
+                console.log('⚠️ Newsletter subscription response:', data);
+            }
+        })
+        .catch(error => {
+            console.error('⚠️ Failed to add subscriber:', error);
+            // Don't block payment if subscription fails
+        });
+    }
 
     // Send email notification in background (non-blocking - don't wait for it)
     console.log('Sending checkout emails in background...');
