@@ -1155,38 +1155,87 @@ let imapConnection = null;
 
 if (process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
   // SMTP setup for sending emails
-  // Determine if we should use secure connection (port 465) or STARTTLS (port 587)
-  const port = parseInt(process.env.EMAIL_PORT || 587);
-  const isSecure = port === 465;
+  // Helper function to create email transporter with specific port
+  function createEmailTransporter(portToUse) {
+    const isSecure = portToUse === 465;
+    return nodemailer.createTransport({
+      host: process.env.EMAIL_HOST,
+      port: portToUse,
+      secure: isSecure, // true for 465, false for other ports (uses STARTTLS)
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      },
+      connectionTimeout: 15000, // 15 seconds - faster failure detection
+      greetingTimeout: 15000, // 15 seconds
+      socketTimeout: 15000, // 15 seconds
+      pool: false, // Disable pooling
+      // Only require TLS if not using secure port (465 already uses TLS)
+      requireTLS: !isSecure, // For port 587, require STARTTLS
+      tls: {
+        rejectUnauthorized: false, // Allow self-signed certificates
+        minVersion: 'TLSv1.2',
+        ciphers: 'HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA'
+      },
+      // Enable debug in development to see connection issues
+      debug: process.env.NODE_ENV === 'development',
+      logger: process.env.NODE_ENV === 'development'
+    });
+  }
   
-  emailTransporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST,
-    port: port,
-    secure: isSecure, // true for 465, false for other ports (uses STARTTLS)
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
-    },
-    connectionTimeout: 20000, // 20 seconds - reduced for faster failure detection
-    greetingTimeout: 20000, // 20 seconds
-    socketTimeout: 20000, // 20 seconds
-    pool: false, // Disable pooling
-    // Only require TLS if not using secure port (465 already uses TLS)
-    requireTLS: !isSecure, // For port 587, require STARTTLS
-    tls: {
-      rejectUnauthorized: false, // Allow self-signed certificates
-      minVersion: 'TLSv1.2',
-      ciphers: 'HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA'
-    },
-    // Enable debug in development to see connection issues
-    debug: process.env.NODE_ENV === 'development',
-    logger: process.env.NODE_ENV === 'development'
-  });
+  // Determine primary port and alternative ports to try
+  const primaryPort = parseInt(process.env.EMAIL_PORT || 587);
+  // Common SMTP ports to try: 587 (STARTTLS), 465 (SSL), 25 (unencrypted), 2525 (alternative)
+  const alternativePorts = [587, 465, 25, 2525].filter(p => p !== primaryPort);
+  const portsToTry = [primaryPort, ...alternativePorts];
+  
+  // Create primary transporter
+  emailTransporter = createEmailTransporter(primaryPort);
   console.log('✅ Email transporter configured');
   console.log('   Host:', process.env.EMAIL_HOST);
-  console.log('   Port:', process.env.EMAIL_PORT || 587);
+  console.log('   Primary Port:', primaryPort);
+  console.log('   Alternative ports to try:', alternativePorts.join(', '));
   console.log('   User:', process.env.EMAIL_USER);
   console.log('   From:', process.env.FROM_EMAIL || process.env.EMAIL_USER);
+  
+  // Helper function to send email with automatic port fallback
+  async function sendEmailWithPortFallback(emailOptions) {
+    let portIndex = 0;
+    let lastError = null;
+    
+    while (portIndex < portsToTry.length) {
+      const currentPort = portsToTry[portIndex];
+      let transporterToUse = emailTransporter;
+      
+      // Create new transporter if not using primary port
+      if (currentPort !== primaryPort) {
+        transporterToUse = createEmailTransporter(currentPort);
+      }
+      
+      try {
+        await transporterToUse.sendMail(emailOptions);
+        // Success! Update main transporter if this port worked
+        if (currentPort !== primaryPort) {
+          console.log(`✅ Port ${currentPort} works! Consider updating EMAIL_PORT in .env file.`);
+          emailTransporter = transporterToUse;
+        }
+        return { success: true, port: currentPort };
+      } catch (error) {
+        lastError = error;
+        // If it's a connection timeout, try next port
+        if (error.code === 'ETIMEDOUT' && error.command === 'CONN' && portIndex < portsToTry.length - 1) {
+          console.log(`⚠️ Connection timeout on port ${currentPort}, trying port ${portsToTry[portIndex + 1]}...`);
+          portIndex++;
+          continue;
+        }
+        // For other errors or if it's the last port, throw
+        throw error;
+      }
+    }
+    
+    // All ports failed
+    throw lastError || new Error('Failed to connect to SMTP server on any port');
+  }
   
   // Test email connection (non-blocking, don't fail if verification times out)
   // Note: Verification is optional - emails will still send even if verification fails
@@ -1765,8 +1814,8 @@ app.post('/api/admin/inbox/send', adminAuth, async (req, res) => {
         try {
           console.log(`📧 Attempting to send email to ${recipient} (attempt ${3 - retries + 1}/3)...`);
           
-          // Send email - let transporter handle timeouts internally
-          await emailTransporter.sendMail({
+          // Send email with automatic port fallback
+          const result = await sendEmailWithPortFallback({
             from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
             to: recipient,
             replyTo: replyTo || process.env.EMAIL_USER,
@@ -1776,7 +1825,7 @@ app.post('/api/admin/inbox/send', adminAuth, async (req, res) => {
           });
           
           sentCount++;
-          console.log(`✅ Email sent to: ${recipient}`);
+          console.log(`✅ Email sent to: ${recipient}${result.port !== primaryPort ? ` via port ${result.port}` : ''}`);
           break; // Success, exit retry loop
         } catch (error) {
           lastError = error;
@@ -2057,8 +2106,8 @@ app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
         
         while (retries > 0 && !success) {
           try {
-            // Send email with a timeout wrapper
-            const sendPromise = emailTransporter.sendMail({
+            // Send email with automatic port fallback
+            const result = await sendEmailWithPortFallback({
               from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
               to: subscriber.email,
               subject: emailSubject,
@@ -2066,28 +2115,9 @@ app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
               html: emailHtml
             });
             
-            // Add a timeout wrapper (45 seconds)
-            let timeoutId;
-            const timeoutPromise = new Promise((_, reject) => {
-              timeoutId = setTimeout(() => {
-                reject(new Error('Email send timeout after 45 seconds'));
-              }, 45000);
-            });
-            
-            // Race between send and timeout
-            try {
-              await Promise.race([sendPromise, timeoutPromise]);
-              // Clear timeout if send succeeded
-              if (timeoutId) clearTimeout(timeoutId);
-              
-              sent++;
-              success = true;
-              console.log(`✅ Email sent to subscriber: ${subscriber.email}`);
-            } catch (raceError) {
-              // Clear timeout
-              if (timeoutId) clearTimeout(timeoutId);
-              throw raceError; // Re-throw to be caught by outer catch
-            }
+            sent++;
+            success = true;
+            console.log(`✅ Email sent to subscriber: ${subscriber.email}${result.port !== primaryPort ? ` via port ${result.port}` : ''}`);
           } catch (error) {
             retries--;
             const attemptNum = 3 - retries;
@@ -2283,8 +2313,8 @@ app.post('/api/admin/fulfillers/notify', adminAuth, async (req, res) => {
       
       while (retries > 0 && !success) {
         try {
-          // Send email with a timeout wrapper
-          const sendPromise = emailTransporter.sendMail({
+          // Send email with automatic port fallback
+          const result = await sendEmailWithPortFallback({
             from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
             to: fulfiller.email,
             subject: 'New Order to Fulfill - Saint Ventura',
@@ -2292,27 +2322,9 @@ app.post('/api/admin/fulfillers/notify', adminAuth, async (req, res) => {
             html: `<p>Hi ${fulfiller.name},</p><p>You have a new order to fulfill:</p><p>${orderDetails.replace(/\n/g, '<br>')}</p><p>Please process this order as soon as possible.</p>`
           });
           
-          // Add a timeout wrapper (45 seconds)
-          let timeoutId;
-          const timeoutPromise = new Promise((_, reject) => {
-            timeoutId = setTimeout(() => {
-              reject(new Error('Email send timeout after 45 seconds'));
-            }, 45000);
-          });
-          
-          // Race between send and timeout
-          try {
-            await Promise.race([sendPromise, timeoutPromise]);
-            // Clear timeout if send succeeded
-            if (timeoutId) clearTimeout(timeoutId);
-            
-            success = true;
-            res.json({ success: true });
-          } catch (raceError) {
-            // Clear timeout
-            if (timeoutId) clearTimeout(timeoutId);
-            throw raceError; // Re-throw to be caught by outer catch
-          }
+          success = true;
+          console.log(`✅ Fulfiller email sent${result.port !== primaryPort ? ` via port ${result.port}` : ''}`);
+          res.json({ success: true });
         } catch (error) {
           lastError = error;
           retries--;
