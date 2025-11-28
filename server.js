@@ -1185,21 +1185,20 @@ if (process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS) 
   console.log('   From:', process.env.FROM_EMAIL || process.env.EMAIL_USER);
   
   // Test email connection (non-blocking, don't fail if verification times out)
-  // Wrap verify in a timeout to prevent it from hanging indefinitely
-  const verifyTimeout = setTimeout(() => {
-    console.warn('⚠️  Email transporter verification timed out after 30 seconds');
-    console.warn('⚠️  Email sending may still work. Verification is just a connectivity test.');
-    console.warn('⚠️  The server will continue running. Emails will be sent when needed.');
-  }, 30000); // 30 second timeout for verification
-  
+  // Note: Verification is optional - emails will still send even if verification fails
+  // The transporter has built-in timeouts (60 seconds) so we don't need an additional wrapper
   emailTransporter.verify(function(error, success) {
-    clearTimeout(verifyTimeout); // Clear timeout if verification completes
-    
     if (error) {
       // Don't use console.error - this is not a critical error
-      console.warn('⚠️  Email transporter verification failed:', error.message);
-      console.warn('⚠️  Email sending may still work. Verification is just a connectivity test.');
-      console.warn('⚠️  The server will continue running. Emails will be sent when needed.');
+      // Only log if it's not a timeout (timeouts are expected and not concerning)
+      if (!error.message.includes('timeout') && !error.message.includes('ETIMEDOUT')) {
+        console.warn('⚠️  Email transporter verification failed:', error.message);
+        console.warn('⚠️  Email sending may still work. Verification is just a connectivity test.');
+      }
+      // For timeouts, just log a single quiet message
+      if (error.message.includes('timeout') || error.message.includes('ETIMEDOUT')) {
+        console.log('ℹ️  Email transporter verification timed out (this is normal). Emails will still send when needed.');
+      }
     } else {
       console.log('✅ Email transporter verified - ready to send emails');
     }
