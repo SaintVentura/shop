@@ -1566,43 +1566,7 @@ function generateEmailTemplate(type, data = {}) {
     `;
   }
   
-  // Add social media links section
-  let socialMediaSection = '';
-  if (includeSocialMedia) {
-    socialMediaSection = `
-      <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0; width: 100% !important; max-width: 100% !important;">
-        <tr>
-          <td align="center" style="padding: 20px; width: 100%;">
-            <h2 style="color: #000000; font-size: 20px; font-weight: 700; margin: 0 0 15px 0; text-align: center;">Follow Us</h2>
-            <p style="color: #666666; font-size: 14px; margin: 0 0 20px 0; text-align: center;">Stay connected with us on social media for the latest updates, behind-the-scenes content, and exclusive offers!</p>
-            <table cellpadding="0" cellspacing="0" style="margin: 0 auto; width: auto;">
-              <tr>
-                <td align="center" style="padding: 5px 0;">
-                  <a href="${SOCIAL_MEDIA.instagram}" class="social-button" style="display: inline-block; color: #000000; text-decoration: none; font-weight: 600; font-size: 14px; padding: 10px 20px; border: none; border-radius: 4px;">
-                    Instagram
-                  </a>
-                </td>
-              </tr>
-              <tr>
-                <td align="center" style="padding: 5px 0;">
-                  <a href="${SOCIAL_MEDIA.tiktok}" class="social-button" style="display: inline-block; color: #000000; text-decoration: none; font-weight: 600; font-size: 14px; padding: 10px 20px; border: none; border-radius: 4px;">
-                    TikTok
-                  </a>
-                </td>
-              </tr>
-              <tr>
-                <td align="center" style="padding: 5px 0;">
-                  <a href="${SOCIAL_MEDIA.youtube}" class="social-button" style="display: inline-block; color: #000000; text-decoration: none; font-weight: 600; font-size: 14px; padding: 10px 20px; border: none; border-radius: 4px;">
-                    YouTube
-                  </a>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>
-    `;
-  }
+  // Social media links will be added to footer
 
   return `
 <!DOCTYPE html>
@@ -1705,7 +1669,6 @@ function generateEmailTemplate(type, data = {}) {
                             </div>
                             ${slideshowSection}
                             ${productsSection}
-                            ${socialMediaSection}
                             ${ctaText && ctaLink ? `
                             <!-- CTA Button -->
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width: 100% !important; max-width: 100% !important;">
@@ -1727,6 +1690,16 @@ function generateEmailTemplate(type, data = {}) {
                                 <strong style="color: #000000;">${BRAND_NAME}</strong><br>
                                 Premium Streetwear
                             </p>
+                            ${includeSocialMedia ? `
+                            <!-- Social Media Links -->
+                            <p style="color: #999999; font-size: 12px; margin: 15px 0; word-wrap: break-word;">
+                                <a href="${SOCIAL_MEDIA.instagram}" style="color: #000000; text-decoration: none; margin: 0 8px; word-wrap: break-word; font-size: 12px;">Instagram</a>
+                                <span style="color: #CCCCCC;">|</span>
+                                <a href="${SOCIAL_MEDIA.tiktok}" style="color: #000000; text-decoration: none; margin: 0 8px; word-wrap: break-word; font-size: 12px;">TikTok</a>
+                                <span style="color: #CCCCCC;">|</span>
+                                <a href="${SOCIAL_MEDIA.youtube}" style="color: #000000; text-decoration: none; margin: 0 8px; word-wrap: break-word; font-size: 12px;">YouTube</a>
+                            </p>
+                            ` : ''}
                             <p style="color: #999999; font-size: 12px; margin: 10px 0; word-wrap: break-word;">
                                 <a href="${BRAND_WEBSITE}" style="color: #000000; text-decoration: none; margin: 0 10px; word-wrap: break-word;">Visit Website</a>
                                 <span style="color: #CCCCCC;">|</span>
