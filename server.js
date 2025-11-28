@@ -1217,13 +1217,13 @@ function createEmailTransporterFunction(portToUse) {
   if (isOffice365) {
     // Office 365 requires port 587 with STARTTLS
     const config = {
-      host: process.env.EMAIL_HOST,
+    host: process.env.EMAIL_HOST,
       port: 587, // Office 365 requires port 587
       secure: false, // Office 365 uses STARTTLS, not SSL
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      },
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS
+    },
       connectionTimeout: 30000, // 30 seconds for Office 365
       greetingTimeout: 30000,
       socketTimeout: 30000,
@@ -1637,6 +1637,11 @@ function generateEmailTemplate(type, data = {}) {
             table[class="email-container"] {
                 width: 100% !important;
             }
+            .email-logo {
+                max-width: 35px !important;
+                width: 35px !important;
+                height: 35px !important;
+            }
         }
     </style>
     <!--[if mso]>
@@ -1654,7 +1659,7 @@ function generateEmailTemplate(type, data = {}) {
                     <!-- Header with Logo -->
                     <tr>
                         <td style="background-color: #000000; padding: 15px 20px; text-align: center; width: 100%;">
-                            <img src="${BRAND_LOGO}" alt="${BRAND_NAME}" style="max-width: 50px; width: 50px; height: 50px; display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none; border-radius: 8px; object-fit: cover;">
+                            <img src="${BRAND_LOGO}" alt="${BRAND_NAME}" class="email-logo" style="max-width: 50px; width: 50px; height: 50px; display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none; border-radius: 8px; object-fit: cover;">
                         </td>
                     </tr>
                     ${headerImage}
@@ -1940,8 +1945,8 @@ async function fetchEmailsFromIMAP() {
           // If all messages were already parsed, resolve immediately
           if (parsedCount === messageCount) {
             console.log(`Fetched ${messageCount} emails from IMAP, successfully parsed ${emails.length} emails`);
-            imap.end();
-            resolve(emails);
+          imap.end();
+          resolve(emails);
           } else {
             // Wait a bit more for remaining messages to parse
             setTimeout(() => {
@@ -2358,14 +2363,14 @@ app.post('/api/admin/inbox/send', adminAuth, async (req, res) => {
           
           // Send email via Resend (preferred) or SMTP (fallback)
           const result = await sendEmailViaResendOrSMTP({
-            from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
+      from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
             to: recipient,
-            replyTo: replyTo || process.env.EMAIL_USER,
-            subject: subject,
-            text: emailText,
-            html: emailHtml
-          });
-          
+      replyTo: replyTo || process.env.EMAIL_USER,
+      subject: subject,
+      text: emailText,
+      html: emailHtml
+    });
+    
           sentCount++;
           console.log(`✅ Email sent to: ${recipient} via ${result.method}${result.port ? ` (port ${result.port})` : ''}`);
           break; // Success, exit retry loop
@@ -2640,7 +2645,7 @@ app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
       
       // Get product images if products selected
       if (products && products.length > 0) {
-        const selectedProducts = PRODUCTS.filter(p => products.includes(p.id.toString()) || products.includes(String(p.id)));
+      const selectedProducts = PRODUCTS.filter(p => products.includes(p.id.toString()) || products.includes(String(p.id)));
         templateProducts = selectedProducts.map(p => {
           let imageUrl = null;
           if (p.images && p.images.length > 0 && p.images[0]) {
@@ -2724,9 +2729,9 @@ app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
           } else {
             // All retries failed
             console.error(`❌ Failed to send to ${subscriber.email} after 3 attempts`);
-            errors.push(subscriber.email);
-          }
+          errors.push(subscriber.email);
         }
+      }
       }
     }
 
@@ -2840,13 +2845,13 @@ app.post('/api/admin/abandoned-carts/remind', adminAuth, async (req, res) => {
     });
     
     await sendEmailViaResendOrSMTP({
-      from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
-      to: cart.email,
-      subject: 'Complete Your Purchase - Saint Ventura',
+        from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
+        to: cart.email,
+        subject: 'Complete Your Purchase - Saint Ventura',
       text: cartContent,
       html: abandonedCartEmailHtml
-    });
-    res.json({ success: true });
+      });
+      res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -2865,8 +2870,8 @@ app.post('/api/admin/abandoned-carts/remind-all', adminAuth, async (req, res) =>
       });
     }
     
-    for (const cart of cartsWithEmail) {
-      try {
+      for (const cart of cartsWithEmail) {
+        try {
         // Format cart items for email
         const itemsList = cart.items.map(i => {
           const sizeText = i.size ? `, Size: ${i.size}` : '';
@@ -2885,19 +2890,19 @@ app.post('/api/admin/abandoned-carts/remind-all', adminAuth, async (req, res) =>
         });
         
         await sendEmailViaResendOrSMTP({
-          from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
-          to: cart.email,
-          subject: 'Complete Your Purchase - Saint Ventura',
+            from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
+            to: cart.email,
+            subject: 'Complete Your Purchase - Saint Ventura',
           text: cartContent,
           html: abandonedCartEmailHtml
-        });
-        sent++;
-      } catch (error) {
-        console.error(`Error sending to ${cart.email}:`, error);
-        errors.push(cart.email);
+          });
+          sent++;
+        } catch (error) {
+          console.error(`Error sending to ${cart.email}:`, error);
+          errors.push(cart.email);
+        }
       }
-    }
-    res.json({ success: true, sent, total: cartsWithEmail.length, errors: errors.length });
+      res.json({ success: true, sent, total: cartsWithEmail.length, errors: errors.length });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -3015,16 +3020,16 @@ app.post('/api/admin/fulfillers/notify', adminAuth, async (req, res) => {
         
         // Send email via Resend (preferred) or SMTP (fallback)
         const result = await sendEmailViaResendOrSMTP({
-          from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
-          to: fulfiller.email,
-          subject: 'New Order to Fulfill - Saint Ventura',
-          text: `Hi ${fulfiller.name},\n\nYou have a new order to fulfill:\n\n${orderDetails}\n\nPlease process this order as soon as possible.`,
+        from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
+        to: fulfiller.email,
+        subject: 'New Order to Fulfill - Saint Ventura',
+        text: `Hi ${fulfiller.name},\n\nYou have a new order to fulfill:\n\n${orderDetails}\n\nPlease process this order as soon as possible.`,
           html: fulfillerEmailHtml
-        });
+      });
         
         success = true;
         console.log(`✅ Fulfiller email sent via ${result.method}${result.port ? ` (port ${result.port})` : ''}`);
-        res.json({ success: true });
+      res.json({ success: true });
       } catch (error) {
         lastError = error;
         retries--;
@@ -3036,13 +3041,13 @@ app.post('/api/admin/fulfillers/notify', adminAuth, async (req, res) => {
           const delay = attemptNum * 2000; // 2s, 4s delays
           console.log(`   Retrying in ${delay}ms...`);
           await new Promise(resolve => setTimeout(resolve, delay));
-        } else {
+    } else {
           // All retries failed
           console.error(`❌ Failed to send fulfiller email after 3 attempts`);
           return res.status(500).json({ 
-            success: false, 
+        success: false, 
             error: `Failed to send email: ${lastError.message}` 
-          });
+      });
         }
       }
     }
