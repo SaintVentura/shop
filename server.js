@@ -1163,19 +1163,15 @@ if (process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS) 
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS
     },
-    connectionTimeout: 120000, // 120 seconds - increased for slow connections
-    greetingTimeout: 120000, // 120 seconds
-    socketTimeout: 120000, // 120 seconds
-    pool: true, // Enable connection pooling for better performance
-    maxConnections: 5,
-    maxMessages: 100,
-    rateDelta: 1000,
-    rateLimit: 5,
+    connectionTimeout: 30000, // 30 seconds - reasonable timeout
+    greetingTimeout: 30000, // 30 seconds
+    socketTimeout: 30000, // 30 seconds
+    pool: false, // Disable pooling - can cause connection issues
     requireTLS: true,
     tls: {
       rejectUnauthorized: false, // Allow self-signed certificates
-      minVersion: 'TLSv1.2',
-      ciphers: 'SSLv3'
+      minVersion: 'TLSv1.2'
+      // Removed ciphers - let Node.js choose appropriate ciphers automatically
     },
     debug: false,
     logger: false
@@ -1761,7 +1757,7 @@ app.post('/api/admin/inbox/send', adminAuth, async (req, res) => {
       
       while (retries > 0) {
         try {
-          // Create a promise with timeout
+          // Send email with a timeout wrapper
           const sendPromise = emailTransporter.sendMail({
             from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
             to: recipient,
@@ -1771,17 +1767,28 @@ app.post('/api/admin/inbox/send', adminAuth, async (req, res) => {
             html: emailHtml
           });
           
-          // Add a timeout wrapper (120 seconds)
+          // Add a timeout wrapper (45 seconds - shorter but reasonable)
+          let timeoutId;
           const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Email send timeout after 120 seconds')), 120000);
+            timeoutId = setTimeout(() => {
+              reject(new Error('Email send timeout after 45 seconds'));
+            }, 45000);
           });
           
           // Race between send and timeout
-          await Promise.race([sendPromise, timeoutPromise]);
-          
-          sentCount++;
-          console.log(`✅ Email sent to: ${recipient}`);
-          break; // Success, exit retry loop
+          try {
+            await Promise.race([sendPromise, timeoutPromise]);
+            // Clear timeout if send succeeded
+            if (timeoutId) clearTimeout(timeoutId);
+            
+            sentCount++;
+            console.log(`✅ Email sent to: ${recipient}`);
+            break; // Success, exit retry loop
+          } catch (raceError) {
+            // Clear timeout
+            if (timeoutId) clearTimeout(timeoutId);
+            throw raceError; // Re-throw to be caught by outer catch
+          }
         } catch (error) {
           lastError = error;
           retries--;
@@ -1789,8 +1796,8 @@ app.post('/api/admin/inbox/send', adminAuth, async (req, res) => {
           console.error(`❌ Error sending to ${recipient} (${attemptNum}/3 attempts):`, error.message);
           
           if (retries > 0) {
-            // Wait before retry (exponential backoff with longer delays)
-            const delay = attemptNum * 3000; // 3s, 6s delays (longer for connection issues)
+            // Wait before retry (exponential backoff)
+            const delay = attemptNum * 2000; // 2s, 4s delays
             console.log(`   Retrying in ${delay}ms...`);
             await new Promise(resolve => setTimeout(resolve, delay));
           } else {
@@ -2055,7 +2062,7 @@ app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
         
         while (retries > 0 && !success) {
           try {
-            // Create a promise with timeout
+            // Send email with a timeout wrapper
             const sendPromise = emailTransporter.sendMail({
               from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
               to: subscriber.email,
@@ -2064,25 +2071,36 @@ app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
               html: emailHtml
             });
             
-            // Add a timeout wrapper (120 seconds)
+            // Add a timeout wrapper (45 seconds)
+            let timeoutId;
             const timeoutPromise = new Promise((_, reject) => {
-              setTimeout(() => reject(new Error('Email send timeout after 120 seconds')), 120000);
+              timeoutId = setTimeout(() => {
+                reject(new Error('Email send timeout after 45 seconds'));
+              }, 45000);
             });
             
             // Race between send and timeout
-            await Promise.race([sendPromise, timeoutPromise]);
-            
-            sent++;
-            success = true;
-            console.log(`✅ Email sent to subscriber: ${subscriber.email}`);
+            try {
+              await Promise.race([sendPromise, timeoutPromise]);
+              // Clear timeout if send succeeded
+              if (timeoutId) clearTimeout(timeoutId);
+              
+              sent++;
+              success = true;
+              console.log(`✅ Email sent to subscriber: ${subscriber.email}`);
+            } catch (raceError) {
+              // Clear timeout
+              if (timeoutId) clearTimeout(timeoutId);
+              throw raceError; // Re-throw to be caught by outer catch
+            }
           } catch (error) {
             retries--;
             const attemptNum = 3 - retries;
             console.error(`❌ Error sending to ${subscriber.email} (${attemptNum}/3 attempts):`, error.message);
             
             if (retries > 0) {
-              // Wait before retry (exponential backoff with longer delays)
-              const delay = attemptNum * 3000; // 3s, 6s delays
+              // Wait before retry (exponential backoff)
+              const delay = attemptNum * 2000; // 2s, 4s delays
               console.log(`   Retrying in ${delay}ms...`);
               await new Promise(resolve => setTimeout(resolve, delay));
             } else {
@@ -2270,7 +2288,7 @@ app.post('/api/admin/fulfillers/notify', adminAuth, async (req, res) => {
       
       while (retries > 0 && !success) {
         try {
-          // Create a promise with timeout
+          // Send email with a timeout wrapper
           const sendPromise = emailTransporter.sendMail({
             from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
             to: fulfiller.email,
@@ -2279,16 +2297,27 @@ app.post('/api/admin/fulfillers/notify', adminAuth, async (req, res) => {
             html: `<p>Hi ${fulfiller.name},</p><p>You have a new order to fulfill:</p><p>${orderDetails.replace(/\n/g, '<br>')}</p><p>Please process this order as soon as possible.</p>`
           });
           
-          // Add a timeout wrapper (120 seconds)
+          // Add a timeout wrapper (45 seconds)
+          let timeoutId;
           const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Email send timeout after 120 seconds')), 120000);
+            timeoutId = setTimeout(() => {
+              reject(new Error('Email send timeout after 45 seconds'));
+            }, 45000);
           });
           
           // Race between send and timeout
-          await Promise.race([sendPromise, timeoutPromise]);
-          
-          success = true;
-          res.json({ success: true });
+          try {
+            await Promise.race([sendPromise, timeoutPromise]);
+            // Clear timeout if send succeeded
+            if (timeoutId) clearTimeout(timeoutId);
+            
+            success = true;
+            res.json({ success: true });
+          } catch (raceError) {
+            // Clear timeout
+            if (timeoutId) clearTimeout(timeoutId);
+            throw raceError; // Re-throw to be caught by outer catch
+          }
         } catch (error) {
           lastError = error;
           retries--;
@@ -2296,8 +2325,8 @@ app.post('/api/admin/fulfillers/notify', adminAuth, async (req, res) => {
           console.error(`❌ Error sending fulfiller email to ${fulfiller.email} (${attemptNum}/3 attempts):`, error.message);
           
           if (retries > 0) {
-            // Wait before retry (exponential backoff with longer delays)
-            const delay = attemptNum * 3000; // 3s, 6s delays
+            // Wait before retry (exponential backoff)
+            const delay = attemptNum * 2000; // 2s, 4s delays
             console.log(`   Retrying in ${delay}ms...`);
             await new Promise(resolve => setTimeout(resolve, delay));
           } else {
