@@ -606,12 +606,22 @@ app.post('/api/newsletter-subscribe', async (req, res) => {
         if (resendClient || emailTransporter) {
           try {
             // Get featured products (first 4 products)
-            const featuredProducts = PRODUCTS.slice(0, 4).map(p => ({
-              name: p.name,
-              price: p.price || 0,
-              description: p.description || '',
-              image: p.images && p.images.length > 0 ? p.images[0] : null
-            }));
+            const featuredProducts = PRODUCTS.slice(0, 4).map(p => {
+              let imageUrl = null;
+              if (p.images && p.images.length > 0 && p.images[0]) {
+                imageUrl = p.images[0].trim();
+                // Validate URL format
+                if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+                  imageUrl = null;
+                }
+              }
+              return {
+                name: p.name || '',
+                price: p.price || 0,
+                description: p.description || '',
+                image: imageUrl
+              };
+            });
             
             const welcomeEmailHtml = generateEmailTemplate('new-subscriber', {
               heading: 'Welcome to Saint Ventura!',
@@ -1496,14 +1506,14 @@ function generateEmailTemplate(type, data = {}) {
     }
     
       productsSection = productRows.map(row => `
-      <table width="100%" cellpadding="0" cellspacing="0" style="margin: 20px 0;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin: 20px 0; width: 100% !important; max-width: 100% !important; table-layout: fixed;">
         <tr>
           ${row.map(product => `
-            <td align="center" class="product-cell" style="padding: 10px; width: ${100 / row.length}%; vertical-align: top;">
-              <div style="background: #FFFFFF; border: 1px solid #E5E5E5; border-radius: 8px; padding: 15px; max-width: 250px; margin: 0 auto;">
-                ${product.image ? `<img src="${product.image}" alt="${product.name}" style="width: 100%; max-width: 200px; height: auto; border-radius: 4px; margin-bottom: 12px; display: block; margin-left: auto; margin-right: auto;">` : ''}
-                <h3 style="color: #000000; font-size: 16px; font-weight: 700; margin: 0 0 8px 0; line-height: 1.3;">${product.name}</h3>
-                ${product.description ? `<p style="color: #666666; font-size: 13px; margin: 0 0 12px 0; line-height: 1.4;">${product.description.substring(0, 80)}${product.description.length > 80 ? '...' : ''}</p>` : ''}
+            <td align="center" class="product-cell" style="padding: 10px; width: ${100 / row.length}%; vertical-align: top; word-wrap: break-word;">
+              <div style="background: #FFFFFF; border: 1px solid #E5E5E5; border-radius: 8px; padding: 15px; max-width: 250px; margin: 0 auto; width: 100%; box-sizing: border-box;">
+                ${product.image && product.image.trim() ? `<img src="${product.image.trim()}" alt="${(product.name || '').replace(/"/g, '&quot;')}" style="width: 100%; max-width: 200px; height: auto; border-radius: 4px; margin-bottom: 12px; display: block; margin-left: auto; margin-right: auto; border: 0; outline: none; text-decoration: none;">` : ''}
+                <h3 style="color: #000000; font-size: 16px; font-weight: 700; margin: 0 0 8px 0; line-height: 1.3; word-wrap: break-word;">${product.name || ''}</h3>
+                ${product.description ? `<p style="color: #666666; font-size: 13px; margin: 0 0 12px 0; line-height: 1.4; word-wrap: break-word;">${product.description.substring(0, 80)}${product.description.length > 80 ? '...' : ''}</p>` : ''}
                 <p style="color: #000000; font-size: 18px; font-weight: 900; margin: 0;">R${(product.price || 0).toFixed(2)}</p>
               </div>
             </td>
@@ -1519,11 +1529,11 @@ function generateEmailTemplate(type, data = {}) {
     // Use first 2 slideshow images for email
     const emailSlideshowImages = SLIDESHOW_IMAGES.slice(0, 2);
     slideshowSection = `
-      <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0; width: 100% !important; max-width: 100% !important; table-layout: fixed;">
         <tr>
           ${emailSlideshowImages.map(img => `
-            <td align="center" class="slideshow-cell" style="padding: 10px; width: ${100 / emailSlideshowImages.length}%;">
-              <img src="${img}" alt="${BRAND_NAME}" style="width: 100%; max-width: 280px; height: auto; border-radius: 8px; display: block; margin: 0 auto;">
+            <td align="center" class="slideshow-cell" style="padding: 10px; width: ${100 / emailSlideshowImages.length}%; word-wrap: break-word;">
+              <img src="${img.trim()}" alt="${BRAND_NAME}" style="width: 100%; max-width: 280px; height: auto; border-radius: 8px; display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none;">
             </td>
           `).join('')}
         </tr>
@@ -1574,8 +1584,36 @@ function generateEmailTemplate(type, data = {}) {
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>${heading}</title>
     <style type="text/css">
+        /* Prevent horizontal scrolling */
+        body {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            overflow-x: hidden !important;
+            -webkit-text-size-adjust: 100% !important;
+            -ms-text-size-adjust: 100% !important;
+        }
+        table {
+            border-collapse: collapse !important;
+            mso-table-lspace: 0pt !important;
+            mso-table-rspace: 0pt !important;
+        }
+        img {
+            border: 0 !important;
+            outline: none !important;
+            text-decoration: none !important;
+            -ms-interpolation-mode: bicubic !important;
+            max-width: 100% !important;
+            height: auto !important;
+            display: block !important;
+        }
         /* Responsive email styles */
         @media only screen and (max-width: 600px) {
+            body {
+                width: 100% !important;
+                min-width: 100% !important;
+            }
             .email-container {
                 width: 100% !important;
                 max-width: 100% !important;
@@ -1600,7 +1638,11 @@ function generateEmailTemplate(type, data = {}) {
             }
             img {
                 max-width: 100% !important;
+                width: 100% !important;
                 height: auto !important;
+            }
+            table[class="email-container"] {
+                width: 100% !important;
             }
         }
     </style>
@@ -1610,37 +1652,37 @@ function generateEmailTemplate(type, data = {}) {
     </style>
     <![endif]-->
 </head>
-<body style="margin: 0; padding: 0; background-color: #FFFFFF; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #FFFFFF;">
+<body style="margin: 0; padding: 0; background-color: #FFFFFF; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; width: 100% !important; max-width: 100% !important; overflow-x: hidden !important;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #FFFFFF; width: 100% !important; max-width: 100% !important;">
         <tr>
-            <td align="center" style="padding: 20px 10px;">
+            <td align="center" style="padding: 20px 10px; width: 100% !important; max-width: 100% !important;">
                 <!-- Main Container -->
-                <table role="presentation" class="email-container" width="600" cellpadding="0" cellspacing="0" style="background-color: #FFFFFF; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 600px; width: 100%;">
+                <table role="presentation" class="email-container" width="600" cellpadding="0" cellspacing="0" style="background-color: #FFFFFF; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 600px; width: 100% !important; table-layout: fixed;">
                     <!-- Header with Logo -->
                     <tr>
-                        <td style="background-color: #000000; padding: 30px 20px; text-align: center;">
-                            <img src="${BRAND_LOGO}" alt="${BRAND_NAME}" style="max-width: 120px; height: auto; display: block; margin: 0 auto;">
+                        <td style="background-color: #000000; padding: 30px 20px; text-align: center; width: 100%;">
+                            <img src="${BRAND_LOGO}" alt="${BRAND_NAME}" style="max-width: 120px; width: 100%; height: auto; display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none;">
                         </td>
                     </tr>
                     ${headerImage}
                     <!-- Main Content -->
                     <tr>
-                        <td class="email-content" style="padding: 40px 30px; background-color: #FFFFFF;">
-                            <h1 style="color: #000000; font-size: 28px; font-weight: 900; margin: 0 0 20px 0; line-height: 1.2; text-align: center;">
+                        <td class="email-content" style="padding: 40px 30px; background-color: #FFFFFF; width: 100%; word-wrap: break-word;">
+                            <h1 style="color: #000000; font-size: 28px; font-weight: 900; margin: 0 0 20px 0; line-height: 1.2; text-align: center; word-wrap: break-word;">
                                 ${heading}
                             </h1>
-                            <div style="color: #333333; font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
-                                ${content.split('\n').map(p => `<p style="margin: 0 0 15px 0;">${p}</p>`).join('')}
+                            <div style="color: #333333; font-size: 16px; line-height: 1.6; margin-bottom: 30px; word-wrap: break-word;">
+                                ${content.split('\n').map(p => `<p style="margin: 0 0 15px 0; word-wrap: break-word;">${p}</p>`).join('')}
                             </div>
                             ${slideshowSection}
                             ${productsSection}
                             ${socialMediaSection}
                             ${ctaText && ctaLink ? `
                             <!-- CTA Button -->
-                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width: 100% !important; max-width: 100% !important;">
                                 <tr>
-                                    <td align="center" style="padding: 20px 0;">
-                                        <a href="${ctaLink}" style="display: inline-block; background-color: #000000; color: #FFFFFF; text-decoration: none; padding: 16px 40px; border-radius: 4px; font-weight: 700; font-size: 16px; letter-spacing: 0.5px;">
+                                    <td align="center" style="padding: 20px 0; width: 100%;">
+                                        <a href="${ctaLink}" style="display: inline-block; background-color: #000000; color: #FFFFFF; text-decoration: none; padding: 16px 40px; border-radius: 4px; font-weight: 700; font-size: 16px; letter-spacing: 0.5px; word-wrap: break-word;">
                                             ${ctaText}
                                         </a>
                                     </td>
@@ -1651,19 +1693,19 @@ function generateEmailTemplate(type, data = {}) {
                     </tr>
                     <!-- Footer -->
                     <tr>
-                        <td style="background-color: #F5F5F5; padding: 30px; text-align: center; border-top: 1px solid #E5E5E5;">
-                            <p style="color: #666666; font-size: 14px; margin: 0 0 10px 0;">
+                        <td style="background-color: #F5F5F5; padding: 30px; text-align: center; border-top: 1px solid #E5E5E5; width: 100%; word-wrap: break-word;">
+                            <p style="color: #666666; font-size: 14px; margin: 0 0 10px 0; word-wrap: break-word;">
                                 <strong style="color: #000000;">${BRAND_NAME}</strong><br>
                                 Premium Streetwear
                             </p>
-                            <p style="color: #999999; font-size: 12px; margin: 10px 0;">
-                                <a href="${BRAND_WEBSITE}" style="color: #000000; text-decoration: none; margin: 0 10px;">Visit Website</a>
+                            <p style="color: #999999; font-size: 12px; margin: 10px 0; word-wrap: break-word;">
+                                <a href="${BRAND_WEBSITE}" style="color: #000000; text-decoration: none; margin: 0 10px; word-wrap: break-word;">Visit Website</a>
                                 <span style="color: #CCCCCC;">|</span>
-                                <a href="mailto:contact@saintventura.co.za" style="color: #000000; text-decoration: none; margin: 0 10px;">Contact Us</a>
+                                <a href="mailto:contact@saintventura.co.za" style="color: #000000; text-decoration: none; margin: 0 10px; word-wrap: break-word;">Contact Us</a>
                             </p>
-                            <p style="color: #999999; font-size: 11px; margin: 20px 0 0 0;">
+                            <p style="color: #999999; font-size: 11px; margin: 20px 0 0 0; word-wrap: break-word;">
                                 You're receiving this email because you subscribed to ${BRAND_NAME} newsletter.<br>
-                                <a href="${BRAND_WEBSITE}/unsubscribe.html?email={{EMAIL}}" style="color: #666666; text-decoration: underline;">Unsubscribe</a>
+                                <a href="${BRAND_WEBSITE}/unsubscribe.html?email={{EMAIL}}" style="color: #666666; text-decoration: underline; word-wrap: break-word;">Unsubscribe</a>
                             </p>
                         </td>
                     </tr>
