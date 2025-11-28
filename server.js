@@ -1155,26 +1155,32 @@ let imapConnection = null;
 
 if (process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
   // SMTP setup for sending emails
+  // Determine if we should use secure connection (port 465) or STARTTLS (port 587)
+  const port = parseInt(process.env.EMAIL_PORT || 587);
+  const isSecure = port === 465;
+  
   emailTransporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
-    port: parseInt(process.env.EMAIL_PORT || 587),
-    secure: parseInt(process.env.EMAIL_PORT || 587) === 465,
+    port: port,
+    secure: isSecure, // true for 465, false for other ports (uses STARTTLS)
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS
     },
-    connectionTimeout: 30000, // 30 seconds - reasonable timeout
-    greetingTimeout: 30000, // 30 seconds
-    socketTimeout: 30000, // 30 seconds
-    pool: false, // Disable pooling - can cause connection issues
-    requireTLS: true,
+    connectionTimeout: 20000, // 20 seconds - reduced for faster failure detection
+    greetingTimeout: 20000, // 20 seconds
+    socketTimeout: 20000, // 20 seconds
+    pool: false, // Disable pooling
+    // Only require TLS if not using secure port (465 already uses TLS)
+    requireTLS: !isSecure, // For port 587, require STARTTLS
     tls: {
       rejectUnauthorized: false, // Allow self-signed certificates
-      minVersion: 'TLSv1.2'
-      // Removed ciphers - let Node.js choose appropriate ciphers automatically
+      minVersion: 'TLSv1.2',
+      ciphers: 'HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA'
     },
-    debug: false,
-    logger: false
+    // Enable debug in development to see connection issues
+    debug: process.env.NODE_ENV === 'development',
+    logger: process.env.NODE_ENV === 'development'
   });
   console.log('✅ Email transporter configured');
   console.log('   Host:', process.env.EMAIL_HOST);
@@ -1757,8 +1763,10 @@ app.post('/api/admin/inbox/send', adminAuth, async (req, res) => {
       
       while (retries > 0) {
         try {
-          // Send email with a timeout wrapper
-          const sendPromise = emailTransporter.sendMail({
+          console.log(`📧 Attempting to send email to ${recipient} (attempt ${3 - retries + 1}/3)...`);
+          
+          // Send email - let transporter handle timeouts internally
+          await emailTransporter.sendMail({
             from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
             to: recipient,
             replyTo: replyTo || process.env.EMAIL_USER,
@@ -1767,33 +1775,19 @@ app.post('/api/admin/inbox/send', adminAuth, async (req, res) => {
             html: emailHtml
           });
           
-          // Add a timeout wrapper (45 seconds - shorter but reasonable)
-          let timeoutId;
-          const timeoutPromise = new Promise((_, reject) => {
-            timeoutId = setTimeout(() => {
-              reject(new Error('Email send timeout after 45 seconds'));
-            }, 45000);
-          });
-          
-          // Race between send and timeout
-          try {
-            await Promise.race([sendPromise, timeoutPromise]);
-            // Clear timeout if send succeeded
-            if (timeoutId) clearTimeout(timeoutId);
-            
-            sentCount++;
-            console.log(`✅ Email sent to: ${recipient}`);
-            break; // Success, exit retry loop
-          } catch (raceError) {
-            // Clear timeout
-            if (timeoutId) clearTimeout(timeoutId);
-            throw raceError; // Re-throw to be caught by outer catch
-          }
+          sentCount++;
+          console.log(`✅ Email sent to: ${recipient}`);
+          break; // Success, exit retry loop
         } catch (error) {
           lastError = error;
           retries--;
           const attemptNum = 3 - retries;
+          
+          // Log more detailed error information
           console.error(`❌ Error sending to ${recipient} (${attemptNum}/3 attempts):`, error.message);
+          if (error.code) console.error(`   Error code: ${error.code}`);
+          if (error.command) console.error(`   Command: ${error.command}`);
+          if (error.responseCode) console.error(`   Response code: ${error.responseCode}`);
           
           if (retries > 0) {
             // Wait before retry (exponential backoff)
@@ -1803,6 +1797,7 @@ app.post('/api/admin/inbox/send', adminAuth, async (req, res) => {
           } else {
             // All retries failed
             console.error(`❌ Failed to send to ${recipient} after 3 attempts. Last error: ${lastError.message}`);
+            if (lastError.code) console.error(`   Last error code: ${lastError.code}`);
             errors.push(recipient);
           }
         }
