@@ -149,6 +149,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         console.log('Order confirmation email sent successfully');
         // Remove pending order data after successful email send
         localStorage.removeItem('pendingOrderDetails');
+        // Clear abandoned cart timeout since order completed
+        // Timeout is stored in window object on checkout page
+        if (window.abandonedCartTimeout) {
+          clearTimeout(window.abandonedCartTimeout);
+          window.abandonedCartTimeout = null;
+        }
+        localStorage.removeItem('checkoutStartTime');
       } else {
         console.error('Failed to send order confirmation email:', result.error);
       }
