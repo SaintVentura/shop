@@ -623,12 +623,15 @@ app.post('/api/newsletter-subscribe', async (req, res) => {
               includeSocialMedia: true
             });
             
+            // Replace {{EMAIL}} placeholder in unsubscribe link with actual email
+            const emailWithUnsubscribe = welcomeEmailHtml.replace(/\{\{EMAIL\}\}/g, encodeURIComponent(emailLower));
+            
             await sendEmailViaResendOrSMTP({
               from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
               to: emailLower,
-              subject: 'Welcome to Saint Ventura! 🎉',
+              subject: 'Welcome to Saint Ventura!',
               text: `Thank you for subscribing to our newsletter! You'll be the first to know about new products, exclusive promotions, and special offers. Visit ${BRAND_WEBSITE} to explore our collection. Follow us on Instagram, TikTok, and YouTube!`,
-              html: welcomeEmailHtml
+              html: emailWithUnsubscribe
             });
             console.log(`✅ Welcome email sent to: ${emailLower}`);
           } catch (emailError) {
@@ -1446,23 +1449,23 @@ function generateEmailTemplate(type, data = {}) {
       heading = heading || 'Welcome to Saint Ventura!';
       content = content || `Thank you for subscribing to our newsletter! You'll be the first to know about new products, exclusive promotions, and special offers.`;
       ctaText = 'Explore Our Collection';
-      backgroundColor = '#F9F9F9';
+      backgroundColor = '#FFFFFF';
       break;
     
     case 'promotion':
-      heading = heading || '🎉 Special Promotion - Limited Time Offer!';
+      heading = heading || 'Special Promotion - Limited Time Offer!';
       content = content || 'Don\'t miss out on our amazing promotion! Shop now and save big on selected items.';
-      backgroundColor = '#000000';
+      backgroundColor = '#FFFFFF';
       headerImage = '<div style="background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%); padding: 40px 20px; text-align: center;"><h1 style="color: #FFFFFF; font-size: 32px; margin: 0; font-weight: 900;">SPECIAL OFFER</h1></div>';
       break;
     
     case 'new-product':
-      heading = heading || '✨ New Product Launch!';
+      heading = heading || 'New Product Launch!';
       content = content || 'We\'re excited to introduce our latest collection. Check out these amazing new products!';
       break;
     
     case 'news':
-      heading = heading || '📰 Latest News & Updates';
+      heading = heading || 'Latest News & Updates';
       content = content || 'Stay updated with the latest news from Saint Ventura. We have exciting updates to share with you!';
       break;
     
@@ -1492,11 +1495,11 @@ function generateEmailTemplate(type, data = {}) {
       productRows.push(products.slice(i, i + productsPerRow));
     }
     
-    productsSection = productRows.map(row => `
+      productsSection = productRows.map(row => `
       <table width="100%" cellpadding="0" cellspacing="0" style="margin: 20px 0;">
         <tr>
           ${row.map(product => `
-            <td align="center" style="padding: 10px; width: ${100 / row.length}%; vertical-align: top;">
+            <td align="center" class="product-cell" style="padding: 10px; width: ${100 / row.length}%; vertical-align: top;">
               <div style="background: #FFFFFF; border: 1px solid #E5E5E5; border-radius: 8px; padding: 15px; max-width: 250px; margin: 0 auto;">
                 ${product.image ? `<img src="${product.image}" alt="${product.name}" style="width: 100%; max-width: 200px; height: auto; border-radius: 4px; margin-bottom: 12px; display: block; margin-left: auto; margin-right: auto;">` : ''}
                 <h3 style="color: #000000; font-size: 16px; font-weight: 700; margin: 0 0 8px 0; line-height: 1.3;">${product.name}</h3>
@@ -1519,7 +1522,7 @@ function generateEmailTemplate(type, data = {}) {
       <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
         <tr>
           ${emailSlideshowImages.map(img => `
-            <td align="center" style="padding: 10px; width: ${100 / emailSlideshowImages.length}%;">
+            <td align="center" class="slideshow-cell" style="padding: 10px; width: ${100 / emailSlideshowImages.length}%;">
               <img src="${img}" alt="${BRAND_NAME}" style="width: 100%; max-width: 280px; height: auto; border-radius: 8px; display: block; margin: 0 auto;">
             </td>
           `).join('')}
@@ -1540,18 +1543,18 @@ function generateEmailTemplate(type, data = {}) {
             <table cellpadding="0" cellspacing="0" style="margin: 0 auto;">
               <tr>
                 <td align="center" style="padding: 0 15px;">
-                  <a href="${SOCIAL_MEDIA.instagram}" style="display: inline-block; color: #000000; text-decoration: none; font-weight: 600; font-size: 14px; padding: 10px 20px; border: 2px solid #000000; border-radius: 4px;">
-                    📷 Instagram
+                  <a href="${SOCIAL_MEDIA.instagram}" class="social-button" style="display: inline-block; color: #000000; text-decoration: none; font-weight: 600; font-size: 14px; padding: 10px 20px; border: 2px solid #000000; border-radius: 4px;">
+                    Instagram
                   </a>
                 </td>
                 <td align="center" style="padding: 0 15px;">
-                  <a href="${SOCIAL_MEDIA.tiktok}" style="display: inline-block; color: #000000; text-decoration: none; font-weight: 600; font-size: 14px; padding: 10px 20px; border: 2px solid #000000; border-radius: 4px;">
-                    🎵 TikTok
+                  <a href="${SOCIAL_MEDIA.tiktok}" class="social-button" style="display: inline-block; color: #000000; text-decoration: none; font-weight: 600; font-size: 14px; padding: 10px 20px; border: 2px solid #000000; border-radius: 4px;">
+                    TikTok
                   </a>
                 </td>
                 <td align="center" style="padding: 0 15px;">
-                  <a href="${SOCIAL_MEDIA.youtube}" style="display: inline-block; color: #000000; text-decoration: none; font-weight: 600; font-size: 14px; padding: 10px 20px; border: 2px solid #000000; border-radius: 4px;">
-                    ▶️ YouTube
+                  <a href="${SOCIAL_MEDIA.youtube}" class="social-button" style="display: inline-block; color: #000000; text-decoration: none; font-weight: 600; font-size: 14px; padding: 10px 20px; border: 2px solid #000000; border-radius: 4px;">
+                    YouTube
                   </a>
                 </td>
               </tr>
@@ -1570,18 +1573,49 @@ function generateEmailTemplate(type, data = {}) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>${heading}</title>
+    <style type="text/css">
+        /* Responsive email styles */
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+            .email-content {
+                padding: 20px !important;
+            }
+            .product-cell {
+                width: 100% !important;
+                display: block !important;
+                padding: 10px 0 !important;
+            }
+            .social-button {
+                display: block !important;
+                width: 100% !important;
+                margin: 5px 0 !important;
+            }
+            .slideshow-cell {
+                width: 100% !important;
+                display: block !important;
+                padding: 10px 0 !important;
+            }
+            img {
+                max-width: 100% !important;
+                height: auto !important;
+            }
+        }
+    </style>
     <!--[if mso]>
     <style type="text/css">
         body, table, td {font-family: Arial, sans-serif !important;}
     </style>
     <![endif]-->
 </head>
-<body style="margin: 0; padding: 0; background-color: ${backgroundColor}; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: ${backgroundColor};">
+<body style="margin: 0; padding: 0; background-color: #FFFFFF; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #FFFFFF;">
         <tr>
-            <td align="center" style="padding: 20px 0;">
+            <td align="center" style="padding: 20px 10px;">
                 <!-- Main Container -->
-                <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color: #FFFFFF; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 600px; width: 100%;">
+                <table role="presentation" class="email-container" width="600" cellpadding="0" cellspacing="0" style="background-color: #FFFFFF; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 600px; width: 100%;">
                     <!-- Header with Logo -->
                     <tr>
                         <td style="background-color: #000000; padding: 30px 20px; text-align: center;">
@@ -1591,7 +1625,7 @@ function generateEmailTemplate(type, data = {}) {
                     ${headerImage}
                     <!-- Main Content -->
                     <tr>
-                        <td style="padding: 40px 30px;">
+                        <td class="email-content" style="padding: 40px 30px; background-color: #FFFFFF;">
                             <h1 style="color: #000000; font-size: 28px; font-weight: 900; margin: 0 0 20px 0; line-height: 1.2; text-align: center;">
                                 ${heading}
                             </h1>
@@ -1629,7 +1663,7 @@ function generateEmailTemplate(type, data = {}) {
                             </p>
                             <p style="color: #999999; font-size: 11px; margin: 20px 0 0 0;">
                                 You're receiving this email because you subscribed to ${BRAND_NAME} newsletter.<br>
-                                <a href="${BRAND_WEBSITE}" style="color: #666666; text-decoration: underline;">Unsubscribe</a>
+                                <a href="${BRAND_WEBSITE}/unsubscribe.html?email={{EMAIL}}" style="color: #666666; text-decoration: underline;">Unsubscribe</a>
                             </p>
                         </td>
                     </tr>
@@ -2551,13 +2585,13 @@ app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
       
       if (template === 'promotion') {
         templateType = 'promotion';
-        emailSubject = emailSubject || '🎉 Special Promotion - Limited Time Offer!';
+        emailSubject = emailSubject || 'Special Promotion - Limited Time Offer!';
       } else if (template === 'new-product') {
         templateType = 'new-product';
-        emailSubject = emailSubject || '✨ New Product Launch!';
+        emailSubject = emailSubject || 'New Product Launch!';
       } else if (template === 'news') {
         templateType = 'news';
-        emailSubject = emailSubject || '📰 Latest News & Updates';
+        emailSubject = emailSubject || 'Latest News & Updates';
       }
       
       // Get product images if products selected
@@ -2572,12 +2606,14 @@ app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
       }
       
       emailHtml = generateEmailTemplate(templateType, {
-        heading: emailSubject.replace(/^[🎉✨📰]+\s*/, ''), // Remove emoji from heading
+        heading: emailSubject, // Use subject as heading
         content: message,
         ctaText: 'Shop Now',
         ctaLink: BRAND_WEBSITE,
         products: templateProducts
       });
+      
+      // Replace {{EMAIL}} placeholder in unsubscribe link (will be replaced per subscriber)
       
       // Generate plain text version
       emailBody = message;
@@ -2606,13 +2642,16 @@ app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
       
       while (retries > 0 && !success) {
         try {
+          // Replace {{EMAIL}} placeholder in unsubscribe link with actual subscriber email
+          const personalizedHtml = emailHtml.replace(/\{\{EMAIL\}\}/g, encodeURIComponent(subscriber.email));
+          
           // Send email via Resend (preferred) or SMTP (fallback)
           const result = await sendEmailViaResendOrSMTP({
             from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
             to: subscriber.email,
             subject: emailSubject,
             text: emailBody,
-            html: emailHtml
+            html: personalizedHtml
           });
           
           sent++;
@@ -2658,6 +2697,57 @@ app.get('/api/admin/abandoned-carts', adminAuth, async (req, res) => {
     res.json(carts.sort((a, b) => new Date(b.date) - new Date(a.date)));
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Unsubscribe endpoint
+app.get('/api/unsubscribe', async (req, res) => {
+  try {
+    const { email } = req.query;
+    
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Valid email address is required' 
+      });
+    }
+    
+    const emailLower = email.toLowerCase().trim();
+    const subscribers = await readDataFile('subscribers');
+    const subscriberIndex = subscribers.findIndex(s => s.email.toLowerCase().trim() === emailLower);
+    
+    if (subscriberIndex === -1) {
+      // Subscriber not found - still return success to avoid revealing email existence
+      return res.json({ 
+        success: true, 
+        message: 'You have been unsubscribed from our newsletter.',
+        alreadyUnsubscribed: true
+      });
+    }
+    
+    // Remove subscriber
+    subscribers.splice(subscriberIndex, 1);
+    await writeDataFile('subscribers', subscribers);
+    
+    // Create notification for admin dashboard
+    await createNotification(
+      'Subscriber Unsubscribed',
+      `Email: ${emailLower} has unsubscribed from the newsletter.`,
+      'info'
+    );
+    
+    console.log(`✅ Subscriber unsubscribed: ${emailLower}`);
+    
+    res.json({ 
+      success: true, 
+      message: 'You have been successfully unsubscribed from our newsletter. We\'re sorry to see you go!' 
+    });
+  } catch (error) {
+    console.error('Error processing unsubscribe:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message || 'Failed to process unsubscribe request' 
+    });
   }
 });
 
