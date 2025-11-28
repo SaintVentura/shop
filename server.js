@@ -1160,7 +1160,38 @@ let createEmailTransporter = null;
 
 // Helper function to create email transporter with specific port
 function createEmailTransporterFunction(portToUse) {
+  const isOffice365 = process.env.EMAIL_HOST && process.env.EMAIL_HOST.includes('office365.com');
   const isSecure = portToUse === 465;
+  
+  // Office 365 specific configuration
+  if (isOffice365) {
+    // Office 365 requires port 587 with STARTTLS
+    const config = {
+      host: process.env.EMAIL_HOST,
+      port: 587, // Office 365 requires port 587
+      secure: false, // Office 365 uses STARTTLS, not SSL
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      },
+      connectionTimeout: 30000, // 30 seconds for Office 365
+      greetingTimeout: 30000,
+      socketTimeout: 30000,
+      pool: false,
+      requireTLS: true, // Office 365 requires TLS
+      tls: {
+        rejectUnauthorized: true, // Office 365 has valid certificates
+        minVersion: 'TLSv1.2'
+        // Let Node.js choose appropriate ciphers for Office 365
+      },
+      debug: process.env.NODE_ENV === 'development',
+      logger: process.env.NODE_ENV === 'development'
+    };
+    console.log(`📧 Using Office 365 SMTP configuration on port 587`);
+    return nodemailer.createTransport(config);
+  }
+  
+  // Generic SMTP configuration for other providers
   return nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
     port: portToUse,
@@ -1169,18 +1200,16 @@ function createEmailTransporterFunction(portToUse) {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS
     },
-    connectionTimeout: 15000, // 15 seconds - faster failure detection
-    greetingTimeout: 15000, // 15 seconds
-    socketTimeout: 15000, // 15 seconds
-    pool: false, // Disable pooling
-    // Only require TLS if not using secure port (465 already uses TLS)
+    connectionTimeout: 20000, // 20 seconds
+    greetingTimeout: 20000,
+    socketTimeout: 20000,
+    pool: false,
     requireTLS: !isSecure, // For port 587, require STARTTLS
     tls: {
       rejectUnauthorized: false, // Allow self-signed certificates
       minVersion: 'TLSv1.2',
       ciphers: 'HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA'
     },
-    // Enable debug in development to see connection issues
     debug: process.env.NODE_ENV === 'development',
     logger: process.env.NODE_ENV === 'development'
   });
@@ -1240,20 +1269,43 @@ if (process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS) 
   createEmailTransporter = createEmailTransporterFunction;
   
   // Determine primary port and alternative ports to try
-  primaryPort = parseInt(process.env.EMAIL_PORT || 587);
-  // Common SMTP ports to try: 587 (STARTTLS), 465 (SSL), 25 (unencrypted), 2525 (alternative)
-  const alternativePorts = [587, 465, 25, 2525].filter(p => p !== primaryPort);
-  portsToTry = [primaryPort, ...alternativePorts];
+  const isOffice365 = process.env.EMAIL_HOST && process.env.EMAIL_HOST.includes('office365.com');
+  
+  if (isOffice365) {
+    // Office 365 only supports port 587 with STARTTLS
+    primaryPort = 587;
+    portsToTry = [587]; // Only try port 587 for Office 365
+    console.log('📧 Detected Office 365 SMTP - using port 587 only');
+  } else {
+    // For other providers, try multiple ports
+    primaryPort = parseInt(process.env.EMAIL_PORT || 587);
+    // Common SMTP ports to try: 587 (STARTTLS), 465 (SSL), 25 (unencrypted), 2525 (alternative)
+    const alternativePorts = [587, 465, 25, 2525].filter(p => p !== primaryPort);
+    portsToTry = [primaryPort, ...alternativePorts];
+  }
   
   // Create primary transporter
   emailTransporter = createEmailTransporter(primaryPort);
   console.log('✅ Email transporter configured');
   console.log('   Host:', process.env.EMAIL_HOST);
   console.log('   Primary Port:', primaryPort);
-  console.log('   Alternative ports to try:', alternativePorts.join(', '));
+  if (!isOffice365 && portsToTry.length > 1) {
+    const altPorts = portsToTry.slice(1);
+    console.log('   Alternative ports to try:', altPorts.join(', '));
+  }
   console.log('   User:', process.env.EMAIL_USER);
   console.log('   From:', process.env.FROM_EMAIL || process.env.EMAIL_USER);
   console.log('   sendEmailWithPortFallback function available:', typeof sendEmailWithPortFallback === 'function');
+  
+  // Warning for cloud hosting providers that may block SMTP
+  if (process.env.RENDER || process.env.VERCEL || process.env.HEROKU) {
+    console.warn('⚠️  WARNING: Cloud hosting providers (like Render) often block outbound SMTP ports (25, 465, 587)');
+    console.warn('⚠️  If emails fail to send due to connection timeouts, consider using:');
+    console.warn('   - SendGrid (recommended for cloud hosting - uses API, not SMTP)');
+    console.warn('   - Resend (modern email API - already in package.json)');
+    console.warn('   - Mailgun (reliable SMTP alternative)');
+    console.warn('   - Or configure your email provider to use an API instead of SMTP');
+  }
   
   // Test email connection (non-blocking, don't fail if verification times out)
   // Note: Verification is optional - emails will still send even if verification fails
