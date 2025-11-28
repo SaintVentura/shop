@@ -1482,11 +1482,36 @@ function generateEmailTemplate(type, data = {}) {
     case 'fulfiller-order':
       heading = heading || 'New Order to Fulfill';
       if (orderDetails) {
-        content = `You have a new order to fulfill. Please review the order details below and process it as soon as possible.\n\n${orderDetails}`;
+        // Format order details nicely
+        if (typeof orderDetails === 'object') {
+          const order = orderDetails;
+          let detailsText = `Order ID: ${order.orderId || 'N/A'}\n`;
+          detailsText += `Customer: ${order.customerName || 'N/A'} (${order.customerEmail || 'N/A'})\n`;
+          detailsText += `Total: R${(order.total || 0).toFixed(2)}\n`;
+          detailsText += `Shipping Method: ${order.shippingMethod || 'N/A'}\n`;
+          if (order.deliveryAddress) {
+            detailsText += `Delivery Address: ${order.deliveryAddress}\n`;
+          }
+          detailsText += `\nItems:\n`;
+          (order.orderItems || []).forEach(item => {
+            detailsText += `- ${item.name} (Qty: ${item.quantity}) - R${(item.price * item.quantity).toFixed(2)}\n`;
+          });
+          content = `Hi,\n\nYou have a new order to fulfill. Please review the order details below and process it as soon as possible.\n\n${detailsText}`;
+        } else {
+          content = `You have a new order to fulfill. Please review the order details below and process it as soon as possible.\n\n${orderDetails}`;
+        }
       } else {
         content = 'You have a new order to fulfill. Please process this order as soon as possible.';
       }
       ctaText = 'View Dashboard';
+      ctaLink = `${BRAND_WEBSITE}/admin.html`;
+      break;
+    
+    case 'abandoned-cart':
+      heading = heading || 'Complete Your Purchase';
+      content = content || 'You left items in your cart. Complete your purchase now!';
+      ctaText = 'Complete Purchase';
+      ctaLink = `${BRAND_WEBSITE}/checkout.html`;
       break;
     
     case 'customer-support':
@@ -2820,12 +2845,29 @@ app.post('/api/admin/abandoned-carts/remind', adminAuth, async (req, res) => {
       });
     }
     
+    // Format cart items for email
+    const itemsList = cart.items.map(i => {
+      const sizeText = i.size ? `, Size: ${i.size}` : '';
+      const colorText = i.color ? `, Color: ${i.color}` : '';
+      return `- ${i.name}${sizeText}${colorText} (Qty: ${i.quantity}) - R${((i.price || 0) * (i.quantity || 1)).toFixed(2)}`;
+    }).join('\n');
+    
+    const cartContent = `Hi,\n\nYou left items in your cart. Complete your purchase now!\n\nItems:\n${itemsList}\n\nTotal: R${cart.total.toFixed(2)}\n\nVisit our website to complete your order.`;
+    
+    // Generate professional abandoned cart email template
+    const abandonedCartEmailHtml = generateEmailTemplate('abandoned-cart', {
+      heading: 'Complete Your Purchase',
+      content: cartContent,
+      ctaText: 'Complete Purchase',
+      ctaLink: `${BRAND_WEBSITE}/checkout.html`
+    });
+    
     await sendEmailViaResendOrSMTP({
       from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
       to: cart.email,
       subject: 'Complete Your Purchase - Saint Ventura',
-      text: `Hi,\n\nYou left items in your cart. Complete your purchase now!\n\nItems: ${cart.items.map(i => i.name).join(', ')}\nTotal: R${cart.total.toFixed(2)}\n\nVisit our website to complete your order.`,
-      html: `<p>Hi,</p><p>You left items in your cart. Complete your purchase now!</p><p><strong>Items:</strong> ${cart.items.map(i => i.name).join(', ')}<br><strong>Total:</strong> R${cart.total.toFixed(2)}</p><p>Visit our website to complete your order.</p>`
+      text: cartContent,
+      html: abandonedCartEmailHtml
     });
     res.json({ success: true });
   } catch (error) {
@@ -2848,12 +2890,29 @@ app.post('/api/admin/abandoned-carts/remind-all', adminAuth, async (req, res) =>
     
     for (const cart of cartsWithEmail) {
       try {
+        // Format cart items for email
+        const itemsList = cart.items.map(i => {
+          const sizeText = i.size ? `, Size: ${i.size}` : '';
+          const colorText = i.color ? `, Color: ${i.color}` : '';
+          return `- ${i.name}${sizeText}${colorText} (Qty: ${i.quantity}) - R${((i.price || 0) * (i.quantity || 1)).toFixed(2)}`;
+        }).join('\n');
+        
+        const cartContent = `Hi,\n\nYou left items in your cart. Complete your purchase now!\n\nItems:\n${itemsList}\n\nTotal: R${cart.total.toFixed(2)}\n\nVisit our website to complete your order.`;
+        
+        // Generate professional abandoned cart email template
+        const abandonedCartEmailHtml = generateEmailTemplate('abandoned-cart', {
+          heading: 'Complete Your Purchase',
+          content: cartContent,
+          ctaText: 'Complete Purchase',
+          ctaLink: `${BRAND_WEBSITE}/checkout.html`
+        });
+        
         await sendEmailViaResendOrSMTP({
           from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
           to: cart.email,
           subject: 'Complete Your Purchase - Saint Ventura',
-          text: `Hi,\n\nYou left items in your cart. Complete your purchase now!\n\nItems: ${cart.items.map(i => i.name).join(', ')}\nTotal: R${cart.total.toFixed(2)}\n\nVisit our website to complete your order.`,
-          html: `<p>Hi,</p><p>You left items in your cart. Complete your purchase now!</p><p><strong>Items:</strong> ${cart.items.map(i => i.name).join(', ')}<br><strong>Total:</strong> R${cart.total.toFixed(2)}</p><p>Visit our website to complete your order.</p>`
+          text: cartContent,
+          html: abandonedCartEmailHtml
         });
         sent++;
       } catch (error) {
@@ -2955,12 +3014,26 @@ app.post('/api/admin/fulfillers/notify', adminAuth, async (req, res) => {
     while (retries > 0 && !success) {
       try {
         // Generate professional fulfiller email template
+        // orderDetails can be a string or an object
+        let orderDetailsObj = orderDetails;
+        if (typeof orderDetails === 'string') {
+          // Try to parse if it's a JSON string, otherwise use as-is
+          try {
+            orderDetailsObj = JSON.parse(orderDetails);
+          } catch (e) {
+            // Not JSON, keep as string
+            orderDetailsObj = orderDetails;
+          }
+        }
+        
         const fulfillerEmailHtml = generateEmailTemplate('fulfiller-order', {
           heading: 'New Order to Fulfill',
-          content: `Hi ${fulfiller.name},\n\nYou have a new order to fulfill. Please review the order details below and process it as soon as possible.\n\n${orderDetails}`,
-          orderDetails: orderDetails,
+          content: typeof orderDetailsObj === 'object' ? 
+            `Hi ${fulfiller.name},\n\nYou have a new order to fulfill. Please review the order details below and process it as soon as possible.` :
+            `Hi ${fulfiller.name},\n\nYou have a new order to fulfill. Please review the order details below and process it as soon as possible.\n\n${orderDetails}`,
+          orderDetails: orderDetailsObj,
           ctaText: 'View Dashboard',
-          ctaLink: BRAND_WEBSITE
+          ctaLink: `${BRAND_WEBSITE}/admin.html`
         });
         
         // Send email via Resend (preferred) or SMTP (fallback)
