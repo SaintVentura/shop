@@ -812,6 +812,40 @@ app.post('/api/send-checkout-email', async (req, res) => {
       console.error('Error creating checkout notification:', error);
     }
 
+    // Add to abandoned carts when checkout notification is received
+    try {
+      const abandonedCarts = await readDataFile('abandonedCarts');
+      const emailLower = customerEmail.toLowerCase().trim();
+      
+      // Remove old cart for this email if exists
+      const filteredCarts = abandonedCarts.filter(c => c.email?.toLowerCase().trim() !== emailLower);
+      
+      // Format order items for abandoned cart
+      const cartItems = Array.isArray(orderItems) ? orderItems.map(item => ({
+        id: item.id || Date.now().toString(),
+        name: item.name,
+        quantity: item.quantity || 1,
+        price: item.price || 0,
+        size: item.size || '',
+        color: item.color || ''
+      })) : [];
+      
+      // Add new abandoned cart entry
+      filteredCarts.push({
+        id: Date.now().toString(),
+        email: emailLower,
+        items: cartItems,
+        total: total || 0,
+        date: new Date().toISOString()
+      });
+      
+      await writeDataFile('abandonedCarts', filteredCarts);
+      console.log(`✅ Added checkout to abandoned carts for: ${emailLower}`);
+    } catch (error) {
+      console.error('Error adding to abandoned carts:', error);
+      // Don't fail the checkout notification if abandoned cart tracking fails
+    }
+
     // Prepare Telegram message for support
     const supportTelegramMessage = `🛒 *New Order Checkout Initiated*\n\n*Customer Details:*\nName: ${customerName}\nEmail: ${customerEmail}\nPhone: ${customerPhone || 'Not provided'}\n\n*Shipping Method:* ${shippingMethod}\n\n*Delivery Address:*\n${deliveryAddress || 'Not provided'}\n\n*Order Items:*\n${itemsText}\n\n*Order Summary:*\nSubtotal: R${subtotal.toFixed(2)}\nShipping: R${shipping.toFixed(2)}\n*Total: R${total.toFixed(2)}*\n\nTime: ${timestamp || new Date().toLocaleString('en-ZA')}\n\n⚠️ Customer proceeding to payment...`;
 
@@ -1047,6 +1081,23 @@ Thank you for choosing Saint Ventura!
       await writeDataFile('notifications', notifications);
     } catch (error) {
       console.error('Error creating order notification:', error);
+    }
+
+    // Remove from abandoned carts when payment is completed
+    try {
+      const abandonedCarts = await readDataFile('abandonedCarts');
+      const emailLower = customerEmail.toLowerCase().trim();
+      
+      // Remove cart for this email
+      const filteredCarts = abandonedCarts.filter(c => c.email?.toLowerCase().trim() !== emailLower);
+      
+      if (filteredCarts.length < abandonedCarts.length) {
+        await writeDataFile('abandonedCarts', filteredCarts);
+        console.log(`✅ Removed completed order from abandoned carts for: ${emailLower}`);
+      }
+    } catch (error) {
+      console.error('Error removing from abandoned carts:', error);
+      // Don't fail the order confirmation if abandoned cart removal fails
     }
 
     // Prepare Telegram message for support
