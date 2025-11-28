@@ -1381,9 +1381,25 @@ async function sendEmailViaResendOrSMTP(emailOptions) {
         reply_to: replyTo || fromEmail
       });
       console.log(`✅ Email sent via Resend to: ${to}`);
+      console.log(`   Resend Email ID: ${result.id || 'N/A'}`);
+      console.log(`   From: ${fromEmail}`);
+      console.log(`   Subject: ${subject}`);
+      // Log full result in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('   Full Resend response:', JSON.stringify(result, null, 2));
+      }
       return { success: true, method: 'resend', id: result.id };
     } catch (error) {
-      console.error(`❌ Resend error:`, error.message);
+      console.error(`❌ Resend error sending to ${to}:`);
+      console.error(`   Error message: ${error.message}`);
+      console.error(`   Error name: ${error.name}`);
+      if (error.response) {
+        console.error(`   Response status: ${error.response.status}`);
+        console.error(`   Response data:`, JSON.stringify(error.response.data || {}, null, 2));
+      }
+      if (error.stack) {
+        console.error(`   Stack trace:`, error.stack);
+      }
       // Fall back to SMTP if Resend fails
       if (emailTransporter) {
         console.log('⚠️ Falling back to SMTP...');

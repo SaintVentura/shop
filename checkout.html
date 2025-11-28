@@ -295,7 +295,7 @@
 
         <div>
           <label class="block mb-2 font-medium">Email <span class="text-red-500">*</span></label>
-          <input id="customer-email" name="customer-email" type="email" class="w-full border border-gray-300 rounded-lg px-4 py-3">
+          <input id="customer-email" name="customer-email" type="email" class="w-full border border-gray-300 rounded-lg px-4 py-3" onblur="trackAbandonedCartIfNeeded()">
           <p class="text-xs text-gray-500 mt-1">Order tracking link will be sent to your email</p>
         </div>
 
@@ -1885,6 +1885,73 @@ function menuNavigate(page) {
   // Redirect to index.html
   window.location.href = 'index.html';
 }
+
+// Track abandoned cart when email is entered
+async function trackAbandonedCartIfNeeded() {
+  try {
+    const email = document.getElementById('customer-email')?.value?.trim();
+    if (!email || !email.includes('@')) {
+      return; // Not a valid email yet
+    }
+    
+    // Get cart items
+    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    if (!cart || cart.length === 0) {
+      return; // No items in cart
+    }
+    
+    // Calculate total - use the shippingFee variable that's already calculated
+    const checkoutSubtotal = parseFloat(localStorage.getItem('checkoutSubtotal') || 0);
+    // Get current shipping fee from the variable (it's updated when delivery method changes)
+    const currentShippingFee = shippingFee || parseFloat(document.getElementById('shipping-fee')?.textContent?.replace(/[^0-9.]/g, '') || 0);
+    const total = checkoutSubtotal + currentShippingFee;
+    
+    // Format cart items for backend
+    const items = cart.map(item => ({
+      id: item.id,
+      name: item.name,
+      quantity: item.quantity,
+      price: item.price,
+      size: item.size || '',
+      color: item.color || ''
+    }));
+    
+    // Send to backend
+    const backendUrl = 'https://saint-ventura-backend.onrender.com';
+    const response = await fetch(`${backendUrl}/api/track-abandoned-cart`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        email: email,
+        items: items,
+        total: total
+      })
+    });
+    
+    if (response.ok) {
+      console.log('✅ Abandoned cart tracked for:', email);
+    } else {
+      console.warn('⚠️ Failed to track abandoned cart');
+    }
+  } catch (error) {
+    console.error('❌ Error tracking abandoned cart:', error);
+    // Don't show error to user - this is background tracking
+  }
+}
+
+// Also track when user leaves the page (beforeunload)
+window.addEventListener('beforeunload', function() {
+  trackAbandonedCartIfNeeded();
+});
+
+// Track when page visibility changes (user switches tabs/apps)
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'hidden') {
+    trackAbandonedCartIfNeeded();
+  }
+});
 
 </script>
 
