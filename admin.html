@@ -956,7 +956,15 @@
             else if (section === 'inbox') loadInbox();
             else if (section === 'broadcast') loadBroadcast();
             else if (section === 'abandoned-carts') loadAbandonedCarts();
-            else if (section === 'fulfillers') loadFulfillers();
+            else if (section === 'fulfillers') {
+                loadFulfillers();
+                // Set up the Add Fulfiller button when section is shown
+                setTimeout(() => {
+                    if (typeof setupAddFulfillerButton === 'function') {
+                        setupAddFulfillerButton();
+                    }
+                }, 100);
+            }
             else if (section === 'notifications') loadNotifications();
             else if (section === 'sales') loadSales();
             else if (section === 'analytics') loadAnalytics();
@@ -3003,12 +3011,44 @@ Thank you!</textarea>
             }
         });
 
-        // showAddFulfillerModal is defined below after setupFulfillerForm
+        // Define showAddFulfillerModal early to ensure it's available
+        window.showAddFulfillerModal = function() {
+            console.log('showAddFulfillerModal called');
+            const modal = document.getElementById('add-fulfiller-modal');
+            if (modal) {
+                console.log('Modal found, opening...');
+                modal.classList.remove('hidden');
+                // Clear form fields
+                const nameInput = document.getElementById('fulfiller-name');
+                const emailInput = document.getElementById('fulfiller-email');
+                const phoneInput = document.getElementById('fulfiller-phone');
+                if (nameInput) nameInput.value = '';
+                if (emailInput) emailInput.value = '';
+                if (phoneInput) phoneInput.value = '';
+                // Re-setup form listener when modal is opened
+                setTimeout(() => {
+                    console.log('Re-setting up fulfiller form...');
+                    setupFulfillerForm();
+                }, 100);
+            } else {
+                console.error('Add fulfiller modal not found');
+                alert('Error: Add fulfiller modal not found. Please refresh the page.');
+            }
+        };
 
         function closeAddFulfillerModal() {
-            document.getElementById('add-fulfiller-modal').classList.add('hidden');
-            document.getElementById('add-fulfiller-form').reset();
+            const modal = document.getElementById('add-fulfiller-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+            const form = document.getElementById('add-fulfiller-form');
+            if (form) {
+                form.reset();
+            }
         }
+        
+        // Make closeAddFulfillerModal globally accessible
+        window.closeAddFulfillerModal = closeAddFulfillerModal;
 
         // Set up fulfiller form event listener safely - wait for DOM to be ready
         function setupFulfillerForm() {
@@ -3118,43 +3158,39 @@ Thank you!</textarea>
             setupFulfillerForm();
         }
         
-        // Also set up when the modal is opened (in case form is dynamically created)
-        window.showAddFulfillerModal = function() {
-            console.log('showAddFulfillerModal called');
-            const modal = document.getElementById('add-fulfiller-modal');
-            if (modal) {
-                console.log('Modal found, opening...');
-                modal.classList.remove('hidden');
-                // Clear form fields
-                const nameInput = document.getElementById('fulfiller-name');
-                const emailInput = document.getElementById('fulfiller-email');
-                const phoneInput = document.getElementById('fulfiller-phone');
-                if (nameInput) nameInput.value = '';
-                if (emailInput) emailInput.value = '';
-                if (phoneInput) phoneInput.value = '';
-                // Re-setup form listener when modal is opened
-                setTimeout(() => {
-                    console.log('Re-setting up fulfiller form...');
-                    setupFulfillerForm();
-                }, 100);
-            } else {
-                console.error('Add fulfiller modal not found');
-            }
-        };
-        
         // Also add click handler to the button directly (as backup)
-        document.addEventListener('DOMContentLoaded', () => {
+        // This ensures the button works even if onclick attribute fails
+        function setupAddFulfillerButton() {
             const addFulfillerBtn = document.querySelector('button[onclick="showAddFulfillerModal()"]');
             if (addFulfillerBtn) {
                 console.log('Found Add Fulfiller button, adding click handler');
-                addFulfillerBtn.addEventListener('click', (e) => {
+                // Remove existing listeners by cloning
+                const newBtn = addFulfillerBtn.cloneNode(true);
+                addFulfillerBtn.parentNode.replaceChild(newBtn, addFulfillerBtn);
+                
+                newBtn.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     console.log('Add Fulfiller button clicked');
-                    window.showAddFulfillerModal();
+                    if (window.showAddFulfillerModal) {
+                        window.showAddFulfillerModal();
+                    } else {
+                        console.error('showAddFulfillerModal function not found');
+                        alert('Error: Function not available. Please refresh the page.');
+                    }
                 });
+            } else {
+                console.warn('Add Fulfiller button not found');
             }
-        });
+        }
+        
+        // Set up button listener when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setupAddFulfillerButton);
+        } else {
+            setupAddFulfillerButton();
+        }
+        
 
         function deleteFulfiller(id) {
             if (!confirm('Delete this fulfiller?')) return;
