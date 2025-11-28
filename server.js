@@ -601,6 +601,30 @@ app.post('/api/newsletter-subscribe', async (req, res) => {
         });
         await writeDataFile('subscribers', subscribers);
         console.log(`✅ Subscriber added to list: ${emailLower}`);
+        
+        // Send welcome email with professional template
+        if (resendClient || emailTransporter) {
+          try {
+            const welcomeEmailHtml = generateEmailTemplate('new-subscriber', {
+              heading: 'Welcome to Saint Ventura!',
+              content: `Thank you for subscribing to our newsletter! You'll be the first to know about:\n\n• New product launches\n• Exclusive promotions and sales\n• Special offers and discounts\n• Latest news and updates\n\nWe're excited to have you as part of the Saint Ventura family!`,
+              ctaText: 'Explore Our Collection',
+              ctaLink: BRAND_WEBSITE
+            });
+            
+            await sendEmailViaResendOrSMTP({
+              from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
+              to: emailLower,
+              subject: 'Welcome to Saint Ventura! 🎉',
+              text: `Thank you for subscribing to our newsletter! You'll be the first to know about new products, exclusive promotions, and special offers. Visit ${BRAND_WEBSITE} to explore our collection.`,
+              html: welcomeEmailHtml
+            });
+            console.log(`✅ Welcome email sent to: ${emailLower}`);
+          } catch (emailError) {
+            console.error(`⚠️ Failed to send welcome email to ${emailLower}:`, emailError.message);
+            // Don't fail the subscription if email fails
+          }
+        }
       } else {
         console.log(`ℹ️  Subscriber already exists: ${emailLower}`);
       }
@@ -1364,6 +1388,171 @@ if (process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS) 
   }
 }
 
+// Professional Email Template Generator
+const BRAND_LOGO = 'https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1';
+const BRAND_COLOR_PRIMARY = '#000000';
+const BRAND_COLOR_SECONDARY = '#FFFFFF';
+const BRAND_COLOR_ACCENT = '#F5F5F5';
+const BRAND_NAME = 'Saint Ventura';
+const BRAND_WEBSITE = 'https://saintventura.co.za';
+
+function generateEmailTemplate(type, data = {}) {
+  const { 
+    heading = '', 
+    content = '', 
+    ctaText = 'Shop Now', 
+    ctaLink = BRAND_WEBSITE,
+    products = [],
+    orderDetails = '',
+    subscriberName = '',
+    supportResponse = ''
+  } = data;
+
+  let mainContent = '';
+  let headerImage = '';
+  let backgroundColor = '#FFFFFF';
+
+  // Template-specific content
+  switch(type) {
+    case 'new-subscriber':
+      heading = heading || 'Welcome to Saint Ventura!';
+      content = content || `Thank you for subscribing to our newsletter! You'll be the first to know about new products, exclusive promotions, and special offers.`;
+      ctaText = 'Explore Our Collection';
+      backgroundColor = '#F9F9F9';
+      break;
+    
+    case 'promotion':
+      heading = heading || '🎉 Special Promotion - Limited Time Offer!';
+      content = content || 'Don\'t miss out on our amazing promotion! Shop now and save big on selected items.';
+      backgroundColor = '#000000';
+      headerImage = '<div style="background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%); padding: 40px 20px; text-align: center;"><h1 style="color: #FFFFFF; font-size: 32px; margin: 0; font-weight: 900;">SPECIAL OFFER</h1></div>';
+      break;
+    
+    case 'new-product':
+      heading = heading || '✨ New Product Launch!';
+      content = content || 'We\'re excited to introduce our latest collection. Check out these amazing new products!';
+      break;
+    
+    case 'news':
+      heading = heading || '📰 Latest News & Updates';
+      content = content || 'Stay updated with the latest news from Saint Ventura. We have exciting updates to share with you!';
+      break;
+    
+    case 'fulfiller-order':
+      heading = heading || 'New Order to Fulfill';
+      if (orderDetails) {
+        content = `You have a new order to fulfill. Please review the order details below and process it as soon as possible.\n\n${orderDetails}`;
+      } else {
+        content = 'You have a new order to fulfill. Please process this order as soon as possible.';
+      }
+      ctaText = 'View Dashboard';
+      break;
+    
+    case 'customer-support':
+      heading = heading || 'Thank You for Contacting Us';
+      content = supportResponse || 'We have received your message and will get back to you shortly.';
+      break;
+  }
+
+  // Build products section if products provided
+  let productsSection = '';
+  if (products && products.length > 0) {
+    productsSection = `
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
+        <tr>
+          ${products.map(product => `
+            <td align="center" style="padding: 15px; width: ${100 / products.length}%;">
+              <div style="background: #FFFFFF; border: 1px solid #E5E5E5; border-radius: 8px; padding: 20px; max-width: 250px; margin: 0 auto;">
+                ${product.image ? `<img src="${product.image}" alt="${product.name}" style="width: 100%; max-width: 200px; height: auto; border-radius: 4px; margin-bottom: 15px;">` : ''}
+                <h3 style="color: #000000; font-size: 18px; font-weight: 700; margin: 0 0 10px 0;">${product.name}</h3>
+                <p style="color: #666666; font-size: 14px; margin: 0 0 15px 0;">${product.description || ''}</p>
+                <p style="color: #000000; font-size: 20px; font-weight: 900; margin: 0;">R${(product.price || 0).toFixed(2)}</p>
+              </div>
+            </td>
+          `).join('')}
+        </tr>
+      </table>
+    `;
+  }
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>${heading}</title>
+    <!--[if mso]>
+    <style type="text/css">
+        body, table, td {font-family: Arial, sans-serif !important;}
+    </style>
+    <![endif]-->
+</head>
+<body style="margin: 0; padding: 0; background-color: ${backgroundColor}; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: ${backgroundColor};">
+        <tr>
+            <td align="center" style="padding: 20px 0;">
+                <!-- Main Container -->
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color: #FFFFFF; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 600px; width: 100%;">
+                    <!-- Header with Logo -->
+                    <tr>
+                        <td style="background-color: #000000; padding: 30px 20px; text-align: center;">
+                            <img src="${BRAND_LOGO}" alt="${BRAND_NAME}" style="max-width: 120px; height: auto; display: block; margin: 0 auto;">
+                        </td>
+                    </tr>
+                    ${headerImage}
+                    <!-- Main Content -->
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <h1 style="color: #000000; font-size: 28px; font-weight: 900; margin: 0 0 20px 0; line-height: 1.2; text-align: center;">
+                                ${heading}
+                            </h1>
+                            <div style="color: #333333; font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
+                                ${content.split('\n').map(p => `<p style="margin: 0 0 15px 0;">${p}</p>`).join('')}
+                            </div>
+                            ${productsSection}
+                            ${ctaText && ctaLink ? `
+                            <!-- CTA Button -->
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td align="center" style="padding: 20px 0;">
+                                        <a href="${ctaLink}" style="display: inline-block; background-color: #000000; color: #FFFFFF; text-decoration: none; padding: 16px 40px; border-radius: 4px; font-weight: 700; font-size: 16px; letter-spacing: 0.5px;">
+                                            ${ctaText}
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                            ` : ''}
+                        </td>
+                    </tr>
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #F5F5F5; padding: 30px; text-align: center; border-top: 1px solid #E5E5E5;">
+                            <p style="color: #666666; font-size: 14px; margin: 0 0 10px 0;">
+                                <strong style="color: #000000;">${BRAND_NAME}</strong><br>
+                                Premium Streetwear
+                            </p>
+                            <p style="color: #999999; font-size: 12px; margin: 10px 0;">
+                                <a href="${BRAND_WEBSITE}" style="color: #000000; text-decoration: none; margin: 0 10px;">Visit Website</a>
+                                <span style="color: #CCCCCC;">|</span>
+                                <a href="mailto:contact@saintventura.co.za" style="color: #000000; text-decoration: none; margin: 0 10px;">Contact Us</a>
+                            </p>
+                            <p style="color: #999999; font-size: 11px; margin: 20px 0 0 0;">
+                                You're receiving this email because you subscribed to ${BRAND_NAME} newsletter.<br>
+                                <a href="${BRAND_WEBSITE}" style="color: #666666; text-decoration: underline;">Unsubscribe</a>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+  `;
+}
+
 // Helper function to send emails via Resend API (preferred) or SMTP (fallback)
 async function sendEmailViaResendOrSMTP(emailOptions) {
   const { from, to, subject, text, html, replyTo } = emailOptions;
@@ -1961,8 +2150,27 @@ app.post('/api/admin/inbox/send', adminAuth, async (req, res) => {
       });
     }
     
-    // Use HTML if provided, otherwise convert text to HTML
-    const emailHtml = req.body.html || body.replace(/\n/g, '<br>');
+    // Check if this is a customer support response (replyTo indicates it's a reply)
+    const isCustomerSupport = replyTo && replyTo.includes('@');
+    
+    // Use HTML if provided, otherwise generate professional template
+    let emailHtml = req.body.html;
+    if (!emailHtml) {
+      if (isCustomerSupport) {
+        // Use customer support template
+        emailHtml = generateEmailTemplate('customer-support', {
+          heading: 'Thank You for Contacting Us',
+          content: body,
+          supportResponse: body,
+          ctaText: 'Visit Our Website',
+          ctaLink: BRAND_WEBSITE
+        });
+      } else {
+        // Regular email - simple HTML conversion
+        emailHtml = body.replace(/\n/g, '<br>');
+      }
+    }
+    
     // Strip HTML tags for plain text version
     const emailText = body.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim() || body;
     
@@ -2245,15 +2453,52 @@ app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
     // Build email content based on template
     let emailSubject = subject || 'Saint Ventura Update';
     let emailBody = message || '';
-    let emailHtml = html || message.replace(/\n/g, '<br>');
-
-    if (template === 'promotion' && products && products.length > 0) {
-      const selectedProducts = PRODUCTS.filter(p => products.includes(p.id.toString()) || products.includes(String(p.id)));
-      if (selectedProducts.length > 0) {
-        const productList = selectedProducts.map(p => `- ${p.name}: R${(p.price || 0).toFixed(2)}`).join('\n');
-        emailBody = `Check out our latest products:\n\n${productList}\n\n${message}`;
-        emailHtml = `<p>Check out our latest products:</p><ul>${selectedProducts.map(p => `<li>${p.name}: R${(p.price || 0).toFixed(2)}</li>`).join('')}</ul><p>${message.replace(/\n/g, '<br>')}</p>`;
+    let emailHtml = html;
+    
+    // If HTML not provided, generate professional template
+    if (!emailHtml) {
+      let templateType = 'news';
+      let templateProducts = [];
+      
+      if (template === 'promotion') {
+        templateType = 'promotion';
+        emailSubject = emailSubject || '🎉 Special Promotion - Limited Time Offer!';
+      } else if (template === 'new-product') {
+        templateType = 'new-product';
+        emailSubject = emailSubject || '✨ New Product Launch!';
+      } else if (template === 'news') {
+        templateType = 'news';
+        emailSubject = emailSubject || '📰 Latest News & Updates';
       }
+      
+      // Get product images if products selected
+      if (products && products.length > 0) {
+        const selectedProducts = PRODUCTS.filter(p => products.includes(p.id.toString()) || products.includes(String(p.id)));
+        templateProducts = selectedProducts.map(p => ({
+          name: p.name,
+          price: p.price || 0,
+          description: p.description || '',
+          image: p.images && p.images.length > 0 ? p.images[0] : null
+        }));
+      }
+      
+      emailHtml = generateEmailTemplate(templateType, {
+        heading: emailSubject.replace(/^[🎉✨📰]+\s*/, ''), // Remove emoji from heading
+        content: message,
+        ctaText: 'Shop Now',
+        ctaLink: BRAND_WEBSITE,
+        products: templateProducts
+      });
+      
+      // Generate plain text version
+      emailBody = message;
+      if (templateProducts.length > 0) {
+        const productList = templateProducts.map(p => `- ${p.name}: R${p.price.toFixed(2)}`).join('\n');
+        emailBody = `${message}\n\nCheck out our products:\n${productList}`;
+      }
+    } else {
+      // HTML provided, generate plain text from it
+      emailBody = message || emailHtml.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
     }
 
     let sent = 0;
@@ -2478,13 +2723,22 @@ app.post('/api/admin/fulfillers/notify', adminAuth, async (req, res) => {
     
     while (retries > 0 && !success) {
       try {
+        // Generate professional fulfiller email template
+        const fulfillerEmailHtml = generateEmailTemplate('fulfiller-order', {
+          heading: 'New Order to Fulfill',
+          content: `Hi ${fulfiller.name},\n\nYou have a new order to fulfill. Please review the order details below and process it as soon as possible.\n\n${orderDetails}`,
+          orderDetails: orderDetails,
+          ctaText: 'View Dashboard',
+          ctaLink: BRAND_WEBSITE
+        });
+        
         // Send email via Resend (preferred) or SMTP (fallback)
         const result = await sendEmailViaResendOrSMTP({
           from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
           to: fulfiller.email,
           subject: 'New Order to Fulfill - Saint Ventura',
           text: `Hi ${fulfiller.name},\n\nYou have a new order to fulfill:\n\n${orderDetails}\n\nPlease process this order as soon as possible.`,
-          html: `<p>Hi ${fulfiller.name},</p><p>You have a new order to fulfill:</p><p>${orderDetails.replace(/\n/g, '<br>')}</p><p>Please process this order as soon as possible.</p>`
+          html: fulfillerEmailHtml
         });
         
         success = true;
