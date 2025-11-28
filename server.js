@@ -5,6 +5,7 @@ const TelegramBot = require('node-telegram-bot-api');
 const fs = require('fs').promises;
 const path = require('path');
 const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const Imap = require('imap');
 const { simpleParser } = require('mailparser');
 require('dotenv').config();
@@ -1149,8 +1150,9 @@ async function ensureDataDir() {
   }
 }
 
-// Email transporter setup (using nodemailer)
+// Email transporter setup (using nodemailer - kept for backward compatibility, but we'll use Resend)
 let emailTransporter = null;
+let resendClient = null;
 let imapConnection = null;
 
 // Global variables for email configuration
@@ -1336,9 +1338,88 @@ if (process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS) 
     console.warn('⚠️  IMAP not configured - email receiving will be limited');
     console.warn('   Optional: IMAP_HOST, IMAP_USER, IMAP_PASS, IMAP_PORT');
   }
+  
+  // Resend setup for sending emails (recommended for cloud hosting)
+  if (process.env.RESEND_API_KEY) {
+    resendClient = new Resend(process.env.RESEND_API_KEY);
+    console.log('✅ Resend configured for sending emails (using API instead of SMTP)');
+    console.log('   This works on cloud hosting providers like Render');
+    console.log('   Note: Make sure your "from" email domain is verified in Resend dashboard');
+    console.log('   From email:', process.env.FROM_EMAIL || process.env.EMAIL_USER || 'contact@saintventura.co.za');
+  } else {
+    console.warn('⚠️  Resend not configured - using SMTP (may fail on cloud hosting)');
+    console.warn('   Recommended: Set RESEND_API_KEY in .env file');
+    console.warn('   Get API key from: https://resend.com/api-keys');
+  }
 } else {
   console.warn('⚠️  Email not configured - broadcast and email features will be limited');
-  console.warn('   Required: EMAIL_HOST, EMAIL_USER, EMAIL_PASS');
+  console.warn('   Required: EMAIL_HOST, EMAIL_USER, EMAIL_PASS (for SMTP)');
+  console.warn('   OR: RESEND_API_KEY (recommended for cloud hosting)');
+  
+  // Still try to initialize Resend if API key is provided
+  if (process.env.RESEND_API_KEY) {
+    resendClient = new Resend(process.env.RESEND_API_KEY);
+    console.log('✅ Resend configured for sending emails (using API instead of SMTP)');
+    console.log('   This works on cloud hosting providers like Render');
+  }
+}
+
+// Helper function to send emails via Resend API (preferred) or SMTP (fallback)
+async function sendEmailViaResendOrSMTP(emailOptions) {
+  const { from, to, subject, text, html, replyTo } = emailOptions;
+  
+  // Prefer Resend if available (works on cloud hosting)
+  if (resendClient) {
+    try {
+      const fromEmail = from || process.env.FROM_EMAIL || process.env.EMAIL_USER || 'contact@saintventura.co.za';
+      const result = await resendClient.emails.send({
+        from: fromEmail,
+        to: to,
+        subject: subject,
+        text: text || '',
+        html: html || text?.replace(/\n/g, '<br>') || '',
+        reply_to: replyTo || fromEmail
+      });
+      console.log(`✅ Email sent via Resend to: ${to}`);
+      return { success: true, method: 'resend', id: result.id };
+    } catch (error) {
+      console.error(`❌ Resend error:`, error.message);
+      // Fall back to SMTP if Resend fails
+      if (emailTransporter) {
+        console.log('⚠️ Falling back to SMTP...');
+        return await sendEmailViaSMTP(emailOptions);
+      }
+      throw error;
+    }
+  }
+  
+  // Fallback to SMTP if Resend not available
+  if (emailTransporter) {
+    return await sendEmailViaSMTP(emailOptions);
+  }
+  
+  throw new Error('No email service configured. Please set RESEND_API_KEY or EMAIL_HOST, EMAIL_USER, EMAIL_PASS');
+}
+
+// Helper function to send emails via SMTP (fallback)
+async function sendEmailViaSMTP(emailOptions) {
+  if (!emailTransporter) {
+    throw new Error('Email transporter not configured');
+  }
+  
+  // Try port fallback if function exists
+  if (typeof sendEmailWithPortFallback === 'function') {
+    try {
+      return await sendEmailWithPortFallback(emailOptions);
+    } catch (error) {
+      // If port fallback fails, try direct send
+      console.warn('⚠️ Port fallback failed, trying direct SMTP send...');
+    }
+  }
+  
+  // Direct SMTP send
+  await emailTransporter.sendMail(emailOptions);
+  return { success: true, method: 'smtp', port: primaryPort };
 }
 
 // Function to fetch emails via IMAP
@@ -1857,10 +1938,10 @@ app.post('/api/admin/inbox/send', adminAuth, async (req, res) => {
       });
     }
     
-    if (!emailTransporter) {
+    if (!resendClient && !emailTransporter) {
       return res.status(500).json({ 
         success: false,
-        error: 'Email transporter not configured' 
+        error: 'Email service not configured. Please set RESEND_API_KEY or EMAIL_HOST, EMAIL_USER, EMAIL_PASS' 
       });
     }
     
@@ -1884,33 +1965,18 @@ app.post('/api/admin/inbox/send', adminAuth, async (req, res) => {
         try {
           console.log(`📧 Attempting to send email to ${recipient} (attempt ${3 - retries + 1}/3)...`);
           
-          // Send email with automatic port fallback (if function exists) or direct send
-          let result;
-          if (typeof sendEmailWithPortFallback === 'function') {
-            result = await sendEmailWithPortFallback({
-              from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
-              to: recipient,
-              replyTo: replyTo || process.env.EMAIL_USER,
-              subject: subject,
-              text: emailText,
-              html: emailHtml
-            });
-          } else {
-            // Fallback: direct send if function not available
-            console.warn('⚠️ sendEmailWithPortFallback not available, using direct send');
-            await emailTransporter.sendMail({
-              from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
-              to: recipient,
-              replyTo: replyTo || process.env.EMAIL_USER,
-              subject: subject,
-              text: emailText,
-              html: emailHtml
-            });
-            result = { success: true, port: primaryPort };
-          }
+          // Send email via Resend (preferred) or SMTP (fallback)
+          const result = await sendEmailViaResendOrSMTP({
+            from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
+            to: recipient,
+            replyTo: replyTo || process.env.EMAIL_USER,
+            subject: subject,
+            text: emailText,
+            html: emailHtml
+          });
           
           sentCount++;
-          console.log(`✅ Email sent to: ${recipient}${result && result.port !== primaryPort ? ` via port ${result.port}` : ''}`);
+          console.log(`✅ Email sent to: ${recipient} via ${result.method}${result.port ? ` (port ${result.port})` : ''}`);
           break; // Success, exit retry loop
         } catch (error) {
           lastError = error;
@@ -2177,70 +2243,48 @@ app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
     let sent = 0;
     let errors = [];
     
-    if (!emailTransporter) {
+    if (!resendClient && !emailTransporter) {
       return res.status(500).json({ 
         success: false, 
-        error: 'Email transporter not configured. Please set EMAIL_HOST, EMAIL_USER, and EMAIL_PASS in .env file' 
+        error: 'Email service not configured. Please set RESEND_API_KEY or EMAIL_HOST, EMAIL_USER, EMAIL_PASS in .env file' 
       });
     }
     
-    if (emailTransporter) {
-      for (const subscriber of targetSubscribers) {
-        let retries = 3;
-        let success = false;
-        
-        while (retries > 0 && !success) {
-          try {
-            // Send email with automatic port fallback (if function exists) or direct send
-            let result;
-            if (typeof sendEmailWithPortFallback === 'function') {
-              result = await sendEmailWithPortFallback({
-                from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
-                to: subscriber.email,
-                subject: emailSubject,
-                text: emailBody,
-                html: emailHtml
-              });
-            } else {
-              // Fallback: direct send if function not available
-              console.warn('⚠️ sendEmailWithPortFallback not available, using direct send');
-              await emailTransporter.sendMail({
-                from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
-                to: subscriber.email,
-                subject: emailSubject,
-                text: emailBody,
-                html: emailHtml
-              });
-              result = { success: true, port: primaryPort };
-            }
-            
-            sent++;
-            success = true;
-            console.log(`✅ Email sent to subscriber: ${subscriber.email}${result && result.port !== primaryPort ? ` via port ${result.port}` : ''}`);
-          } catch (error) {
-            retries--;
-            const attemptNum = 3 - retries;
-            console.error(`❌ Error sending to ${subscriber.email} (${attemptNum}/3 attempts):`, error.message);
-            
-            if (retries > 0) {
-              // Wait before retry (exponential backoff)
-              const delay = attemptNum * 2000; // 2s, 4s delays
-              console.log(`   Retrying in ${delay}ms...`);
-              await new Promise(resolve => setTimeout(resolve, delay));
-            } else {
-              // All retries failed
-              console.error(`❌ Failed to send to ${subscriber.email} after 3 attempts`);
-              errors.push(subscriber.email);
-            }
+    for (const subscriber of targetSubscribers) {
+      let retries = 3;
+      let success = false;
+      
+      while (retries > 0 && !success) {
+        try {
+          // Send email via Resend (preferred) or SMTP (fallback)
+          const result = await sendEmailViaResendOrSMTP({
+            from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
+            to: subscriber.email,
+            subject: emailSubject,
+            text: emailBody,
+            html: emailHtml
+          });
+          
+          sent++;
+          success = true;
+          console.log(`✅ Email sent to subscriber: ${subscriber.email} via ${result.method}${result.port ? ` (port ${result.port})` : ''}`);
+        } catch (error) {
+          retries--;
+          const attemptNum = 3 - retries;
+          console.error(`❌ Error sending to ${subscriber.email} (${attemptNum}/3 attempts):`, error.message);
+          
+          if (retries > 0) {
+            // Wait before retry (exponential backoff)
+            const delay = attemptNum * 2000; // 2s, 4s delays
+            console.log(`   Retrying in ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          } else {
+            // All retries failed
+            console.error(`❌ Failed to send to ${subscriber.email} after 3 attempts`);
+            errors.push(subscriber.email);
           }
         }
       }
-    } else {
-      // If email not configured, return error
-      return res.status(500).json({ 
-        success: false, 
-        error: 'Email transporter not configured. Please set EMAIL_HOST, EMAIL_USER, and EMAIL_PASS in .env file' 
-      });
     }
 
     if (sent === 0 && errors.length > 0) {
@@ -2277,21 +2321,21 @@ app.post('/api/admin/abandoned-carts/remind', adminAuth, async (req, res) => {
       return res.json({ success: false, error: 'Cart not found or no email' });
     }
 
-    if (emailTransporter) {
-      await emailTransporter.sendMail({
-        from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
-        to: cart.email,
-        subject: 'Complete Your Purchase - Saint Ventura',
-        text: `Hi,\n\nYou left items in your cart. Complete your purchase now!\n\nItems: ${cart.items.map(i => i.name).join(', ')}\nTotal: R${cart.total.toFixed(2)}\n\nVisit our website to complete your order.`,
-        html: `<p>Hi,</p><p>You left items in your cart. Complete your purchase now!</p><p><strong>Items:</strong> ${cart.items.map(i => i.name).join(', ')}<br><strong>Total:</strong> R${cart.total.toFixed(2)}</p><p>Visit our website to complete your order.</p>`
-      });
-      res.json({ success: true });
-    } else {
-      res.status(500).json({ 
+    if (!resendClient && !emailTransporter) {
+      return res.status(500).json({ 
         success: false, 
-        error: 'Email transporter not configured. Please set EMAIL_HOST, EMAIL_USER, and EMAIL_PASS in .env file' 
+        error: 'Email service not configured. Please set RESEND_API_KEY or EMAIL_HOST, EMAIL_USER, EMAIL_PASS in .env file' 
       });
     }
+    
+    await sendEmailViaResendOrSMTP({
+      from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
+      to: cart.email,
+      subject: 'Complete Your Purchase - Saint Ventura',
+      text: `Hi,\n\nYou left items in your cart. Complete your purchase now!\n\nItems: ${cart.items.map(i => i.name).join(', ')}\nTotal: R${cart.total.toFixed(2)}\n\nVisit our website to complete your order.`,
+      html: `<p>Hi,</p><p>You left items in your cart. Complete your purchase now!</p><p><strong>Items:</strong> ${cart.items.map(i => i.name).join(', ')}<br><strong>Total:</strong> R${cart.total.toFixed(2)}</p><p>Visit our website to complete your order.</p>`
+    });
+    res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -2303,29 +2347,29 @@ app.post('/api/admin/abandoned-carts/remind-all', adminAuth, async (req, res) =>
     const cartsWithEmail = carts.filter(c => c.email);
     let sent = 0;
 
-    if (emailTransporter) {
-      for (const cart of cartsWithEmail) {
-        try {
-          await emailTransporter.sendMail({
-            from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
-            to: cart.email,
-            subject: 'Complete Your Purchase - Saint Ventura',
-            text: `Hi,\n\nYou left items in your cart. Complete your purchase now!\n\nItems: ${cart.items.map(i => i.name).join(', ')}\nTotal: R${cart.total.toFixed(2)}\n\nVisit our website to complete your order.`,
-            html: `<p>Hi,</p><p>You left items in your cart. Complete your purchase now!</p><p><strong>Items:</strong> ${cart.items.map(i => i.name).join(', ')}<br><strong>Total:</strong> R${cart.total.toFixed(2)}</p><p>Visit our website to complete your order.</p>`
-          });
-          sent++;
-        } catch (error) {
-          console.error(`Error sending to ${cart.email}:`, error);
-          errors.push(cart.email);
-        }
-      }
-      res.json({ success: true, sent, total: cartsWithEmail.length, errors: errors.length });
-    } else {
-      res.status(500).json({ 
+    if (!resendClient && !emailTransporter) {
+      return res.status(500).json({ 
         success: false, 
-        error: 'Email transporter not configured. Please set EMAIL_HOST, EMAIL_USER, and EMAIL_PASS in .env file' 
+        error: 'Email service not configured. Please set RESEND_API_KEY or EMAIL_HOST, EMAIL_USER, EMAIL_PASS in .env file' 
       });
     }
+    
+    for (const cart of cartsWithEmail) {
+      try {
+        await sendEmailViaResendOrSMTP({
+          from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
+          to: cart.email,
+          subject: 'Complete Your Purchase - Saint Ventura',
+          text: `Hi,\n\nYou left items in your cart. Complete your purchase now!\n\nItems: ${cart.items.map(i => i.name).join(', ')}\nTotal: R${cart.total.toFixed(2)}\n\nVisit our website to complete your order.`,
+          html: `<p>Hi,</p><p>You left items in your cart. Complete your purchase now!</p><p><strong>Items:</strong> ${cart.items.map(i => i.name).join(', ')}<br><strong>Total:</strong> R${cart.total.toFixed(2)}</p><p>Visit our website to complete your order.</p>`
+        });
+        sent++;
+      } catch (error) {
+        console.error(`Error sending to ${cart.email}:`, error);
+        errors.push(cart.email);
+      }
+    }
+    res.json({ success: true, sent, total: cartsWithEmail.length, errors: errors.length });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -2405,65 +2449,51 @@ app.post('/api/admin/fulfillers/notify', adminAuth, async (req, res) => {
       return res.json({ success: false, error: 'Fulfiller not found' });
     }
 
-    if (emailTransporter) {
-      let retries = 3;
-      let success = false;
-      let lastError = null;
-      
-      while (retries > 0 && !success) {
-        try {
-          // Send email with automatic port fallback (if function exists) or direct send
-          let result;
-          if (typeof sendEmailWithPortFallback === 'function') {
-            result = await sendEmailWithPortFallback({
-              from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
-              to: fulfiller.email,
-              subject: 'New Order to Fulfill - Saint Ventura',
-              text: `Hi ${fulfiller.name},\n\nYou have a new order to fulfill:\n\n${orderDetails}\n\nPlease process this order as soon as possible.`,
-              html: `<p>Hi ${fulfiller.name},</p><p>You have a new order to fulfill:</p><p>${orderDetails.replace(/\n/g, '<br>')}</p><p>Please process this order as soon as possible.</p>`
-            });
-          } else {
-            // Fallback: direct send if function not available
-            console.warn('⚠️ sendEmailWithPortFallback not available, using direct send');
-            await emailTransporter.sendMail({
-              from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
-              to: fulfiller.email,
-              subject: 'New Order to Fulfill - Saint Ventura',
-              text: `Hi ${fulfiller.name},\n\nYou have a new order to fulfill:\n\n${orderDetails}\n\nPlease process this order as soon as possible.`,
-              html: `<p>Hi ${fulfiller.name},</p><p>You have a new order to fulfill:</p><p>${orderDetails.replace(/\n/g, '<br>')}</p><p>Please process this order as soon as possible.</p>`
-            });
-            result = { success: true, port: primaryPort };
-          }
-          
-          success = true;
-          console.log(`✅ Fulfiller email sent${result && result.port !== primaryPort ? ` via port ${result.port}` : ''}`);
-          res.json({ success: true });
-        } catch (error) {
-          lastError = error;
-          retries--;
-          const attemptNum = 3 - retries;
-          console.error(`❌ Error sending fulfiller email to ${fulfiller.email} (${attemptNum}/3 attempts):`, error.message);
-          
-          if (retries > 0) {
-            // Wait before retry (exponential backoff)
-            const delay = attemptNum * 2000; // 2s, 4s delays
-            console.log(`   Retrying in ${delay}ms...`);
-            await new Promise(resolve => setTimeout(resolve, delay));
-          } else {
-            // All retries failed
-            console.error(`❌ Failed to send fulfiller email after 3 attempts`);
-            return res.status(500).json({ 
-              success: false, 
-              error: `Failed to send email: ${lastError.message}` 
-            });
-          }
+    if (!resendClient && !emailTransporter) {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Email service not configured. Please set RESEND_API_KEY or EMAIL_HOST, EMAIL_USER, EMAIL_PASS in .env file' 
+      });
+    }
+    
+    let retries = 3;
+    let success = false;
+    let lastError = null;
+    
+    while (retries > 0 && !success) {
+      try {
+        // Send email via Resend (preferred) or SMTP (fallback)
+        const result = await sendEmailViaResendOrSMTP({
+          from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
+          to: fulfiller.email,
+          subject: 'New Order to Fulfill - Saint Ventura',
+          text: `Hi ${fulfiller.name},\n\nYou have a new order to fulfill:\n\n${orderDetails}\n\nPlease process this order as soon as possible.`,
+          html: `<p>Hi ${fulfiller.name},</p><p>You have a new order to fulfill:</p><p>${orderDetails.replace(/\n/g, '<br>')}</p><p>Please process this order as soon as possible.</p>`
+        });
+        
+        success = true;
+        console.log(`✅ Fulfiller email sent via ${result.method}${result.port ? ` (port ${result.port})` : ''}`);
+        res.json({ success: true });
+      } catch (error) {
+        lastError = error;
+        retries--;
+        const attemptNum = 3 - retries;
+        console.error(`❌ Error sending fulfiller email to ${fulfiller.email} (${attemptNum}/3 attempts):`, error.message);
+        
+        if (retries > 0) {
+          // Wait before retry (exponential backoff)
+          const delay = attemptNum * 2000; // 2s, 4s delays
+          console.log(`   Retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        } else {
+          // All retries failed
+          console.error(`❌ Failed to send fulfiller email after 3 attempts`);
+          return res.status(500).json({ 
+            success: false, 
+            error: `Failed to send email: ${lastError.message}` 
+          });
         }
       }
-    } else {
-      res.status(500).json({ 
-        success: false, 
-        error: 'Email transporter not configured. Please set EMAIL_HOST, EMAIL_USER, and EMAIL_PASS in .env file' 
-      });
     }
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
