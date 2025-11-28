@@ -844,6 +844,50 @@
         let currentViewingEmail = null;
         let emailBuilderSections = null; // Store sections when entering preview
         
+        // Define showAddFulfillerModal IMMEDIATELY at the top to ensure it's available globally
+        // Define it both on window and as a global function for maximum compatibility
+        function showAddFulfillerModal() {
+            console.log('showAddFulfillerModal called');
+            const modal = document.getElementById('add-fulfiller-modal');
+            if (modal) {
+                console.log('Modal found, opening...');
+                modal.classList.remove('hidden');
+                // Clear form fields
+                const nameInput = document.getElementById('fulfiller-name');
+                const emailInput = document.getElementById('fulfiller-email');
+                const phoneInput = document.getElementById('fulfiller-phone');
+                if (nameInput) nameInput.value = '';
+                if (emailInput) emailInput.value = '';
+                if (phoneInput) phoneInput.value = '';
+                // Re-setup form listener when modal is opened
+                setTimeout(() => {
+                    console.log('Re-setting up fulfiller form...');
+                    if (typeof setupFulfillerForm === 'function') {
+                        setupFulfillerForm();
+                    }
+                }, 100);
+            } else {
+                console.error('Add fulfiller modal not found');
+                alert('Error: Add fulfiller modal not found. Please refresh the page.');
+            }
+        }
+        // Also assign to window for explicit global access
+        window.showAddFulfillerModal = showAddFulfillerModal;
+        
+        // Also define closeAddFulfillerModal early
+        function closeAddFulfillerModal() {
+            const modal = document.getElementById('add-fulfiller-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+            const form = document.getElementById('add-fulfiller-form');
+            if (form) {
+                form.reset();
+            }
+        }
+        // Also assign to window for explicit global access
+        window.closeAddFulfillerModal = closeAddFulfillerModal;
+        
         // Auto-detect backend URL based on environment (same as index.html)
         function getBackendUrl() {
             const hostname = window.location.hostname;
@@ -3011,44 +3055,7 @@ Thank you!</textarea>
             }
         });
 
-        // Define showAddFulfillerModal early to ensure it's available
-        window.showAddFulfillerModal = function() {
-            console.log('showAddFulfillerModal called');
-            const modal = document.getElementById('add-fulfiller-modal');
-            if (modal) {
-                console.log('Modal found, opening...');
-                modal.classList.remove('hidden');
-                // Clear form fields
-                const nameInput = document.getElementById('fulfiller-name');
-                const emailInput = document.getElementById('fulfiller-email');
-                const phoneInput = document.getElementById('fulfiller-phone');
-                if (nameInput) nameInput.value = '';
-                if (emailInput) emailInput.value = '';
-                if (phoneInput) phoneInput.value = '';
-                // Re-setup form listener when modal is opened
-                setTimeout(() => {
-                    console.log('Re-setting up fulfiller form...');
-                    setupFulfillerForm();
-                }, 100);
-            } else {
-                console.error('Add fulfiller modal not found');
-                alert('Error: Add fulfiller modal not found. Please refresh the page.');
-            }
-        };
-
-        function closeAddFulfillerModal() {
-            const modal = document.getElementById('add-fulfiller-modal');
-            if (modal) {
-                modal.classList.add('hidden');
-            }
-            const form = document.getElementById('add-fulfiller-form');
-            if (form) {
-                form.reset();
-            }
-        }
-        
-        // Make closeAddFulfillerModal globally accessible
-        window.closeAddFulfillerModal = closeAddFulfillerModal;
+        // Functions are now defined at the top of the script (see above)
 
         // Set up fulfiller form event listener safely - wait for DOM to be ready
         function setupFulfillerForm() {

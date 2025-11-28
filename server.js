@@ -1185,10 +1185,21 @@ if (process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS) 
   console.log('   From:', process.env.FROM_EMAIL || process.env.EMAIL_USER);
   
   // Test email connection (non-blocking, don't fail if verification times out)
+  // Wrap verify in a timeout to prevent it from hanging indefinitely
+  const verifyTimeout = setTimeout(() => {
+    console.warn('⚠️  Email transporter verification timed out after 30 seconds');
+    console.warn('⚠️  Email sending may still work. Verification is just a connectivity test.');
+    console.warn('⚠️  The server will continue running. Emails will be sent when needed.');
+  }, 30000); // 30 second timeout for verification
+  
   emailTransporter.verify(function(error, success) {
+    clearTimeout(verifyTimeout); // Clear timeout if verification completes
+    
     if (error) {
-      console.error('❌ Email transporter verification failed:', error.message);
+      // Don't use console.error - this is not a critical error
+      console.warn('⚠️  Email transporter verification failed:', error.message);
       console.warn('⚠️  Email sending may still work. Verification is just a connectivity test.');
+      console.warn('⚠️  The server will continue running. Emails will be sent when needed.');
     } else {
       console.log('✅ Email transporter verified - ready to send emails');
     }
