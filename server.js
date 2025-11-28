@@ -2639,12 +2639,22 @@ app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
       // Get product images if products selected
       if (products && products.length > 0) {
         const selectedProducts = PRODUCTS.filter(p => products.includes(p.id.toString()) || products.includes(String(p.id)));
-        templateProducts = selectedProducts.map(p => ({
-          name: p.name,
-          price: p.price || 0,
-          description: p.description || '',
-          image: p.images && p.images.length > 0 ? p.images[0] : null
-        }));
+        templateProducts = selectedProducts.map(p => {
+          let imageUrl = null;
+          if (p.images && p.images.length > 0 && p.images[0]) {
+            imageUrl = p.images[0].trim();
+            // Validate URL format
+            if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+              imageUrl = null;
+            }
+          }
+          return {
+            name: p.name || '',
+            price: p.price || 0,
+            description: p.description || '',
+            image: imageUrl
+          };
+        });
       }
       
       emailHtml = generateEmailTemplate(templateType, {
