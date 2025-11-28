@@ -1577,17 +1577,21 @@ function generateEmailTemplate(type, data = {}) {
             <p style="color: #666666; font-size: 14px; margin: 0 0 20px 0; text-align: center;">Stay connected with us on social media for the latest updates, behind-the-scenes content, and exclusive offers!</p>
             <table cellpadding="0" cellspacing="0" style="margin: 0 auto; width: auto;">
               <tr>
-                <td align="center" style="padding: 5px 10px;">
+                <td align="center" style="padding: 5px 0;">
                   <a href="${SOCIAL_MEDIA.instagram}" class="social-button" style="display: inline-block; color: #000000; text-decoration: none; font-weight: 600; font-size: 14px; padding: 10px 20px; border: none; border-radius: 4px;">
                     Instagram
                   </a>
                 </td>
-                <td align="center" style="padding: 5px 10px;">
+              </tr>
+              <tr>
+                <td align="center" style="padding: 5px 0;">
                   <a href="${SOCIAL_MEDIA.tiktok}" class="social-button" style="display: inline-block; color: #000000; text-decoration: none; font-weight: 600; font-size: 14px; padding: 10px 20px; border: none; border-radius: 4px;">
                     TikTok
                   </a>
                 </td>
-                <td align="center" style="padding: 5px 10px;">
+              </tr>
+              <tr>
+                <td align="center" style="padding: 5px 0;">
                   <a href="${SOCIAL_MEDIA.youtube}" class="social-button" style="display: inline-block; color: #000000; text-decoration: none; font-weight: 600; font-size: 14px; padding: 10px 20px; border: none; border-radius: 4px;">
                     YouTube
                   </a>
@@ -1685,8 +1689,8 @@ function generateEmailTemplate(type, data = {}) {
                 <table role="presentation" class="email-container" width="600" cellpadding="0" cellspacing="0" style="background-color: #FFFFFF; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 600px; width: 100% !important; table-layout: fixed;">
                     <!-- Header with Logo -->
                     <tr>
-                        <td style="background-color: #000000; padding: 20px; text-align: center; width: 100%;">
-                            <img src="${BRAND_LOGO}" alt="${BRAND_NAME}" style="max-width: 80px; width: auto; height: auto; display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none;">
+                        <td style="background-color: #000000; padding: 15px 20px; text-align: center; width: 100%;">
+                            <img src="${BRAND_LOGO}" alt="${BRAND_NAME}" style="max-width: 50px; width: 50px; height: 50px; display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none; border-radius: 8px; object-fit: cover;">
                         </td>
                     </tr>
                     ${headerImage}
