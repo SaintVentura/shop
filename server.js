@@ -2887,12 +2887,52 @@ app.post('/api/admin/abandoned-carts/remind', adminAuth, async (req, res) => {
     
     const cartContent = `Hi,\n\nYou left items in your cart. Complete your purchase now!\n\nItems:\n${itemsList}\n\nTotal: R${cart.total.toFixed(2)}\n\nVisit our website to complete your order.`;
     
+    // Map cart items to products with images
+    const cartProducts = (cart.items || []).map(cartItem => {
+      // Find product in PRODUCTS array by id or name
+      const product = PRODUCTS.find(p => 
+        p.id === cartItem.id || 
+        p.id === parseInt(cartItem.id) || 
+        p.name === cartItem.name
+      );
+      
+      let imageUrl = null;
+      if (product) {
+        // Try to get color-specific image first
+        if (cartItem.color && product.availableColors) {
+          const colorMatch = product.availableColors.find(c => 
+            c.name.toLowerCase() === cartItem.color.toLowerCase()
+          );
+          if (colorMatch && colorMatch.image) {
+            imageUrl = colorMatch.image.trim();
+          }
+        }
+        // Fallback to first product image
+        if (!imageUrl && product.images && product.images.length > 0) {
+          imageUrl = product.images[0].trim();
+        }
+        // Validate URL format
+        if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+          imageUrl = null;
+        }
+      }
+      
+      return {
+        name: cartItem.name || 'Product',
+        price: cartItem.price || 0,
+        description: `${cartItem.size ? `Size: ${cartItem.size}` : ''}${cartItem.color ? `${cartItem.size ? ', ' : ''}Color: ${cartItem.color}` : ''}`.trim() || '',
+        image: imageUrl
+      };
+    });
+    
     // Generate professional abandoned cart email template
     const abandonedCartEmailHtml = generateEmailTemplate('abandoned-cart', {
       heading: 'Complete Your Purchase',
       content: cartContent,
       ctaText: 'Complete Purchase',
-      ctaLink: `${BRAND_WEBSITE}/checkout.html`
+      ctaLink: `${BRAND_WEBSITE}/checkout.html`,
+      products: cartProducts,
+      includeSocialMedia: true
     });
     
     await sendEmailViaResendOrSMTP({
@@ -2932,12 +2972,52 @@ app.post('/api/admin/abandoned-carts/remind-all', adminAuth, async (req, res) =>
         
         const cartContent = `Hi,\n\nYou left items in your cart. Complete your purchase now!\n\nItems:\n${itemsList}\n\nTotal: R${cart.total.toFixed(2)}\n\nVisit our website to complete your order.`;
         
+        // Map cart items to products with images
+        const cartProducts = (cart.items || []).map(cartItem => {
+          // Find product in PRODUCTS array by id or name
+          const product = PRODUCTS.find(p => 
+            p.id === cartItem.id || 
+            p.id === parseInt(cartItem.id) || 
+            p.name === cartItem.name
+          );
+          
+          let imageUrl = null;
+          if (product) {
+            // Try to get color-specific image first
+            if (cartItem.color && product.availableColors) {
+              const colorMatch = product.availableColors.find(c => 
+                c.name.toLowerCase() === cartItem.color.toLowerCase()
+              );
+              if (colorMatch && colorMatch.image) {
+                imageUrl = colorMatch.image.trim();
+              }
+            }
+            // Fallback to first product image
+            if (!imageUrl && product.images && product.images.length > 0) {
+              imageUrl = product.images[0].trim();
+            }
+            // Validate URL format
+            if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+              imageUrl = null;
+            }
+          }
+          
+          return {
+            name: cartItem.name || 'Product',
+            price: cartItem.price || 0,
+            description: `${cartItem.size ? `Size: ${cartItem.size}` : ''}${cartItem.color ? `${cartItem.size ? ', ' : ''}Color: ${cartItem.color}` : ''}`.trim() || '',
+            image: imageUrl
+          };
+        });
+        
         // Generate professional abandoned cart email template
         const abandonedCartEmailHtml = generateEmailTemplate('abandoned-cart', {
           heading: 'Complete Your Purchase',
           content: cartContent,
           ctaText: 'Complete Purchase',
-          ctaLink: `${BRAND_WEBSITE}/checkout.html`
+          ctaLink: `${BRAND_WEBSITE}/checkout.html`,
+          products: cartProducts,
+          includeSocialMedia: true
         });
         
         await sendEmailViaResendOrSMTP({
