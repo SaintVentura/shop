@@ -1153,41 +1153,97 @@ async function ensureDataDir() {
 let emailTransporter = null;
 let imapConnection = null;
 
-if (process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-  // SMTP setup for sending emails
-  // Helper function to create email transporter with specific port
-  function createEmailTransporter(portToUse) {
-    const isSecure = portToUse === 465;
-    return nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: portToUse,
-      secure: isSecure, // true for 465, false for other ports (uses STARTTLS)
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      },
-      connectionTimeout: 15000, // 15 seconds - faster failure detection
-      greetingTimeout: 15000, // 15 seconds
-      socketTimeout: 15000, // 15 seconds
-      pool: false, // Disable pooling
-      // Only require TLS if not using secure port (465 already uses TLS)
-      requireTLS: !isSecure, // For port 587, require STARTTLS
-      tls: {
-        rejectUnauthorized: false, // Allow self-signed certificates
-        minVersion: 'TLSv1.2',
-        ciphers: 'HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA'
-      },
-      // Enable debug in development to see connection issues
-      debug: process.env.NODE_ENV === 'development',
-      logger: process.env.NODE_ENV === 'development'
-    });
+// Global variables for email configuration
+let primaryPort = 587;
+let portsToTry = [587, 465, 25, 2525];
+let createEmailTransporter = null;
+
+// Helper function to create email transporter with specific port
+function createEmailTransporterFunction(portToUse) {
+  const isSecure = portToUse === 465;
+  return nodemailer.createTransport({
+    host: process.env.EMAIL_HOST,
+    port: portToUse,
+    secure: isSecure, // true for 465, false for other ports (uses STARTTLS)
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS
+    },
+    connectionTimeout: 15000, // 15 seconds - faster failure detection
+    greetingTimeout: 15000, // 15 seconds
+    socketTimeout: 15000, // 15 seconds
+    pool: false, // Disable pooling
+    // Only require TLS if not using secure port (465 already uses TLS)
+    requireTLS: !isSecure, // For port 587, require STARTTLS
+    tls: {
+      rejectUnauthorized: false, // Allow self-signed certificates
+      minVersion: 'TLSv1.2',
+      ciphers: 'HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA'
+    },
+    // Enable debug in development to see connection issues
+    debug: process.env.NODE_ENV === 'development',
+    logger: process.env.NODE_ENV === 'development'
+  });
+}
+
+// Helper function to send email with automatic port fallback
+// Define as both function declaration and assign to global for maximum compatibility
+async function sendEmailWithPortFallback(emailOptions) {
+  if (!emailTransporter) {
+    throw new Error('Email transporter not configured');
   }
   
+  let portIndex = 0;
+  let lastError = null;
+  
+  while (portIndex < portsToTry.length) {
+    const currentPort = portsToTry[portIndex];
+    let transporterToUse = emailTransporter;
+    
+    // Create new transporter if not using primary port
+    if (currentPort !== primaryPort && createEmailTransporter) {
+      transporterToUse = createEmailTransporter(currentPort);
+    }
+    
+    try {
+      await transporterToUse.sendMail(emailOptions);
+      // Success! Update main transporter if this port worked
+      if (currentPort !== primaryPort) {
+        console.log(`✅ Port ${currentPort} works! Consider updating EMAIL_PORT in .env file.`);
+        emailTransporter = transporterToUse;
+      }
+      return { success: true, port: currentPort };
+    } catch (error) {
+      lastError = error;
+      // If it's a connection timeout, try next port
+      if (error.code === 'ETIMEDOUT' && error.command === 'CONN' && portIndex < portsToTry.length - 1) {
+        console.log(`⚠️ Connection timeout on port ${currentPort}, trying port ${portsToTry[portIndex + 1]}...`);
+        portIndex++;
+        continue;
+      }
+      // For other errors or if it's the last port, throw
+      throw error;
+    }
+  }
+  
+  // All ports failed
+  throw lastError || new Error('Failed to connect to SMTP server on any port');
+}
+
+// Also assign to global object to ensure it's accessible everywhere
+if (typeof global !== 'undefined') {
+  global.sendEmailWithPortFallback = sendEmailWithPortFallback;
+}
+
+if (process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+  // SMTP setup for sending emails
+  createEmailTransporter = createEmailTransporterFunction;
+  
   // Determine primary port and alternative ports to try
-  const primaryPort = parseInt(process.env.EMAIL_PORT || 587);
+  primaryPort = parseInt(process.env.EMAIL_PORT || 587);
   // Common SMTP ports to try: 587 (STARTTLS), 465 (SSL), 25 (unencrypted), 2525 (alternative)
   const alternativePorts = [587, 465, 25, 2525].filter(p => p !== primaryPort);
-  const portsToTry = [primaryPort, ...alternativePorts];
+  portsToTry = [primaryPort, ...alternativePorts];
   
   // Create primary transporter
   emailTransporter = createEmailTransporter(primaryPort);
@@ -1197,45 +1253,7 @@ if (process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS) 
   console.log('   Alternative ports to try:', alternativePorts.join(', '));
   console.log('   User:', process.env.EMAIL_USER);
   console.log('   From:', process.env.FROM_EMAIL || process.env.EMAIL_USER);
-  
-  // Helper function to send email with automatic port fallback
-  async function sendEmailWithPortFallback(emailOptions) {
-    let portIndex = 0;
-    let lastError = null;
-    
-    while (portIndex < portsToTry.length) {
-      const currentPort = portsToTry[portIndex];
-      let transporterToUse = emailTransporter;
-      
-      // Create new transporter if not using primary port
-      if (currentPort !== primaryPort) {
-        transporterToUse = createEmailTransporter(currentPort);
-      }
-      
-      try {
-        await transporterToUse.sendMail(emailOptions);
-        // Success! Update main transporter if this port worked
-        if (currentPort !== primaryPort) {
-          console.log(`✅ Port ${currentPort} works! Consider updating EMAIL_PORT in .env file.`);
-          emailTransporter = transporterToUse;
-        }
-        return { success: true, port: currentPort };
-      } catch (error) {
-        lastError = error;
-        // If it's a connection timeout, try next port
-        if (error.code === 'ETIMEDOUT' && error.command === 'CONN' && portIndex < portsToTry.length - 1) {
-          console.log(`⚠️ Connection timeout on port ${currentPort}, trying port ${portsToTry[portIndex + 1]}...`);
-          portIndex++;
-          continue;
-        }
-        // For other errors or if it's the last port, throw
-        throw error;
-      }
-    }
-    
-    // All ports failed
-    throw lastError || new Error('Failed to connect to SMTP server on any port');
-  }
+  console.log('   sendEmailWithPortFallback function available:', typeof sendEmailWithPortFallback === 'function');
   
   // Test email connection (non-blocking, don't fail if verification times out)
   // Note: Verification is optional - emails will still send even if verification fails
@@ -1814,18 +1832,33 @@ app.post('/api/admin/inbox/send', adminAuth, async (req, res) => {
         try {
           console.log(`📧 Attempting to send email to ${recipient} (attempt ${3 - retries + 1}/3)...`);
           
-          // Send email with automatic port fallback
-          const result = await sendEmailWithPortFallback({
-            from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
-            to: recipient,
-            replyTo: replyTo || process.env.EMAIL_USER,
-            subject: subject,
-            text: emailText,
-            html: emailHtml
-          });
+          // Send email with automatic port fallback (if function exists) or direct send
+          let result;
+          if (typeof sendEmailWithPortFallback === 'function') {
+            result = await sendEmailWithPortFallback({
+              from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
+              to: recipient,
+              replyTo: replyTo || process.env.EMAIL_USER,
+              subject: subject,
+              text: emailText,
+              html: emailHtml
+            });
+          } else {
+            // Fallback: direct send if function not available
+            console.warn('⚠️ sendEmailWithPortFallback not available, using direct send');
+            await emailTransporter.sendMail({
+              from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
+              to: recipient,
+              replyTo: replyTo || process.env.EMAIL_USER,
+              subject: subject,
+              text: emailText,
+              html: emailHtml
+            });
+            result = { success: true, port: primaryPort };
+          }
           
           sentCount++;
-          console.log(`✅ Email sent to: ${recipient}${result.port !== primaryPort ? ` via port ${result.port}` : ''}`);
+          console.log(`✅ Email sent to: ${recipient}${result && result.port !== primaryPort ? ` via port ${result.port}` : ''}`);
           break; // Success, exit retry loop
         } catch (error) {
           lastError = error;
@@ -2106,18 +2139,32 @@ app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
         
         while (retries > 0 && !success) {
           try {
-            // Send email with automatic port fallback
-            const result = await sendEmailWithPortFallback({
-              from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
-              to: subscriber.email,
-              subject: emailSubject,
-              text: emailBody,
-              html: emailHtml
-            });
+            // Send email with automatic port fallback (if function exists) or direct send
+            let result;
+            if (typeof sendEmailWithPortFallback === 'function') {
+              result = await sendEmailWithPortFallback({
+                from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
+                to: subscriber.email,
+                subject: emailSubject,
+                text: emailBody,
+                html: emailHtml
+              });
+            } else {
+              // Fallback: direct send if function not available
+              console.warn('⚠️ sendEmailWithPortFallback not available, using direct send');
+              await emailTransporter.sendMail({
+                from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
+                to: subscriber.email,
+                subject: emailSubject,
+                text: emailBody,
+                html: emailHtml
+              });
+              result = { success: true, port: primaryPort };
+            }
             
             sent++;
             success = true;
-            console.log(`✅ Email sent to subscriber: ${subscriber.email}${result.port !== primaryPort ? ` via port ${result.port}` : ''}`);
+            console.log(`✅ Email sent to subscriber: ${subscriber.email}${result && result.port !== primaryPort ? ` via port ${result.port}` : ''}`);
           } catch (error) {
             retries--;
             const attemptNum = 3 - retries;
@@ -2313,17 +2360,31 @@ app.post('/api/admin/fulfillers/notify', adminAuth, async (req, res) => {
       
       while (retries > 0 && !success) {
         try {
-          // Send email with automatic port fallback
-          const result = await sendEmailWithPortFallback({
-            from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
-            to: fulfiller.email,
-            subject: 'New Order to Fulfill - Saint Ventura',
-            text: `Hi ${fulfiller.name},\n\nYou have a new order to fulfill:\n\n${orderDetails}\n\nPlease process this order as soon as possible.`,
-            html: `<p>Hi ${fulfiller.name},</p><p>You have a new order to fulfill:</p><p>${orderDetails.replace(/\n/g, '<br>')}</p><p>Please process this order as soon as possible.</p>`
-          });
+          // Send email with automatic port fallback (if function exists) or direct send
+          let result;
+          if (typeof sendEmailWithPortFallback === 'function') {
+            result = await sendEmailWithPortFallback({
+              from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
+              to: fulfiller.email,
+              subject: 'New Order to Fulfill - Saint Ventura',
+              text: `Hi ${fulfiller.name},\n\nYou have a new order to fulfill:\n\n${orderDetails}\n\nPlease process this order as soon as possible.`,
+              html: `<p>Hi ${fulfiller.name},</p><p>You have a new order to fulfill:</p><p>${orderDetails.replace(/\n/g, '<br>')}</p><p>Please process this order as soon as possible.</p>`
+            });
+          } else {
+            // Fallback: direct send if function not available
+            console.warn('⚠️ sendEmailWithPortFallback not available, using direct send');
+            await emailTransporter.sendMail({
+              from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
+              to: fulfiller.email,
+              subject: 'New Order to Fulfill - Saint Ventura',
+              text: `Hi ${fulfiller.name},\n\nYou have a new order to fulfill:\n\n${orderDetails}\n\nPlease process this order as soon as possible.`,
+              html: `<p>Hi ${fulfiller.name},</p><p>You have a new order to fulfill:</p><p>${orderDetails.replace(/\n/g, '<br>')}</p><p>Please process this order as soon as possible.</p>`
+            });
+            result = { success: true, port: primaryPort };
+          }
           
           success = true;
-          console.log(`✅ Fulfiller email sent${result.port !== primaryPort ? ` via port ${result.port}` : ''}`);
+          console.log(`✅ Fulfiller email sent${result && result.port !== primaryPort ? ` via port ${result.port}` : ''}`);
           res.json({ success: true });
         } catch (error) {
           lastError = error;
