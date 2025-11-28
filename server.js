@@ -605,18 +605,29 @@ app.post('/api/newsletter-subscribe', async (req, res) => {
         // Send welcome email with professional template
         if (resendClient || emailTransporter) {
           try {
+            // Get featured products (first 4 products)
+            const featuredProducts = PRODUCTS.slice(0, 4).map(p => ({
+              name: p.name,
+              price: p.price || 0,
+              description: p.description || '',
+              image: p.images && p.images.length > 0 ? p.images[0] : null
+            }));
+            
             const welcomeEmailHtml = generateEmailTemplate('new-subscriber', {
               heading: 'Welcome to Saint Ventura!',
-              content: `Thank you for subscribing to our newsletter! You'll be the first to know about:\n\n• New product launches\n• Exclusive promotions and sales\n• Special offers and discounts\n• Latest news and updates\n\nWe're excited to have you as part of the Saint Ventura family!`,
+              content: `Thank you for subscribing to our newsletter! You'll be the first to know about:\n\n• New product launches\n• Exclusive promotions and sales\n• Special offers and discounts\n• Latest news and updates\n\nWe're excited to have you as part of the Saint Ventura family! Check out some of our featured products below.`,
               ctaText: 'Explore Our Collection',
-              ctaLink: BRAND_WEBSITE
+              ctaLink: BRAND_WEBSITE,
+              products: featuredProducts,
+              includeSlideshow: true,
+              includeSocialMedia: true
             });
             
             await sendEmailViaResendOrSMTP({
               from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
               to: emailLower,
               subject: 'Welcome to Saint Ventura! 🎉',
-              text: `Thank you for subscribing to our newsletter! You'll be the first to know about new products, exclusive promotions, and special offers. Visit ${BRAND_WEBSITE} to explore our collection.`,
+              text: `Thank you for subscribing to our newsletter! You'll be the first to know about new products, exclusive promotions, and special offers. Visit ${BRAND_WEBSITE} to explore our collection. Follow us on Instagram, TikTok, and YouTube!`,
               html: welcomeEmailHtml
             });
             console.log(`✅ Welcome email sent to: ${emailLower}`);
@@ -1404,6 +1415,13 @@ const SLIDESHOW_IMAGES = [
   'https://dl.dropboxusercontent.com/scl/fi/ytsic6wxaux4xhdu4mu12/2-2.PNG?rlkey=wx76vqmyimpbybiywputta1qi&st=283np3lw&dl=1'
 ];
 
+// Social media links
+const SOCIAL_MEDIA = {
+  instagram: 'https://www.instagram.com/designedbythesaints/',
+  tiktok: 'https://www.tiktok.com/@designedbythesaints',
+  youtube: 'https://www.youtube.com/@saintventura'
+};
+
 function generateEmailTemplate(type, data = {}) {
   const { 
     heading = '', 
@@ -1413,7 +1431,9 @@ function generateEmailTemplate(type, data = {}) {
     products = [],
     orderDetails = '',
     subscriberName = '',
-    supportResponse = ''
+    supportResponse = '',
+    includeSlideshow = false,
+    includeSocialMedia = false
   } = data;
 
   let mainContent = '';
@@ -1490,9 +1510,9 @@ function generateEmailTemplate(type, data = {}) {
     `).join('');
   }
   
-  // Add slideshow images for promotional emails
+  // Add slideshow images for promotional emails or when explicitly requested
   let slideshowSection = '';
-  if ((type === 'promotion' || type === 'new-product' || type === 'new-subscriber') && SLIDESHOW_IMAGES.length > 0) {
+  if ((type === 'promotion' || type === 'new-product' || type === 'new-subscriber' || includeSlideshow) && SLIDESHOW_IMAGES.length > 0) {
     // Use first 2 slideshow images for email
     const emailSlideshowImages = SLIDESHOW_IMAGES.slice(0, 2);
     slideshowSection = `
@@ -1503,6 +1523,40 @@ function generateEmailTemplate(type, data = {}) {
               <img src="${img}" alt="${BRAND_NAME}" style="width: 100%; max-width: 280px; height: auto; border-radius: 8px; display: block; margin: 0 auto;">
             </td>
           `).join('')}
+        </tr>
+      </table>
+    `;
+  }
+  
+  // Add social media links section
+  let socialMediaSection = '';
+  if (includeSocialMedia) {
+    socialMediaSection = `
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
+        <tr>
+          <td align="center" style="padding: 20px;">
+            <h2 style="color: #000000; font-size: 20px; font-weight: 700; margin: 0 0 15px 0;">Follow Us</h2>
+            <p style="color: #666666; font-size: 14px; margin: 0 0 20px 0;">Stay connected with us on social media for the latest updates, behind-the-scenes content, and exclusive offers!</p>
+            <table cellpadding="0" cellspacing="0" style="margin: 0 auto;">
+              <tr>
+                <td align="center" style="padding: 0 15px;">
+                  <a href="${SOCIAL_MEDIA.instagram}" style="display: inline-block; color: #000000; text-decoration: none; font-weight: 600; font-size: 14px; padding: 10px 20px; border: 2px solid #000000; border-radius: 4px;">
+                    📷 Instagram
+                  </a>
+                </td>
+                <td align="center" style="padding: 0 15px;">
+                  <a href="${SOCIAL_MEDIA.tiktok}" style="display: inline-block; color: #000000; text-decoration: none; font-weight: 600; font-size: 14px; padding: 10px 20px; border: 2px solid #000000; border-radius: 4px;">
+                    🎵 TikTok
+                  </a>
+                </td>
+                <td align="center" style="padding: 0 15px;">
+                  <a href="${SOCIAL_MEDIA.youtube}" style="display: inline-block; color: #000000; text-decoration: none; font-weight: 600; font-size: 14px; padding: 10px 20px; border: 2px solid #000000; border-radius: 4px;">
+                    ▶️ YouTube
+                  </a>
+                </td>
+              </tr>
+            </table>
+          </td>
         </tr>
       </table>
     `;
@@ -1546,6 +1600,7 @@ function generateEmailTemplate(type, data = {}) {
                             </div>
                             ${slideshowSection}
                             ${productsSection}
+                            ${socialMediaSection}
                             ${ctaText && ctaLink ? `
                             <!-- CTA Button -->
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
