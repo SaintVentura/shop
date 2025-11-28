@@ -1024,6 +1024,8 @@
                 document.getElementById('admin-dashboard').classList.remove('hidden');
                 localStorage.setItem('adminLoggedIn', 'true');
                 loadDashboard();
+                // Start real-time sync immediately after login
+                startRealTimeSync();
             } else {
                 document.getElementById('login-error').textContent = 'Invalid password';
                 document.getElementById('login-error').classList.remove('hidden');
@@ -1035,26 +1037,45 @@
             document.getElementById('login-screen').classList.add('hidden');
             document.getElementById('admin-dashboard').classList.remove('hidden');
             loadDashboard();
+            // Start real-time sync immediately when logged in
+            startRealTimeSync();
         }
 
         function logout() {
             localStorage.removeItem('adminLoggedIn');
             document.getElementById('login-screen').classList.remove('hidden');
             document.getElementById('admin-dashboard').classList.add('hidden');
+            // Stop real-time sync when logging out
+            stopRealTimeSync();
         }
 
 
         // Real-time sync for all admin users
         let syncInterval = null;
+        let badgeInterval = null; // Separate interval for badges (updates more frequently)
         
         function startRealTimeSync() {
-            // Clear existing interval if any
+            // Clear existing intervals if any
             if (syncInterval) clearInterval(syncInterval);
+            if (badgeInterval) clearInterval(badgeInterval);
             
-            // Sync every 30 seconds
+            // Update badges more frequently (every 10 seconds) - works across all tabs
+            badgeInterval = setInterval(() => {
+                // Only update if page is visible (optimize for background tabs)
+                if (!document.hidden) {
+                    updateBadges();
+                }
+            }, 10000); // Update badges every 10 seconds
+            
+            // Sync section data less frequently (every 30 seconds)
             syncInterval = setInterval(() => {
-                // Update badges (notifications, emails, carts)
-            updateBadges();
+                // Only sync if page is visible
+                if (document.hidden) {
+                    return; // Skip if tab is in background
+                }
+                
+                // Update badges (also update here as backup)
+                updateBadges();
                 
                 // Refresh current section data
                 if (currentSection === 'dashboard') {
@@ -1088,7 +1109,7 @@
                 } else if (currentSection === 'notifications') {
                     loadNotifications();
                 }
-            }, 30000); // Update every 30 seconds
+            }, 30000); // Update section data every 30 seconds
         }
         
         function stopRealTimeSync() {
@@ -1096,13 +1117,29 @@
                 clearInterval(syncInterval);
                 syncInterval = null;
             }
+            if (badgeInterval) {
+                clearInterval(badgeInterval);
+                badgeInterval = null;
+            }
         }
+        
+        // Handle page visibility changes - update badges immediately when tab becomes visible
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                // Tab became visible - update badges immediately
+                updateBadges();
+            }
+        });
         
         function loadDashboard() {
             showSection('dashboard');
             loadDashboardData();
             updateBadges();
-            startRealTimeSync();
+            // Don't restart sync here - it's already running from login
+            // Just ensure it's running
+            if (!syncInterval && !badgeInterval) {
+                startRealTimeSync();
+            }
         }
         
         function loadDashboardData() {
@@ -3305,7 +3342,12 @@ Thank you!</textarea>
             .then(data => {
                 if (data.success) {
                     loadNotifications();
+                    // Update badges immediately
                     updateBadges();
+                    // Also update dashboard stats if on dashboard
+                    if (currentSection === 'dashboard') {
+                        loadDashboardData();
+                    }
                 } else {
                     alert('Error: ' + (data.error || 'Failed to mark notification as read'));
                 }
@@ -3323,7 +3365,12 @@ Thank you!</textarea>
             .then(data => {
                 if (data.success) {
                     loadNotifications();
+                    // Update badges immediately
                     updateBadges();
+                    // Also update dashboard stats if on dashboard
+                    if (currentSection === 'dashboard') {
+                        loadDashboardData();
+                    }
                 } else {
                     alert('Error: ' + (data.error || 'Failed to mark all as read'));
                 }
