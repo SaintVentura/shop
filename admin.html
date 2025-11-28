@@ -1085,6 +1085,8 @@
                 } else if (currentSection === 'inventory') {
                     loadInventory();
                 } else if (currentSection === 'inbox') {
+                    // Refresh inbox immediately when on inbox page
+                    loadInbox();
                     // Auto-fetch new emails every 2 minutes when on inbox page
                     const now = Date.now();
                     if (!window.lastEmailFetch || (now - window.lastEmailFetch) > 120000) {
@@ -1099,14 +1101,13 @@
                         })
                         .catch(err => console.error('Auto-fetch error:', err));
                         window.lastEmailFetch = now;
-                    } else {
-                        loadInbox();
                     }
                 } else if (currentSection === 'broadcast') {
                     loadBroadcast();
                 } else if (currentSection === 'fulfillers') {
                     loadFulfillers();
                 } else if (currentSection === 'notifications') {
+                    // Refresh notifications immediately when on notifications page
                     loadNotifications();
                 }
             }, 30000); // Update section data every 30 seconds
@@ -1184,9 +1185,35 @@
                 });
         }
 
+        // Store previous badge counts to detect changes
+        let previousBadgeCounts = {
+            inbox: 0,
+            carts: 0,
+            notifications: 0
+        };
+        
         function updateBadges() {
             adminFetch(`${BACKEND_URL}/api/admin/badges`)
                 .then(data => {
+                    // Check if counts changed and refresh sections if needed
+                    if (data.inbox !== previousBadgeCounts.inbox && currentSection === 'inbox') {
+                        loadInbox(); // Refresh inbox if count changed
+                    }
+                    if (data.notifications !== previousBadgeCounts.notifications && currentSection === 'notifications') {
+                        loadNotifications(); // Refresh notifications if count changed
+                    }
+                    if (data.carts !== previousBadgeCounts.carts && currentSection === 'abandoned-carts') {
+                        loadAbandonedCarts(); // Refresh abandoned carts if count changed
+                    }
+                    
+                    // Update previous counts
+                    previousBadgeCounts = {
+                        inbox: data.inbox || 0,
+                        carts: data.carts || 0,
+                        notifications: data.notifications || 0
+                    };
+                    
+                    // Update badge displays
                     if (data.inbox > 0) {
                         document.getElementById('inbox-badge').textContent = data.inbox;
                         document.getElementById('inbox-badge').classList.remove('hidden');

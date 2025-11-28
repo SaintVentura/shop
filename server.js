@@ -1396,6 +1396,14 @@ const BRAND_COLOR_ACCENT = '#F5F5F5';
 const BRAND_NAME = 'Saint Ventura';
 const BRAND_WEBSITE = 'https://saintventura.co.za';
 
+// Slideshow images from homepage
+const SLIDESHOW_IMAGES = [
+  'https://dl.dropboxusercontent.com/scl/fi/gx1r3qe18sgo80p5jrgm8/2-3.PNG?rlkey=gx2mnfof9kfyc72blsy1ppun5&st=r070m73p&dl=1',
+  'https://dl.dropboxusercontent.com/scl/fi/bh2welg72z6iu0dan8041/2-4.PNG?rlkey=5bmykcf56ds34f978mvprn8dl&st=zjpdyd7o&dl=1',
+  'https://dl.dropboxusercontent.com/scl/fi/ppya1riwy9g0zoo0l93sz/2-1.PNG?rlkey=zm9fq5matkz014b2v9pwbm8ff&st=wu45teik&dl=1',
+  'https://dl.dropboxusercontent.com/scl/fi/ytsic6wxaux4xhdu4mu12/2-2.PNG?rlkey=wx76vqmyimpbybiywputta1qi&st=283np3lw&dl=1'
+];
+
 function generateEmailTemplate(type, data = {}) {
   const { 
     heading = '', 
@@ -1457,17 +1465,42 @@ function generateEmailTemplate(type, data = {}) {
   // Build products section if products provided
   let productsSection = '';
   if (products && products.length > 0) {
-    productsSection = `
+    // Limit to 4 products per row for better email client compatibility
+    const productsPerRow = Math.min(products.length, 4);
+    const productRows = [];
+    for (let i = 0; i < products.length; i += productsPerRow) {
+      productRows.push(products.slice(i, i + productsPerRow));
+    }
+    
+    productsSection = productRows.map(row => `
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin: 20px 0;">
+        <tr>
+          ${row.map(product => `
+            <td align="center" style="padding: 10px; width: ${100 / row.length}%; vertical-align: top;">
+              <div style="background: #FFFFFF; border: 1px solid #E5E5E5; border-radius: 8px; padding: 15px; max-width: 250px; margin: 0 auto;">
+                ${product.image ? `<img src="${product.image}" alt="${product.name}" style="width: 100%; max-width: 200px; height: auto; border-radius: 4px; margin-bottom: 12px; display: block; margin-left: auto; margin-right: auto;">` : ''}
+                <h3 style="color: #000000; font-size: 16px; font-weight: 700; margin: 0 0 8px 0; line-height: 1.3;">${product.name}</h3>
+                ${product.description ? `<p style="color: #666666; font-size: 13px; margin: 0 0 12px 0; line-height: 1.4;">${product.description.substring(0, 80)}${product.description.length > 80 ? '...' : ''}</p>` : ''}
+                <p style="color: #000000; font-size: 18px; font-weight: 900; margin: 0;">R${(product.price || 0).toFixed(2)}</p>
+              </div>
+            </td>
+          `).join('')}
+        </tr>
+      </table>
+    `).join('');
+  }
+  
+  // Add slideshow images for promotional emails
+  let slideshowSection = '';
+  if ((type === 'promotion' || type === 'new-product' || type === 'new-subscriber') && SLIDESHOW_IMAGES.length > 0) {
+    // Use first 2 slideshow images for email
+    const emailSlideshowImages = SLIDESHOW_IMAGES.slice(0, 2);
+    slideshowSection = `
       <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
         <tr>
-          ${products.map(product => `
-            <td align="center" style="padding: 15px; width: ${100 / products.length}%;">
-              <div style="background: #FFFFFF; border: 1px solid #E5E5E5; border-radius: 8px; padding: 20px; max-width: 250px; margin: 0 auto;">
-                ${product.image ? `<img src="${product.image}" alt="${product.name}" style="width: 100%; max-width: 200px; height: auto; border-radius: 4px; margin-bottom: 15px;">` : ''}
-                <h3 style="color: #000000; font-size: 18px; font-weight: 700; margin: 0 0 10px 0;">${product.name}</h3>
-                <p style="color: #666666; font-size: 14px; margin: 0 0 15px 0;">${product.description || ''}</p>
-                <p style="color: #000000; font-size: 20px; font-weight: 900; margin: 0;">R${(product.price || 0).toFixed(2)}</p>
-              </div>
+          ${emailSlideshowImages.map(img => `
+            <td align="center" style="padding: 10px; width: ${100 / emailSlideshowImages.length}%;">
+              <img src="${img}" alt="${BRAND_NAME}" style="width: 100%; max-width: 280px; height: auto; border-radius: 8px; display: block; margin: 0 auto;">
             </td>
           `).join('')}
         </tr>
@@ -1511,6 +1544,7 @@ function generateEmailTemplate(type, data = {}) {
                             <div style="color: #333333; font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
                                 ${content.split('\n').map(p => `<p style="margin: 0 0 15px 0;">${p}</p>`).join('')}
                             </div>
+                            ${slideshowSection}
                             ${productsSection}
                             ${ctaText && ctaLink ? `
                             <!-- CTA Button -->
