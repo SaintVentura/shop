@@ -1780,17 +1780,24 @@ function generateEmailTemplate(type, data = {}) {
 async function sendEmailViaResendOrSMTP(emailOptions) {
   const { from, to, subject, text, html, replyTo } = emailOptions;
   
+  // Format from email with display name
+  const getFromEmail = () => {
+    const emailAddress = from || process.env.FROM_EMAIL || process.env.EMAIL_USER || 'contact@saintventura.co.za';
+    // Format as "Saint Ventura <email@domain.com>"
+    return `Saint Ventura <${emailAddress}>`;
+  };
+  
   // Prefer Resend if available (works on cloud hosting)
   if (resendClient) {
     try {
-      const fromEmail = from || process.env.FROM_EMAIL || process.env.EMAIL_USER || 'contact@saintventura.co.za';
+      const fromEmail = getFromEmail();
       const result = await resendClient.emails.send({
         from: fromEmail,
         to: to,
         subject: subject,
         text: text || '',
         html: html || text?.replace(/\n/g, '<br>') || '',
-        reply_to: replyTo || fromEmail
+        reply_to: replyTo || (from || process.env.FROM_EMAIL || process.env.EMAIL_USER || 'contact@saintventura.co.za')
       });
       console.log(`✅ Email sent via Resend to: ${to}`);
       console.log(`   Resend Email ID: ${result.id || 'N/A'}`);
@@ -1835,10 +1842,20 @@ async function sendEmailViaSMTP(emailOptions) {
     throw new Error('Email transporter not configured');
   }
   
+  // Format from email with display name for SMTP
+  const emailAddress = emailOptions.from || process.env.FROM_EMAIL || process.env.EMAIL_USER || 'contact@saintventura.co.za';
+  const formattedFrom = `Saint Ventura <${emailAddress}>`;
+  
+  // Create new email options with formatted from field
+  const smtpEmailOptions = {
+    ...emailOptions,
+    from: formattedFrom
+  };
+  
   // Try port fallback if function exists
   if (typeof sendEmailWithPortFallback === 'function') {
     try {
-      return await sendEmailWithPortFallback(emailOptions);
+      return await sendEmailWithPortFallback(smtpEmailOptions);
     } catch (error) {
       // If port fallback fails, try direct send
       console.warn('⚠️ Port fallback failed, trying direct SMTP send...');
@@ -1846,7 +1863,7 @@ async function sendEmailViaSMTP(emailOptions) {
   }
   
   // Direct SMTP send
-  await emailTransporter.sendMail(emailOptions);
+  await emailTransporter.sendMail(smtpEmailOptions);
   return { success: true, method: 'smtp', port: primaryPort };
 }
 
