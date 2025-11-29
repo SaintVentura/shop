@@ -1586,27 +1586,30 @@ function generateEmailTemplate(type, data = {}) {
   // Template-specific content
   switch(type) {
     case 'new-subscriber':
-      heading = heading || 'Welcome to Saint Ventura!';
-      content = content || `Thank you for subscribing to our newsletter! You'll be the first to know about new products, exclusive promotions, and special offers.`;
+      heading = heading || 'Welcome to the Saint Ventura Family!';
+      content = content || `Welcome to Saint Ventura, where premium streetwear meets exceptional style! We're absolutely thrilled to have you join our exclusive community of fashion-forward individuals who appreciate quality, craftsmanship, and authentic street culture.\n\nAs a valued subscriber, you'll be the first to discover our latest collections, receive exclusive early access to new product launches, and enjoy special promotions reserved just for our community members. We're constantly working to bring you the freshest designs and most innovative streetwear pieces that reflect your unique style and personality.\n\nAt Saint Ventura, we believe that fashion is more than just clothing—it's a statement, a lifestyle, and a way to express who you are. Our carefully curated collections feature premium materials, attention to detail, and designs that push the boundaries of streetwear fashion.\n\nGet ready to elevate your wardrobe and stay ahead of the trends. We can't wait to share our passion for streetwear with you!`;
       ctaText = 'Explore Our Collection';
       backgroundColor = '#FFFFFF';
+      headerImage = '<div style="background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%); padding: 50px 20px; text-align: center; border-bottom: 3px solid #000000;"><h1 style="color: #FFFFFF; font-size: 36px; margin: 0 0 10px 0; font-weight: 900; letter-spacing: 2px;">WELCOME TO SAINT VENTURA</h1><p style="color: #CCCCCC; font-size: 16px; margin: 0; font-weight: 400;">Premium Streetwear Awaits</p></div>';
       break;
     
     case 'promotion':
-      heading = heading || 'Special Promotion - Limited Time Offer!';
-      content = content || 'Don\'t miss out on our amazing promotion! Shop now and save big on selected items.';
+      heading = heading || '🎉 Exclusive Promotion - Limited Time Only!';
+      content = content || `This is your moment! We're excited to bring you an exclusive promotion that you simply cannot miss. For a limited time only, we're offering incredible savings on our most popular streetwear pieces.\n\nWhether you're looking to refresh your wardrobe, try something new, or stock up on your favorite styles, now is the perfect time to shop. Our carefully selected promotion items feature the same premium quality and cutting-edge designs you've come to expect from Saint Ventura, now at unbeatable prices.\n\nBut hurry—this offer won't last forever! Once these items are gone, they're gone. Don't let this opportunity slip away. Shop now and transform your style while saving big on premium streetwear that reflects your unique personality.\n\nJoin thousands of satisfied customers who have already taken advantage of this exclusive offer. Elevate your streetwear game today!`;
       backgroundColor = '#FFFFFF';
-      headerImage = '<div style="background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%); padding: 40px 20px; text-align: center;"><h1 style="color: #FFFFFF; font-size: 32px; margin: 0; font-weight: 900;">SPECIAL OFFER</h1></div>';
+      headerImage = '<div style="background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%); padding: 50px 20px; text-align: center; border-bottom: 3px solid #FFD700;"><h1 style="color: #FFD700; font-size: 38px; margin: 0 0 10px 0; font-weight: 900; letter-spacing: 3px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">SPECIAL OFFER</h1><p style="color: #FFFFFF; font-size: 18px; margin: 0; font-weight: 600;">Limited Time - Act Now!</p></div>';
       break;
     
     case 'new-product':
-      heading = heading || 'New Product Launch!';
-      content = content || 'We\'re excited to introduce our latest collection. Check out these amazing new products!';
+      heading = heading || '✨ Introducing Our Latest Collection - Innovation Meets Style!';
+      content = content || `We're absolutely thrilled to unveil our newest collection, where cutting-edge design meets premium craftsmanship. After months of careful development and attention to detail, we're proud to present pieces that push the boundaries of streetwear fashion.\n\nThis collection represents our commitment to innovation, quality, and style. Each piece has been meticulously designed to not only look incredible but to feel amazing when you wear it. We've sourced the finest materials and worked with expert craftspeople to ensure every item meets our exacting standards.\n\nFrom bold statement pieces to versatile essentials, this collection has something for every streetwear enthusiast. Whether you're building a complete new wardrobe or adding standout pieces to your existing collection, you'll find exactly what you're looking for.\n\nBe among the first to experience these groundbreaking designs. Explore the collection now and discover your next favorite piece!`;
+      headerImage = '<div style="background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%); padding: 50px 20px; text-align: center; border-bottom: 3px solid #000000;"><h1 style="color: #FFFFFF; font-size: 36px; margin: 0 0 10px 0; font-weight: 900; letter-spacing: 2px;">NEW COLLECTION</h1><p style="color: #CCCCCC; font-size: 16px; margin: 0; font-weight: 400;">Innovation Meets Style</p></div>';
       break;
     
     case 'news':
-      heading = heading || 'Latest News & Updates';
-      content = content || 'Stay updated with the latest news from Saint Ventura. We have exciting updates to share with you!';
+      heading = heading || '📰 Latest News & Updates from Saint Ventura';
+      content = content || `We have some exciting updates to share with you! At Saint Ventura, we're constantly evolving, innovating, and working to bring you the best possible experience. Here's what's been happening behind the scenes and what you can look forward to.\n\nWe've been hard at work developing new designs, improving our processes, and listening to your feedback. Your input has been invaluable in helping us create products that truly resonate with our community. We're grateful for your continued support and enthusiasm.\n\nIn the coming months, you can expect to see exciting new collaborations, expanded product lines, and even more ways to express your unique style. We're also working on initiatives that will make shopping with us even more convenient and enjoyable.\n\nStay tuned for more updates, and thank you for being part of the Saint Ventura family. Together, we're shaping the future of streetwear fashion!`;
+      headerImage = '<div style="background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%); padding: 50px 20px; text-align: center; border-bottom: 3px solid #000000;"><h1 style="color: #FFFFFF; font-size: 36px; margin: 0 0 10px 0; font-weight: 900; letter-spacing: 2px;">LATEST NEWS</h1><p style="color: #CCCCCC; font-size: 16px; margin: 0; font-weight: 400;">Stay in the Loop</p></div>';
       break;
     
     case 'fulfiller-order':
@@ -1785,22 +1788,23 @@ function generateEmailTemplate(type, data = {}) {
         <tr>
             <td align="center" style="padding: 20px 10px; width: 100% !important; max-width: 100% !important;">
                 <!-- Main Container -->
-                <table role="presentation" class="email-container" width="600" cellpadding="0" cellspacing="0" style="background-color: #FFFFFF; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-width: 600px; width: 100% !important; table-layout: fixed;">
-                    <!-- Header with Logo -->
+                <table role="presentation" class="email-container" width="600" cellpadding="0" cellspacing="0" style="background-color: #FFFFFF; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15); max-width: 600px; width: 100% !important; table-layout: fixed; border: 2px solid #000000;">
+                    <!-- Enhanced Header with Logo and Branding -->
                     <tr>
-                        <td style="background-color: #000000; padding: 15px 20px; text-align: center; width: 100%;">
-                            <img src="${BRAND_LOGO}" alt="${BRAND_NAME}" class="email-logo" style="max-width: 80px; width: 80px; height: 80px; display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none; border-radius: 8px; object-fit: cover;">
+                        <td style="background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%); padding: 30px 20px; text-align: center; width: 100%; border-bottom: 3px solid #FFFFFF;">
+                            <img src="${BRAND_LOGO}" alt="${BRAND_NAME}" class="email-logo" style="max-width: 90px; width: 90px; height: 90px; display: block; margin: 0 auto 15px auto; border: 3px solid #FFFFFF; outline: none; text-decoration: none; border-radius: 12px; object-fit: cover; box-shadow: 0 4px 12px rgba(255,255,255,0.2);">
+                            <p style="color: #FFFFFF; font-size: 14px; margin: 0; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;">Premium Streetwear</p>
                         </td>
                     </tr>
                     ${headerImage}
                     <!-- Main Content -->
                     <tr>
                         <td class="email-content" style="padding: 40px 30px; background-color: #FFFFFF; width: 100%; word-wrap: break-word;">
-                            <h1 style="color: #000000; font-size: 28px; font-weight: 900; margin: 0 0 20px 0; line-height: 1.2; text-align: center; word-wrap: break-word;">
+                            <h1 style="color: #000000; font-size: 32px; font-weight: 900; margin: 0 0 25px 0; line-height: 1.3; text-align: center; word-wrap: break-word; letter-spacing: -0.5px;">
                                 ${heading}
                             </h1>
-                            <div style="color: #333333; font-size: 16px; line-height: 1.6; margin-bottom: 30px; word-wrap: break-word;">
-                                ${content.split('\n').map(p => `<p style="margin: 0 0 15px 0; word-wrap: break-word;">${p}</p>`).join('')}
+                            <div style="color: #333333; font-size: 16px; line-height: 1.8; margin-bottom: 35px; word-wrap: break-word; text-align: left;">
+                                ${content.split('\n').map(p => p.trim() ? `<p style="margin: 0 0 18px 0; word-wrap: break-word; color: #444444;">${p}</p>` : '<br>').join('')}
                             </div>
                             ${slideshowSection}
                             ${productsSection}
@@ -1818,29 +1822,54 @@ function generateEmailTemplate(type, data = {}) {
                             ` : ''}
                         </td>
                     </tr>
-                    <!-- Footer -->
+                    <!-- Enhanced Footer -->
                     <tr>
-                        <td style="background-color: #F5F5F5; padding: 30px; text-align: center; border-top: 1px solid #E5E5E5; width: 100%; word-wrap: break-word;">
-                            <p style="color: #666666; font-size: 14px; margin: 0 0 10px 0; word-wrap: break-word;">
-                                <strong style="color: #000000;">${BRAND_NAME}</strong><br>
-                                Premium Streetwear
-                            </p>
+                        <td style="background: linear-gradient(135deg, #1a1a1a 0%, #000000 100%); padding: 40px 30px; text-align: center; border-top: 3px solid #FFFFFF; width: 100%; word-wrap: break-word;">
+                            <!-- Brand Section -->
+                            <div style="margin-bottom: 30px; padding-bottom: 25px; border-bottom: 1px solid rgba(255,255,255,0.2);">
+                                <p style="color: #FFFFFF; font-size: 20px; margin: 0 0 8px 0; font-weight: 900; letter-spacing: 2px; word-wrap: break-word;">
+                                    ${BRAND_NAME}
+                                </p>
+                                <p style="color: #CCCCCC; font-size: 14px; margin: 0; font-weight: 400; word-wrap: break-word;">
+                                    Premium Streetwear | Quality Craftsmanship | Authentic Style
+                                </p>
+                            </div>
+                            
                             <!-- Social Media Links (Always included) -->
-                            <p style="color: #999999; font-size: 12px; margin: 15px 0; word-wrap: break-word;">
-                                <a href="${SOCIAL_MEDIA.instagram}" style="color: #000000; text-decoration: none; margin: 0 8px; word-wrap: break-word; font-size: 12px;">Instagram</a>
-                                <span style="color: #CCCCCC;">|</span>
-                                <a href="${SOCIAL_MEDIA.tiktok}" style="color: #000000; text-decoration: none; margin: 0 8px; word-wrap: break-word; font-size: 12px;">TikTok</a>
-                                <span style="color: #CCCCCC;">|</span>
-                                <a href="${SOCIAL_MEDIA.youtube}" style="color: #000000; text-decoration: none; margin: 0 8px; word-wrap: break-word; font-size: 12px;">YouTube</a>
-                            </p>
-                            <p style="color: #999999; font-size: 12px; margin: 10px 0; word-wrap: break-word;">
-                                <a href="${BRAND_WEBSITE}" style="color: #000000; text-decoration: none; margin: 0 10px; word-wrap: break-word;">Visit Website</a>
-                                <span style="color: #CCCCCC;">|</span>
-                                <a href="mailto:contact@saintventura.co.za" style="color: #000000; text-decoration: none; margin: 0 10px; word-wrap: break-word;">Contact Us</a>
-                            </p>
-                            <p style="color: #999999; font-size: 11px; margin: 20px 0 0 0; word-wrap: break-word;">
+                            <div style="margin-bottom: 25px;">
+                                <p style="color: #FFFFFF; font-size: 13px; margin: 0 0 15px 0; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; word-wrap: break-word;">
+                                    Connect With Us
+                                </p>
+                                <p style="color: #CCCCCC; font-size: 14px; margin: 0; word-wrap: break-word; line-height: 2;">
+                                    <a href="${SOCIAL_MEDIA.instagram}" style="color: #FFFFFF; text-decoration: none; margin: 0 12px; word-wrap: break-word; font-size: 14px; font-weight: 500; border-bottom: 1px solid transparent; transition: border-color 0.3s;">Instagram</a>
+                                    <span style="color: #666666; margin: 0 5px;">•</span>
+                                    <a href="${SOCIAL_MEDIA.tiktok}" style="color: #FFFFFF; text-decoration: none; margin: 0 12px; word-wrap: break-word; font-size: 14px; font-weight: 500; border-bottom: 1px solid transparent;">TikTok</a>
+                                    <span style="color: #666666; margin: 0 5px;">•</span>
+                                    <a href="${SOCIAL_MEDIA.youtube}" style="color: #FFFFFF; text-decoration: none; margin: 0 12px; word-wrap: break-word; font-size: 14px; font-weight: 500; border-bottom: 1px solid transparent;">YouTube</a>
+                                </p>
+                            </div>
+                            
+                            <!-- Quick Links -->
+                            <div style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.2);">
+                                <p style="color: #CCCCCC; font-size: 13px; margin: 0; word-wrap: break-word; line-height: 2;">
+                                    <a href="${BRAND_WEBSITE}" style="color: #FFFFFF; text-decoration: none; margin: 0 10px; word-wrap: break-word; font-size: 13px; font-weight: 500;">Visit Website</a>
+                                    <span style="color: #666666; margin: 0 5px;">•</span>
+                                    <a href="mailto:contact@saintventura.co.za" style="color: #FFFFFF; text-decoration: none; margin: 0 10px; word-wrap: break-word; font-size: 13px; font-weight: 500;">Contact Us</a>
+                                    <span style="color: #666666; margin: 0 5px;">•</span>
+                                    <a href="${BRAND_WEBSITE}/shipping" style="color: #FFFFFF; text-decoration: none; margin: 0 10px; word-wrap: break-word; font-size: 13px; font-weight: 500;">Shipping Info</a>
+                                </p>
+                            </div>
+                            
+                            <!-- Unsubscribe -->
+                            <p style="color: #999999; font-size: 11px; margin: 0; line-height: 1.6; word-wrap: break-word;">
                                 You're receiving this email because you subscribed to ${BRAND_NAME} newsletter.<br>
-                                <a href="${BRAND_WEBSITE}/unsubscribe.html?email={{EMAIL}}" style="color: #666666; text-decoration: underline; word-wrap: break-word;">Unsubscribe</a>
+                                <a href="${BRAND_WEBSITE}/unsubscribe.html?email={{EMAIL}}" style="color: #CCCCCC; text-decoration: underline; word-wrap: break-word; font-size: 11px;">Unsubscribe</a> | 
+                                <a href="${BRAND_WEBSITE}" style="color: #CCCCCC; text-decoration: underline; word-wrap: break-word; font-size: 11px;">Update Preferences</a>
+                            </p>
+                            
+                            <!-- Copyright -->
+                            <p style="color: #666666; font-size: 10px; margin: 20px 0 0 0; word-wrap: break-word;">
+                                © ${new Date().getFullYear()} ${BRAND_NAME}. All rights reserved.
                             </p>
                         </td>
                     </tr>
