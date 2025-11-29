@@ -991,6 +991,22 @@ app.post('/api/send-order-confirmation', async (req, res) => {
       minute: '2-digit'
     });
 
+    // Format order items for email content
+    const orderItemsText = orderItems.map(item => {
+      const size = item.size ? `, Size: ${item.size}` : '';
+      const color = item.color ? `, Color: ${item.color}` : '';
+      const details = [size, color].filter(d => d).join('');
+      return `• ${item.name}${details} (Quantity: ${item.quantity}) - R${(item.price * item.quantity).toFixed(2)}`;
+    }).join('\n');
+
+    // Format delivery information for text
+    let deliveryText = '';
+    if (shippingMethod === 'door' && deliveryDetails) {
+      deliveryText = `\nDelivery Address:\n${deliveryDetails.street || ''}\n${deliveryDetails.suburb ? deliveryDetails.suburb + '\n' : ''}${deliveryDetails.city || ''}, ${deliveryDetails.province || ''}\n${deliveryDetails.postalCode || ''}${deliveryDetails.extra ? '\n' + deliveryDetails.extra : ''}`;
+    } else if (shippingMethod === 'uj' && deliveryDetails) {
+      deliveryText = `\nDelivery Location: UJ ${deliveryDetails.campus || 'Campus'} Campus`;
+    }
+
     // Prepare customer email content
     const customerOrderEmailText = `
 Order Confirmation - Thank You!
@@ -1003,7 +1019,7 @@ Order ${orderId ? `ID: ${orderId}` : 'Details'}:
 Date: ${orderDate}
 
 Order Items:
-${orderItems.map(item => `- ${item.name} (Qty: ${item.quantity}) - R${(item.price * item.quantity).toFixed(2)}`).join('\n')}
+${orderItemsText}
 
 Order Summary:
 Subtotal: R${subtotal.toFixed(2)}
@@ -1011,68 +1027,87 @@ Shipping: R${shipping.toFixed(2)}
 Total: R${total.toFixed(2)}
 
 Delivery Method: ${shippingMethod === 'door' ? 'Door-to-Door Courier' : shippingMethod === 'uj' ? 'UJ Campus Delivery' : 'Testing Delivery'}
-${deliveryAddress ? `Delivery Address: ${deliveryAddress}` : ''}
+${deliveryText}
 
 We will process your order and send you tracking information once it ships.
 
 Thank you for choosing Saint Ventura!
     `;
 
-    const customerOrderEmailHtml = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #000; border-bottom: 2px solid #000; padding-bottom: 10px;">Order Confirmation</h2>
-        
-        <p>Dear <strong>${customerName}</strong>,</p>
-        
-        <p>Thank you for your order! Your payment has been successfully processed.</p>
-        
-        <div style="background: #f5f5f5; padding: 15px; margin: 20px 0; border-radius: 5px;">
-          <p style="margin: 5px 0;"><strong>Order ${orderId ? `ID: ${orderId}` : 'Date'}:</strong> ${orderDate}</p>
-        </div>
+    // Format order items for email template with product images
+    const orderProducts = orderItems.map(item => {
+      // Try to find product image from PRODUCTS
+      const product = PRODUCTS.find(p => 
+        p.id === item.id || 
+        p.id === parseInt(item.id) || 
+        p.name === item.name
+      );
+      
+      let imageUrl = null;
+      if (product) {
+        // Try to get color-specific image first
+        if (item.color && product.availableColors) {
+          const colorMatch = product.availableColors.find(c => 
+            c.name.toLowerCase() === item.color.toLowerCase()
+          );
+          if (colorMatch && colorMatch.image) {
+            imageUrl = colorMatch.image.trim();
+          }
+        }
+        // Fallback to first product image
+        if (!imageUrl && product.images && product.images.length > 0) {
+          imageUrl = product.images[0].trim();
+        }
+        // Validate URL format
+        if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+          imageUrl = null;
+        }
+      }
+      
+      const size = item.size ? `Size: ${item.size}` : '';
+      const color = item.color ? `Color: ${item.color}` : '';
+      const details = [size, color].filter(d => d).join(', ');
+      
+      return {
+        name: item.name,
+        price: item.price * item.quantity,
+        description: details || 'Premium Streetwear',
+        image: imageUrl
+      };
+    });
 
-        <h3 style="color: #333; margin-top: 30px;">Order Items</h3>
-        <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-          <thead>
-            <tr style="background: #f9f9f9;">
-              <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Item</th>
-              <th style="padding: 10px; text-align: center; border-bottom: 2px solid #ddd;">Qty</th>
-              <th style="padding: 10px; text-align: right; border-bottom: 2px solid #ddd;">Price</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${itemsHtml}
-          </tbody>
-        </table>
+    // Build order details content
+    let orderDetailsContent = `Order ${orderId ? `ID: ${orderId}` : 'Date'}: ${orderDate}\n\n`;
+    orderDetailsContent += `🛍️ ORDER ITEMS:\n\n`;
+    orderItems.forEach((item, index) => {
+      const size = item.size ? `, Size: ${item.size}` : '';
+      const color = item.color ? `, Color: ${item.color}` : '';
+      const details = [size, color].filter(d => d).join('');
+      orderDetailsContent += `${index + 1}. ${item.name}${details}\n`;
+      orderDetailsContent += `   Quantity: ${item.quantity}\n`;
+      orderDetailsContent += `   Price per unit: R${(item.price || 0).toFixed(2)}\n`;
+      orderDetailsContent += `   Subtotal: R${((item.price || 0) * (item.quantity || 1)).toFixed(2)}\n\n`;
+    });
+    orderDetailsContent += `💰 ORDER SUMMARY:\n\n`;
+    orderDetailsContent += `Subtotal: R${subtotal.toFixed(2)}\n`;
+    orderDetailsContent += `Shipping: R${shipping.toFixed(2)}\n`;
+    orderDetailsContent += `Total: R${total.toFixed(2)}\n\n`;
+    orderDetailsContent += `🚚 DELIVERY INFORMATION:\n\n`;
+    orderDetailsContent += `Delivery Method: ${shippingMethod === 'door' ? 'Door-to-Door Courier' : shippingMethod === 'uj' ? 'UJ Campus Delivery' : 'Testing Delivery'}\n`;
+    if (deliveryText) {
+      orderDetailsContent += deliveryText;
+    }
 
-        <h3 style="color: #333; margin-top: 30px;">Order Summary</h3>
-        <table style="width: 100%; margin: 20px 0;">
-          <tr>
-            <td style="padding: 5px;"><strong>Subtotal:</strong></td>
-            <td style="padding: 5px; text-align: right;">R${subtotal.toFixed(2)}</td>
-          </tr>
-          <tr>
-            <td style="padding: 5px;"><strong>Shipping:</strong></td>
-            <td style="padding: 5px; text-align: right;">R${shipping.toFixed(2)}</td>
-          </tr>
-          <tr style="font-size: 1.2em; font-weight: bold; border-top: 2px solid #000;">
-            <td style="padding: 10px 5px;"><strong>Total:</strong></td>
-            <td style="padding: 10px 5px; text-align: right;">R${total.toFixed(2)}</td>
-          </tr>
-        </table>
-
-        <h3 style="color: #333; margin-top: 30px;">Delivery Information</h3>
-        <p><strong>Delivery Method:</strong> ${shippingMethod === 'door' ? 'Door-to-Door Courier' : shippingMethod === 'uj' ? 'UJ Campus Delivery' : 'Testing Delivery'}</p>
-        ${deliveryHtml}
-
-        <p style="margin-top: 30px; color: #666; font-size: 0.9em;">
-          We will process your order and send you tracking information once it ships.
-        </p>
-
-        <p style="margin-top: 20px; color: #000; font-weight: bold;">
-          Thank you for choosing Saint Ventura!
-        </p>
-      </div>
-    `;
+    // Generate email using the same template theme
+    const customerOrderEmailHtml = generateEmailTemplate('order-confirmation', {
+      heading: '🎉 Payment Successful - Order Confirmed!',
+      content: `Dear ${customerName},\n\nThank you for your order! Your payment has been successfully processed and your order is now confirmed. We're absolutely thrilled to have you as part of the Saint Ventura family, and we can't wait to get your premium streetwear pieces to you!\n\nWe've received your payment and your order is now in our system. Our team will carefully prepare your items, ensuring everything is perfect before we ship them out to you. You'll receive tracking information via email once your order ships, so you can follow its journey right to your doorstep.\n\n${orderDetailsContent}\n\nWe're incredibly grateful for your trust in Saint Ventura and for choosing us for your streetwear needs. Your order means the world to us, and we're committed to ensuring you have an exceptional experience from start to finish.\n\nIf you have any questions about your order, need to make changes, or just want to reach out, don't hesitate to contact us. We're here to help and make sure everything is perfect for you.\n\nThank you again for choosing Saint Ventura. We can't wait for you to experience the quality, style, and craftsmanship that sets our pieces apart. Your style journey continues, and we're honored to be part of it!`,
+      ctaText: 'Continue Shopping',
+      ctaLink: BRAND_WEBSITE,
+      products: orderProducts,
+      includeSlideshow: true,
+      includeSocialMedia: true
+    });
 
     // Create notification for completed order
     try {
@@ -1188,6 +1223,28 @@ Thank you for choosing Saint Ventura!
 
     const supportTelegramMessage = `✅ *NEW ORDER CONFIRMED - PAYMENT SUCCESSFUL*\n\n*Order ${orderId ? `ID: ${orderId}` : 'Details'}:*\nDate: ${orderDate}\n\n*Customer Information:*\nName: ${customerName}\nEmail: ${customerEmail}\n\n*Order Items:*\n${orderItemsText}\n\n*Order Summary:*\nSubtotal: R${subtotal.toFixed(2)}\nShipping: R${shipping.toFixed(2)}\n*TOTAL: R${total.toFixed(2)}*\n\n*Delivery Method:*\n${shippingMethod === 'door' ? 'Door-to-Door Courier' : shippingMethod === 'uj' ? 'UJ Campus Delivery' : 'Testing Delivery'}\n${deliveryAddress ? `\n*Delivery Address:*\n${deliveryAddress}` : ''}\n\n🎉 Payment successful! Please process this order.`;
 
+    // Send email to customer
+    if (resendClient || emailTransporter) {
+      try {
+        // Replace {{EMAIL}} placeholder in unsubscribe link with actual email
+        const personalizedHtml = customerOrderEmailHtml.replace(/\{\{EMAIL\}\}/g, encodeURIComponent(customerEmail.toLowerCase().trim()));
+        
+        await sendEmailViaResendOrSMTP({
+          from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
+          to: customerEmail,
+          subject: 'Order Confirmation - Payment Successful!',
+          text: customerOrderEmailText,
+          html: personalizedHtml
+        });
+        console.log(`✅ Order confirmation email sent to customer: ${customerEmail}`);
+      } catch (emailError) {
+        console.error(`⚠️ Failed to send order confirmation email to ${customerEmail}:`, emailError.message);
+        // Don't fail the entire request if email fails
+      }
+    } else {
+      console.warn('⚠️ Email service not configured - order confirmation email not sent');
+    }
+
     // Send Telegram message to support (customer doesn't get Telegram, only support)
     const supportTelegramPromise = sendWhatsApp({
       message: supportTelegramMessage,
@@ -1203,19 +1260,13 @@ Thank you for choosing Saint Ventura!
       console.error('❌ FAILED to send order confirmation Telegram to support:', supportResult.error);
     }
 
-    // Return success if WhatsApp was sent
-    if (supportResult.success) {
-      res.json({ 
-        success: true, 
-        message: 'Order confirmation notification sent successfully',
-        whatsappSent: supportResult.success
-      });
-    } else {
-      res.status(500).json({ 
-        success: false,
-        error: 'Failed to send order confirmation notification' 
-      });
-    }
+    // Return success
+    res.json({ 
+      success: true, 
+      message: 'Order confirmation sent successfully',
+      emailSent: true,
+      whatsappSent: supportResult.success
+    });
 
   } catch (error) {
     console.error('Error sending order confirmation email:', error);
