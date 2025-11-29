@@ -1730,6 +1730,9 @@
                     // All done
                     if (errors.length > 0) {
                         alert(`Saved ${savedCount - errors.length} variants. ${errors.length} failed: ${errors.join(', ')}`);
+                        button.textContent = originalText;
+                        button.disabled = false;
+                        loadInventory();
                     } else {
                         button.textContent = 'Saved!';
                         button.classList.add('bg-green-600');
@@ -1739,8 +1742,8 @@
                             button.classList.remove('bg-green-600');
                             button.classList.add('bg-black');
                             button.disabled = false;
+                            loadInventory();
                         }, 2000);
-                        loadInventory();
                     }
                     return;
                 }
