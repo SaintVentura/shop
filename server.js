@@ -1710,6 +1710,11 @@ function generateEmailTemplate(type, data = {}) {
       heading = heading || 'Thank You for Contacting Us';
       content = supportResponse || 'We have received your message and will get back to you shortly.';
       break;
+    
+    case 'order-confirmation':
+      heading = heading || '🎉 Payment Successful - Order Confirmed!';
+      headerImage = '<div style="background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%); padding: 60px 20px; text-align: center; border-bottom: 4px solid #FFFFFF;"><h1 style="color: #FFFFFF; font-size: 42px; margin: 0 0 15px 0; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">ORDER CONFIRMED</h1><p style="color: #CCCCCC; font-size: 18px; margin: 0 0 10px 0; font-weight: 500; letter-spacing: 1px;">Payment Successful</p><p style="color: #999999; font-size: 14px; margin: 0; font-weight: 400;">Thank You for Your Order</p></div>';
+      break;
   }
 
   // Build products section if products provided
