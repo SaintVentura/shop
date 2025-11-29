@@ -2846,18 +2846,19 @@ app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
     
     // If HTML not provided, generate professional template
     if (!emailHtml) {
-      let templateType = 'news';
+      // Use new-subscriber template style for all broadcast emails
+      let templateType = 'new-subscriber';
       let templateProducts = [];
       
+      // Set default subject based on template if not provided
       if (template === 'promotion') {
-        templateType = 'promotion';
         emailSubject = emailSubject || 'Special Promotion - Limited Time Offer!';
       } else if (template === 'new-product') {
-        templateType = 'new-product';
         emailSubject = emailSubject || 'New Product Launch!';
       } else if (template === 'news') {
-        templateType = 'news';
         emailSubject = emailSubject || 'Latest News & Updates';
+      } else {
+        emailSubject = emailSubject || 'Saint Ventura Update';
       }
       
       // Get product images if products selected
@@ -2887,6 +2888,7 @@ app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
         ctaText: 'Shop Now',
         ctaLink: BRAND_WEBSITE,
         products: templateProducts,
+        includeSlideshow: true, // Include slideshow images like new-subscriber
         includeSocialMedia: true // Always include footer
       });
       
