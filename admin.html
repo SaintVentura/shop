@@ -378,7 +378,6 @@
                             </div>
                             <p id="stat-subscribers" class="text-2xl md:text-3xl font-bold text-black">0</p>
                         </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 mb-8">
                         <div class="bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-xl p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow">
                             <div class="flex items-center justify-between mb-4">
                                 <p class="text-sm md:text-base text-gray-600 font-medium">Low Stock Items</p>
@@ -400,6 +399,8 @@
                             </div>
                             <p id="stat-emails" class="text-2xl md:text-3xl font-bold text-black">0</p>
                         </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 mb-8">
                         <div class="bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-xl p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow">
                             <div class="flex items-center justify-between mb-4">
                                 <p class="text-sm md:text-base text-gray-600 font-medium">Abandoned Carts</p>
@@ -408,7 +409,7 @@
                             <p id="stat-carts" class="text-2xl md:text-3xl font-bold text-black">0</p>
                         </div>
                     </div>
-                    <div class="bg-white border border-gray-200 rounded-lg p-6 md:p-8 shadow-sm mb-8">
+                    <div class="bg-white border border-gray-200 rounded-lg p-6 md:p-8 shadow-sm mt-8">
                         <h3 class="text-xl md:text-2xl font-semibold mb-6">Recent Orders</h3>
                         <div id="recent-orders-list" class="space-y-4">
                             <div class="text-center py-8 text-gray-500">Loading recent orders...</div>
@@ -1003,7 +1004,12 @@
             });
             
             // Show selected section
-            document.getElementById(`${section}-section`).classList.remove('hidden');
+            const targetSection = document.getElementById(`${section}-section`);
+            if (!targetSection) {
+                console.error(`Section not found: ${section}-section`);
+                return;
+            }
+            targetSection.classList.remove('hidden');
             const activeItem = document.querySelector(`[data-section="${section}"]`);
             if (activeItem) {
                 activeItem.classList.add('active');
@@ -1015,24 +1021,37 @@
             currentSection = section;
             
             // Load section data
-            if (section === 'dashboard') loadDashboardData();
-            else if (section === 'orders') loadOrders();
-            else if (section === 'inventory') loadInventory();
-            else if (section === 'inbox') loadInbox();
-            else if (section === 'broadcast') loadBroadcast();
-            else if (section === 'abandoned-carts') loadAbandonedCarts();
-            else if (section === 'fulfillers') {
-                loadFulfillers();
-                // Set up the Add Fulfiller button when section is shown
-                setTimeout(() => {
-                    if (typeof setupAddFulfillerButton === 'function') {
-                        setupAddFulfillerButton();
-                    }
-                }, 100);
+            try {
+                if (section === 'dashboard') {
+                    loadDashboardData();
+                } else if (section === 'orders') {
+                    loadOrders();
+                } else if (section === 'inventory') {
+                    loadInventory();
+                } else if (section === 'inbox') {
+                    loadInbox();
+                } else if (section === 'broadcast') {
+                    loadBroadcast();
+                } else if (section === 'abandoned-carts') {
+                    loadAbandonedCarts();
+                } else if (section === 'fulfillers') {
+                    loadFulfillers();
+                    // Set up the Add Fulfiller button when section is shown
+                    setTimeout(() => {
+                        if (typeof setupAddFulfillerButton === 'function') {
+                            setupAddFulfillerButton();
+                        }
+                    }, 100);
+                } else if (section === 'notifications') {
+                    loadNotifications();
+                } else if (section === 'sales') {
+                    loadSales();
+                } else if (section === 'analytics') {
+                    loadAnalytics();
+                }
+            } catch (error) {
+                console.error(`Error loading section ${section}:`, error);
             }
-            else if (section === 'notifications') loadNotifications();
-            else if (section === 'sales') loadSales();
-            else if (section === 'analytics') loadAnalytics();
         }
 
         // Login
