@@ -1644,7 +1644,7 @@ function generateEmailTemplate(type, data = {}) {
       }
       ctaText = 'View Dashboard & Process Order';
       ctaLink = `${BRAND_WEBSITE}/admin.html`;
-      headerImage = '<div style="background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%); padding: 60px 20px; text-align: center; border-bottom: 4px solid #FFD700;"><h1 style="color: #FFD700; font-size: 40px; margin: 0 0 15px 0; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; text-shadow: 3px 3px 6px rgba(0,0,0,0.7);">NEW ORDER</h1><p style="color: #FFFFFF; font-size: 18px; margin: 0 0 10px 0; font-weight: 600; letter-spacing: 1px;">Action Required</p><p style="color: #CCCCCC; font-size: 14px; margin: 0; font-weight: 400;">Please Process Promptly</p></div>';
+      headerImage = '<div style="background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%); padding: 60px 20px; text-align: center; border-bottom: 4px solid #FFFFFF;"><h1 style="color: #FFFFFF; font-size: 40px; margin: 0 0 15px 0; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; text-shadow: 3px 3px 6px rgba(0,0,0,0.7);">NEW ORDER</h1><p style="color: #FFFFFF; font-size: 18px; margin: 0 0 10px 0; font-weight: 600; letter-spacing: 1px;">Action Required</p><p style="color: #CCCCCC; font-size: 14px; margin: 0; font-weight: 400;">Please Process Promptly</p></div>';
       break;
     
     case 'abandoned-cart':
@@ -3187,6 +3187,10 @@ app.post('/api/admin/abandoned-carts/remind-all', adminAuth, async (req, res) =>
           };
         });
         
+        // Check if email is subscribed to newsletter
+        const subscribers = await readDataFile('subscribers');
+        const isSubscribed = subscribers.some(s => s.email.toLowerCase().trim() === cart.email.toLowerCase().trim());
+        
         // Generate professional abandoned cart email template
         const abandonedCartEmailHtml = generateEmailTemplate('abandoned-cart', {
           heading: 'Complete Your Purchase',
@@ -3194,7 +3198,8 @@ app.post('/api/admin/abandoned-carts/remind-all', adminAuth, async (req, res) =>
           ctaText: 'Complete Purchase',
           ctaLink: `${BRAND_WEBSITE}/checkout.html`,
           products: cartProducts,
-          includeSocialMedia: true
+          includeSocialMedia: true,
+          isSubscribed: isSubscribed
         });
         
         await sendEmailViaResendOrSMTP({
