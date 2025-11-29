@@ -186,7 +186,7 @@
             padding: 1rem 1.5rem;
             border-bottom: 1px solid #f3f4f6;
             display: grid;
-            grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 1fr;
             gap: 1rem;
             align-items: center;
         }
@@ -350,6 +350,13 @@
                         </div>
                         <div class="bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-xl p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow">
                             <div class="flex items-center justify-between mb-4">
+                                <p class="text-sm md:text-base text-gray-600 font-medium">Total Profit</p>
+                                <span class="text-2xl md:text-3xl">📈</span>
+                            </div>
+                            <p id="stat-total-profit" class="text-2xl md:text-3xl font-bold text-green-600">R0.00</p>
+                        </div>
+                        <div class="bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-xl p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow">
+                            <div class="flex items-center justify-between mb-4">
                                 <p class="text-sm md:text-base text-gray-600 font-medium">Completed Orders</p>
                                 <span class="text-2xl md:text-3xl">📋</span>
                             </div>
@@ -362,6 +369,8 @@
                             </div>
                             <p id="stat-pending-orders" class="text-2xl md:text-3xl font-bold text-black">0</p>
                         </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 mb-8">
                         <div class="bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-xl p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow">
                             <div class="flex items-center justify-between mb-4">
                                 <p class="text-sm md:text-base text-gray-600 font-medium">Subscribers</p>
@@ -369,7 +378,6 @@
                             </div>
                             <p id="stat-subscribers" class="text-2xl md:text-3xl font-bold text-black">0</p>
                         </div>
-                    </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 mb-8">
                         <div class="bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-xl p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow">
                             <div class="flex items-center justify-between mb-4">
@@ -427,8 +435,9 @@
                                 <input type="text" id="orders-search" placeholder="Search orders..." class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black">
                                 <select id="orders-filter-status" class="w-full md:w-auto px-4 py-2 border border-gray-300 rounded-lg">
                                     <option value="">All Status</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="completed">Completed</option>
+                                    <option value="pending checkout">Pending Checkout</option>
+                                    <option value="pending fulfillment">Pending Fulfillment</option>
+                                    <option value="fulfilled">Fulfilled</option>
                                 </select>
                             </div>
                         </div>
@@ -441,13 +450,14 @@
                                         <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700 text-sm md:text-base">Customer</th>
                                         <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700 text-sm md:text-base">Items</th>
                                         <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700 text-sm md:text-base">Total</th>
+                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700 text-sm md:text-base">Delivery Cost</th>
                                         <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700 text-sm md:text-base">Status</th>
                                         <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700 text-sm md:text-base">Date</th>
                                         <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700 text-sm md:text-base">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="orders-table" class="divide-y divide-gray-200">
-                                    <tr><td colspan="7" class="text-center py-12 text-gray-500">
+                                    <tr><td colspan="8" class="text-center py-12 text-gray-500">
                                         <div class="flex items-center justify-center space-x-2">
                                             <div class="loading-spinner"></div>
                                             <span>Loading orders...</span>
@@ -585,10 +595,20 @@
                                 ✉️ Compose Broadcast Email
                             </button>
                         </div>
-                        <div class="bg-white rounded-xl border border-gray-200 p-4 max-h-96 overflow-y-auto">
+                        <div class="bg-white rounded-xl border border-gray-200 p-4 max-h-96 overflow-y-auto mb-4">
                             <div id="subscribers-list" class="space-y-2">
                                 <div class="text-center py-4 text-gray-500">Loading subscribers...</div>
                             </div>
+                        </div>
+                        <div class="bg-white rounded-xl border border-gray-200 p-4">
+                            <h4 class="text-lg font-semibold mb-4">Add New Subscriber</h4>
+                            <form id="add-subscriber-form" class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Email Address</label>
+                                    <input type="email" id="new-subscriber-email" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required placeholder="subscriber@example.com">
+                                </div>
+                                <button type="submit" class="w-full px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 font-medium">Add Subscriber</button>
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -630,7 +650,7 @@
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium mb-2">Select Order (Completed Orders Only)</label>
+                                    <label class="block text-sm font-medium mb-2">Select Order (Pending Fulfillment or Fulfilled)</label>
                                     <select id="fulfiller-order-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
                                         <option value="">Select an order...</option>
                                     </select>
@@ -1149,6 +1169,7 @@
                     if (data.success) {
                         // Update stats
                         document.getElementById('stat-total-revenue').textContent = `R${data.stats.totalRevenue.toFixed(2)}`;
+                        document.getElementById('stat-total-profit').textContent = `R${(data.stats.totalProfit || 0).toFixed(2)}`;
                         document.getElementById('stat-total-orders').textContent = data.stats.completedOrders;
                         document.getElementById('stat-pending-orders').textContent = data.stats.pendingOrders;
                         document.getElementById('stat-subscribers').textContent = data.stats.totalSubscribers;
@@ -1169,7 +1190,7 @@
                                         </div>
                                         <div class="text-right">
                                             <p class="font-semibold">R${(order.total || 0).toFixed(2)}</p>
-                                            <span class="px-2 py-1 rounded-full text-xs font-semibold ${order.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">${order.status || 'pending'}</span>
+                                            <span class="px-2 py-1 rounded-full text-xs font-semibold ${order.status === 'fulfilled' ? 'bg-green-100 text-green-800' : order.status === 'pending fulfillment' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}">${order.status || 'pending checkout'}</span>
                                         </div>
                                     </div>
                                     <p class="text-xs text-gray-500 mt-2">${order.date ? new Date(order.date).toLocaleString() : 'N/A'}</p>
@@ -1420,6 +1441,12 @@
                                         min="0" onchange="updateStockInput(this)">
                                 </div>
                                 <div>
+                                    <span class="font-semibold text-sm">R${((variant.stockCost || 0)).toFixed(2)}</span>
+                                </div>
+                                <div>
+                                    <span class="font-semibold text-sm">R${((variant.costPerUnit || 0)).toFixed(2)}</span>
+                                </div>
+                                <div>
                                     <span class="px-3 py-1 rounded-full text-xs font-semibold ${variant.stock === 0 ? 'bg-red-100 text-red-800' : variant.stock < 5 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}">${stockStatus}</span>
                                 </div>
                                 <div>
@@ -1456,10 +1483,12 @@
                             </div>
                             <div class="product-variants" id="product-${productId}">
                                 <div class="p-4 bg-gray-50 border-b border-gray-200">
-                                    <div class="grid grid-cols-5 gap-4 text-sm font-semibold text-gray-700">
+                                    <div class="grid grid-cols-7 gap-4 text-sm font-semibold text-gray-700">
                                         <div>Variant</div>
                                         <div>Price</div>
                                         <div>Stock</div>
+                                        <div>Stock Cost</div>
+                                        <div>Cost/Unit</div>
                                         <div>Status</div>
                                         <div>Action</div>
                                     </div>
@@ -1500,6 +1529,14 @@
                                         <input type="number" value="${variant.stock}" data-id="${variantId}" data-product-id="${productIdEscaped}" data-variant="${variantIdEscaped}" 
                                             class="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black font-semibold text-sm ${stockClass}" 
                                             min="0" onchange="updateStockInput(this)">
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-sm text-gray-600">Stock Cost:</span>
+                                        <span class="font-semibold">R${((variant.stockCost || 0)).toFixed(2)}</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-sm text-gray-600">Cost/Unit:</span>
+                                        <span class="font-semibold">R${((variant.costPerUnit || 0)).toFixed(2)}</span>
                                     </div>
                                     <button onclick="saveStock('${variantId}', '${productIdEscaped}', '${variantIdEscaped}', this)" 
                                         class="w-full px-4 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition">Save Stock</button>
@@ -2062,19 +2099,7 @@
                                 if (templateSection) templateSection.classList.remove('hidden');
                                 if (addSubscribersBtn) addSubscribersBtn.classList.remove('hidden');
                                 
-                                const builder = document.getElementById('email-builder');
-                                const productSelectHtml = `
-                                    <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="product-select">
-                                        <div class="flex justify-between items-center mb-2">
-                                            <span class="text-xs text-gray-500 font-medium">Featured Products (Optional)</span>
-                                        </div>
-                                        <select id="broadcast-products" multiple class="w-full px-3 py-2 border border-gray-200 rounded text-sm" size="5">
-                                            ${(products || []).map(p => `<option value="${p.id}">${p.productName || p.name} - R${(p.price || 0).toFixed(2)}</option>`).join('')}
-                                        </select>
-                                        <p class="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple products</p>
-                                    </div>
-                                `;
-                                builder.insertAdjacentHTML('afterbegin', productSelectHtml);
+                                // Removed featured products section as requested
                             }, 100);
                         })
                         .catch(err => {
@@ -2135,6 +2160,13 @@
                 case 'promotion':
                     subject = subject || '🎉 Special Promotion - Limited Time Offer!';
                     templateHtml = `
+                        <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="image">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs text-gray-500 font-medium">Image Section</span>
+                                <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
+                            </div>
+                            <input type="url" class="w-full mb-2 px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Image URL..." value="https://dl.dropboxusercontent.com/scl/fi/j0pgw2egryb9f0470f3p3/1-2.png?rlkey=xaw4k5w0yhwswfae3pi1n0g2r&st=vnlwftci&dl=1">
+                        </div>
                         <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="heading">
                             <div class="flex justify-between items-center mb-2">
                                 <span class="text-xs text-gray-500 font-medium">Heading Section</span>
@@ -2167,6 +2199,13 @@
                 case 'new-product':
                     subject = subject || '✨ New Product Launch - Check It Out!';
                     templateHtml = `
+                        <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="image">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs text-gray-500 font-medium">Image Section</span>
+                                <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
+                            </div>
+                            <input type="url" class="w-full mb-2 px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Image URL..." value="https://dl.dropboxusercontent.com/scl/fi/6ribhwbytdqfqva6jgf3s/1-16.png?rlkey=s61uev3dxmsmo4coifrqtozge&st=z3y4nuri&dl=1">
+                        </div>
                         <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="heading">
                             <div class="flex justify-between items-center mb-2">
                                 <span class="text-xs text-gray-500 font-medium">Heading Section</span>
@@ -2199,6 +2238,13 @@
                 case 'news':
                     subject = subject || '📰 Saint Ventura News & Updates';
                     templateHtml = `
+                        <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="image">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs text-gray-500 font-medium">Image Section</span>
+                                <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
+                            </div>
+                            <input type="url" class="w-full mb-2 px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Image URL..." value="https://dl.dropboxusercontent.com/scl/fi/qs6id9xzrvfp8dctj2lqf/1-15.png?rlkey=shaa8t54va6ap95kulvvk1jee&st=tpwythhm&dl=1">
+                        </div>
                         <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="heading">
                             <div class="flex justify-between items-center mb-2">
                                 <span class="text-xs text-gray-500 font-medium">Heading Section</span>
@@ -2889,6 +2935,44 @@ Thank you!</textarea>
                     document.getElementById('subscribers-list').innerHTML = 
                         `<div class="error-message">Error loading subscribers: ${err.message || 'Unknown error'}</div>`;
                 });
+            
+            // Set up add subscriber form
+            const addSubscriberForm = document.getElementById('add-subscriber-form');
+            if (addSubscriberForm) {
+                addSubscriberForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const emailInput = document.getElementById('new-subscriber-email');
+                    const email = emailInput.value.trim();
+                    
+                    if (!email || !email.includes('@')) {
+                        alert('Please enter a valid email address');
+                        return;
+                    }
+                    
+                    try {
+                        // Use the newsletter subscription endpoint
+                        const response = await fetch(`${BACKEND_URL}/api/newsletter-subscribe`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ email })
+                        });
+                        
+                        const data = await response.json();
+                        if (data.success || response.ok) {
+                            alert('Subscriber added successfully!');
+                            emailInput.value = '';
+                            loadBroadcast(); // Reload subscribers list
+                        } else {
+                            alert('Error: ' + (data.error || 'Failed to add subscriber'));
+                        }
+                    } catch (err) {
+                        console.error('Error adding subscriber:', err);
+                        alert('Error adding subscriber: ' + err.message);
+                    }
+                });
+            }
 
             // Load products
             adminFetch(`${BACKEND_URL}/api/admin/products`)
@@ -3099,15 +3183,15 @@ Thank you!</textarea>
                     if (!Array.isArray(ordersData)) {
                         throw new Error('Invalid orders data format');
                     }
-                    // Filter only completed orders
-                    const completedOrders = ordersData.filter(o => o.status === 'completed');
+                    // Filter orders that need fulfillment (pending fulfillment or fulfilled)
+                    const fulfillableOrders = ordersData.filter(o => o.status === 'pending fulfillment' || o.status === 'fulfilled');
                     const orderSelect = document.getElementById('fulfiller-order-select');
                     if (orderSelect) {
-                        if (completedOrders.length === 0) {
-                            orderSelect.innerHTML = '<option value="">No completed orders</option>';
+                        if (fulfillableOrders.length === 0) {
+                            orderSelect.innerHTML = '<option value="">No orders to fulfill</option>';
                         } else {
                             orderSelect.innerHTML = '<option value="">Select an order...</option>' +
-                                completedOrders.map(o => `<option value="${o.id}">${o.id} - ${o.customerName || 'Unknown'} - R${(o.total || 0).toFixed(2)}</option>`).join('');
+                                fulfillableOrders.map(o => `<option value="${o.id}">${o.id} - ${o.customerName || 'Unknown'} - R${(o.total || 0).toFixed(2)} (${o.status})</option>`).join('');
                         }
                     }
                 })
@@ -3450,7 +3534,7 @@ Thank you!</textarea>
         function loadOrders() {
             const tbody = document.getElementById('orders-table');
             if (tbody) {
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-12 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading orders...</span></div></td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-12 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading orders...</span></div></td></tr>';
             }
             
             adminFetch(`${BACKEND_URL}/api/admin/orders`)
@@ -3465,7 +3549,7 @@ Thank you!</textarea>
                 .catch(err => {
                     console.error('Error loading orders:', err);
                     if (tbody) {
-                        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-12"><div class="error-message">Error loading orders: ${err.message}</div></td></tr>`;
+                        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-12"><div class="error-message">Error loading orders: ${err.message}</div></td></tr>`;
                     }
                 });
         }
@@ -3477,7 +3561,7 @@ Thank you!</textarea>
             if (!tbody) return;
             
             if (orders.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-12 text-gray-500">No orders found</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-12 text-gray-500">No orders found</td></tr>';
                 if (mobileTable) {
                     mobileTable.innerHTML = '<div class="text-center py-12 text-gray-500">No orders found</div>';
                 }
@@ -3487,7 +3571,14 @@ Thank you!</textarea>
             // Desktop table
             tbody.innerHTML = orders.map(order => {
                 const itemCount = Array.isArray(order.items) ? order.items.length : 0;
-                const statusClass = order.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
+                let statusClass = 'bg-yellow-100 text-yellow-800';
+                if (order.status === 'fulfilled') {
+                    statusClass = 'bg-green-100 text-green-800';
+                } else if (order.status === 'pending fulfillment') {
+                    statusClass = 'bg-blue-100 text-blue-800';
+                } else if (order.status === 'pending checkout') {
+                    statusClass = 'bg-yellow-100 text-yellow-800';
+                }
                 return `
                     <tr class="hover:bg-gray-50 transition">
                         <td class="py-4 px-4 md:px-6">
@@ -3506,15 +3597,19 @@ Thank you!</textarea>
                             <span class="font-semibold">R${(order.total || 0).toFixed(2)}</span>
                         </td>
                         <td class="py-4 px-4 md:px-6">
-                            <span class="px-2 py-1 rounded-full text-xs font-semibold ${statusClass}">${order.status || 'pending'}</span>
+                            <span class="font-semibold text-sm">${order.deliveryCost !== undefined && order.deliveryCost !== null ? 'R' + (order.deliveryCost || 0).toFixed(2) : 'N/A'}</span>
+                        </td>
+                        <td class="py-4 px-4 md:px-6">
+                            <span class="px-2 py-1 rounded-full text-xs font-semibold ${statusClass}">${order.status || 'pending checkout'}</span>
                         </td>
                         <td class="py-4 px-4 md:px-6">
                             <span class="text-sm text-gray-600">${order.date ? new Date(order.date).toLocaleDateString() : 'N/A'}</span>
                         </td>
                         <td class="py-4 px-4 md:px-6">
                             <select onchange="updateOrderStatus('${order.id}', this.value)" class="px-3 py-1 border border-gray-300 rounded-lg text-sm">
-                                <option value="pending" ${order.status === 'pending' ? 'selected' : ''}>Pending</option>
-                                <option value="completed" ${order.status === 'completed' ? 'selected' : ''}>Completed</option>
+                                <option value="pending checkout" ${order.status === 'pending checkout' ? 'selected' : ''}>Pending Checkout</option>
+                                <option value="pending fulfillment" ${order.status === 'pending fulfillment' ? 'selected' : ''}>Pending Fulfillment</option>
+                                <option value="fulfilled" ${order.status === 'fulfilled' ? 'selected' : ''}>Fulfilled</option>
                             </select>
                         </td>
                     </tr>
@@ -3525,7 +3620,14 @@ Thank you!</textarea>
             if (mobileTable) {
                 mobileTable.innerHTML = orders.map(order => {
                     const itemCount = Array.isArray(order.items) ? order.items.length : 0;
-                    const statusClass = order.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
+                    let statusClass = 'bg-yellow-100 text-yellow-800';
+                    if (order.status === 'fulfilled') {
+                        statusClass = 'bg-green-100 text-green-800';
+                    } else if (order.status === 'pending fulfillment') {
+                        statusClass = 'bg-blue-100 text-blue-800';
+                    } else if (order.status === 'pending checkout') {
+                        statusClass = 'bg-yellow-100 text-yellow-800';
+                    }
                     return `
                         <div class="bg-white border border-gray-200 rounded-lg p-4">
                             <div class="flex justify-between items-start mb-3">
@@ -3534,7 +3636,7 @@ Thank you!</textarea>
                                     <p class="text-xs text-gray-500">${order.customerEmail || ''}</p>
                                     <p class="text-xs font-mono text-gray-400 mt-1">${order.id || 'N/A'}</p>
                                 </div>
-                                <span class="px-2 py-1 rounded-full text-xs font-semibold ${statusClass}">${order.status || 'pending'}</span>
+                                <span class="px-2 py-1 rounded-full text-xs font-semibold ${statusClass}">${order.status || 'pending checkout'}</span>
                             </div>
                             <div class="flex justify-between items-center mb-3">
                                 <span class="text-sm text-gray-600">${itemCount} items</span>
@@ -3543,8 +3645,9 @@ Thank you!</textarea>
                             <div class="flex justify-between items-center">
                                 <span class="text-xs text-gray-500">${order.date ? new Date(order.date).toLocaleDateString() : 'N/A'}</span>
                                 <select onchange="updateOrderStatus('${order.id}', this.value)" class="px-2 py-1 border border-gray-300 rounded-lg text-xs">
-                                    <option value="pending" ${order.status === 'pending' ? 'selected' : ''}>Pending</option>
-                                    <option value="completed" ${order.status === 'completed' ? 'selected' : ''}>Completed</option>
+                                    <option value="pending checkout" ${order.status === 'pending checkout' ? 'selected' : ''}>Pending Checkout</option>
+                                    <option value="pending fulfillment" ${order.status === 'pending fulfillment' ? 'selected' : ''}>Pending Fulfillment</option>
+                                    <option value="fulfilled" ${order.status === 'fulfilled' ? 'selected' : ''}>Fulfilled</option>
                                 </select>
                             </div>
                         </div>
@@ -3554,22 +3657,58 @@ Thank you!</textarea>
         }
         
         function updateOrderStatus(orderId, status) {
-            adminFetch(`${BACKEND_URL}/api/admin/orders/${orderId}/status`, {
-                method: 'PUT',
-                body: JSON.stringify({ status })
-            })
-            .then(data => {
-                if (data.success) {
+            // Check if changing from pending fulfillment to fulfilled - require delivery cost
+            const order = allOrdersData.find(o => o.id === orderId);
+            if (order && order.status === 'pending fulfillment' && status === 'fulfilled') {
+                const deliveryCost = prompt('Enter delivery cost for this order (R):');
+                if (deliveryCost === null) {
+                    // User cancelled, reset dropdown
                     loadOrders();
-                    if (currentSection === 'dashboard') loadDashboardData();
-                } else {
-                    alert('Error: ' + (data.error || 'Failed to update order status'));
+                    return;
                 }
-            })
-            .catch(err => {
-                console.error('Error updating order status:', err);
-                alert('Error: ' + err.message);
-            });
+                const deliveryCostNum = parseFloat(deliveryCost);
+                if (isNaN(deliveryCostNum) || deliveryCostNum < 0) {
+                    alert('Please enter a valid delivery cost (number >= 0)');
+                    loadOrders();
+                    return;
+                }
+                
+                adminFetch(`${BACKEND_URL}/api/admin/orders/${orderId}/status`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ status, deliveryCost: deliveryCostNum })
+                })
+                .then(data => {
+                    if (data.success) {
+                        loadOrders();
+                        if (currentSection === 'dashboard') loadDashboardData();
+                    } else {
+                        alert('Error: ' + (data.error || 'Failed to update order status'));
+                        loadOrders();
+                    }
+                })
+                .catch(err => {
+                    console.error('Error updating order status:', err);
+                    alert('Error: ' + err.message);
+                    loadOrders();
+                });
+            } else {
+                adminFetch(`${BACKEND_URL}/api/admin/orders/${orderId}/status`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ status })
+                })
+                .then(data => {
+                    if (data.success) {
+                        loadOrders();
+                        if (currentSection === 'dashboard') loadDashboardData();
+                    } else {
+                        alert('Error: ' + (data.error || 'Failed to update order status'));
+                    }
+                })
+                .catch(err => {
+                    console.error('Error updating order status:', err);
+                    alert('Error: ' + err.message);
+                });
+            }
         }
         
         function refreshOrders() {
@@ -3700,18 +3839,22 @@ Thank you!</textarea>
             if (!container) return;
             
             container.innerHTML = `
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div class="border border-gray-200 rounded-lg p-4">
                         <p class="text-sm text-gray-600 mb-2">Total Revenue</p>
                         <p class="text-2xl font-bold">R${(data.stats.totalRevenue || 0).toFixed(2)}</p>
                     </div>
                     <div class="border border-gray-200 rounded-lg p-4">
-                        <p class="text-sm text-gray-600 mb-2">Average Order Value</p>
-                        <p class="text-2xl font-bold">R${data.stats.totalOrders > 0 ? (data.stats.totalRevenue / data.stats.totalOrders).toFixed(2) : '0.00'}</p>
+                        <p class="text-sm text-gray-600 mb-2">Total Profit</p>
+                        <p class="text-2xl font-bold text-green-600">R${(data.stats.totalProfit || 0).toFixed(2)}</p>
                     </div>
                     <div class="border border-gray-200 rounded-lg p-4">
-                        <p class="text-sm text-gray-600 mb-2">Completion Rate</p>
-                        <p class="text-2xl font-bold">${data.stats.totalOrders > 0 ? ((data.stats.completedOrders / data.stats.totalOrders) * 100).toFixed(1) : '0'}%</p>
+                        <p class="text-sm text-gray-600 mb-2">Total Costs</p>
+                        <p class="text-2xl font-bold text-red-600">R${(data.stats.totalCosts || 0).toFixed(2)}</p>
+                    </div>
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <p class="text-sm text-gray-600 mb-2">Average Order Value</p>
+                        <p class="text-2xl font-bold">R${data.stats.totalOrders > 0 ? (data.stats.totalRevenue / data.stats.totalOrders).toFixed(2) : '0.00'}</p>
                     </div>
                 </div>
             `;

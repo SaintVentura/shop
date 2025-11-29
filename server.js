@@ -1098,6 +1098,8 @@ Thank you for choosing Saint Ventura!
       // Check if order already exists (avoid duplicates)
       const existingOrder = orders.find(o => o.id === finalOrderId);
       if (!existingOrder) {
+        // If order came from abandoned cart, mark as fulfilled; otherwise pending fulfillment
+        const orderStatus = isFromAbandonedCart ? 'fulfilled' : 'pending fulfillment';
         orders.push({
           id: finalOrderId,
           customerName,
@@ -1111,34 +1113,70 @@ Thank you for choosing Saint Ventura!
           shipping,
           total,
           date: new Date().toISOString(),
-          status: 'completed',
+          status: orderStatus, // Abandoned cart orders = fulfilled, website orders = pending fulfillment
           paymentMethod: 'yoco' // Assuming Yoco payment gateway
         });
         await writeDataFile('orders', orders);
-        console.log(`✅ Saved completed order to orders.json: ${finalOrderId}`);
+        console.log(`✅ Saved completed order to orders.json: ${finalOrderId} with status: ${orderStatus}`);
+        
+        // Reduce stock when order is fulfilled (from abandoned cart)
+        if (orderStatus === 'fulfilled') {
+          try {
+            const inventory = await readDataFile('inventory');
+            for (const item of orderItems) {
+              const inventoryItem = inventory.find(inv => 
+                inv.productId === item.id || 
+                inv.productId === parseInt(item.id) ||
+                inv.productName === item.name
+              );
+              
+              if (inventoryItem) {
+                const quantityToReduce = item.quantity || 1;
+                const currentStock = inventoryItem.stock || 0;
+                const newStock = Math.max(0, currentStock - quantityToReduce);
+                inventoryItem.stock = newStock;
+                inventoryItem.updatedAt = new Date().toISOString();
+                console.log(`✅ Reduced stock for ${inventoryItem.productName}: ${currentStock} -> ${newStock}`);
+              }
+            }
+            await writeDataFile('inventory', inventory);
+          } catch (stockError) {
+            console.error('Error reducing stock:', stockError);
+          }
+        }
       } else {
-        console.log(`⚠️ Order ${finalOrderId} already exists in orders.json, skipping duplicate`);
+        // Update existing order status if it came from abandoned cart
+        if (isFromAbandonedCart && existingOrder.status !== 'fulfilled') {
+          existingOrder.status = 'fulfilled';
+          await writeDataFile('orders', orders);
+          console.log(`✅ Updated order ${finalOrderId} status to fulfilled (from abandoned cart)`);
+        } else {
+          console.log(`⚠️ Order ${finalOrderId} already exists in orders.json, skipping duplicate`);
+        }
       }
     } catch (error) {
       console.error('Error saving completed order to orders.json:', error);
       // Don't fail the order confirmation if order saving fails
     }
 
-    // Remove from abandoned carts when payment is completed
+    // Check if order came from abandoned cart and mark as fulfilled
+    let isFromAbandonedCart = false;
     try {
       const abandonedCarts = await readDataFile('abandonedCarts');
       const emailLower = customerEmail.toLowerCase().trim();
       
-      // Remove cart for this email
-      const filteredCarts = abandonedCarts.filter(c => c.email?.toLowerCase().trim() !== emailLower);
-      
-      if (filteredCarts.length < abandonedCarts.length) {
+      // Check if this email has an abandoned cart
+      const matchingCart = abandonedCarts.find(c => c.email?.toLowerCase().trim() === emailLower);
+      if (matchingCart) {
+        isFromAbandonedCart = true;
+        // Remove cart for this email
+        const filteredCarts = abandonedCarts.filter(c => c.email?.toLowerCase().trim() !== emailLower);
         await writeDataFile('abandonedCarts', filteredCarts);
         console.log(`✅ Removed completed order from abandoned carts for: ${emailLower}`);
       }
     } catch (error) {
-      console.error('Error removing from abandoned carts:', error);
-      // Don't fail the order confirmation if abandoned cart removal fails
+      console.error('Error checking/removing from abandoned carts:', error);
+      // Don't fail the order confirmation if abandoned cart check fails
     }
 
     // Prepare Telegram message for support
@@ -1538,7 +1576,7 @@ function generateEmailTemplate(type, data = {}) {
     subscriberName = '',
     supportResponse = '',
     includeSlideshow = false,
-    includeSocialMedia = false
+    includeSocialMedia = true // Always include footer with social media
   } = data;
 
   let mainContent = '';
@@ -1730,9 +1768,9 @@ function generateEmailTemplate(type, data = {}) {
                 width: 100% !important;
             }
             .email-logo {
-                max-width: 35px !important;
-                width: 35px !important;
-                height: 35px !important;
+                max-width: 60px !important;
+                width: 60px !important;
+                height: 60px !important;
             }
         }
     </style>
@@ -1742,8 +1780,8 @@ function generateEmailTemplate(type, data = {}) {
     </style>
     <![endif]-->
 </head>
-<body style="margin: 0; padding: 0; background-color: #FFFFFF; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; width: 100% !important; max-width: 100% !important; overflow-x: hidden !important;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #FFFFFF; width: 100% !important; max-width: 100% !important;">
+<body style="margin: 0; padding: 0; background-image: url('https://dl.dropboxusercontent.com/scl/fi/pb7ot6h7e1u9rshayp8qc/1-22.png?rlkey=u0pia430x0w3uvnfbhkpo6wbi&st=rwbw10lc&dl=1'); background-size: cover; background-position: center; background-repeat: no-repeat; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; width: 100% !important; max-width: 100% !important; overflow-x: hidden !important;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-image: url('https://dl.dropboxusercontent.com/scl/fi/pb7ot6h7e1u9rshayp8qc/1-22.png?rlkey=u0pia430x0w3uvnfbhkpo6wbi&st=rwbw10lc&dl=1'); background-size: cover; background-position: center; background-repeat: no-repeat; width: 100% !important; max-width: 100% !important;">
         <tr>
             <td align="center" style="padding: 20px 10px; width: 100% !important; max-width: 100% !important;">
                 <!-- Main Container -->
@@ -1751,7 +1789,7 @@ function generateEmailTemplate(type, data = {}) {
                     <!-- Header with Logo -->
                     <tr>
                         <td style="background-color: #000000; padding: 15px 20px; text-align: center; width: 100%;">
-                            <img src="${BRAND_LOGO}" alt="${BRAND_NAME}" class="email-logo" style="max-width: 50px; width: 50px; height: 50px; display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none; border-radius: 8px; object-fit: cover;">
+                            <img src="${BRAND_LOGO}" alt="${BRAND_NAME}" class="email-logo" style="max-width: 80px; width: 80px; height: 80px; display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none; border-radius: 8px; object-fit: cover;">
                         </td>
                     </tr>
                     ${headerImage}
@@ -1787,8 +1825,7 @@ function generateEmailTemplate(type, data = {}) {
                                 <strong style="color: #000000;">${BRAND_NAME}</strong><br>
                                 Premium Streetwear
                             </p>
-                            ${includeSocialMedia ? `
-                            <!-- Social Media Links -->
+                            <!-- Social Media Links (Always included) -->
                             <p style="color: #999999; font-size: 12px; margin: 15px 0; word-wrap: break-word;">
                                 <a href="${SOCIAL_MEDIA.instagram}" style="color: #000000; text-decoration: none; margin: 0 8px; word-wrap: break-word; font-size: 12px;">Instagram</a>
                                 <span style="color: #CCCCCC;">|</span>
@@ -1796,7 +1833,6 @@ function generateEmailTemplate(type, data = {}) {
                                 <span style="color: #CCCCCC;">|</span>
                                 <a href="${SOCIAL_MEDIA.youtube}" style="color: #000000; text-decoration: none; margin: 0 8px; word-wrap: break-word; font-size: 12px;">YouTube</a>
                             </p>
-                            ` : ''}
                             <p style="color: #999999; font-size: 12px; margin: 10px 0; word-wrap: break-word;">
                                 <a href="${BRAND_WEBSITE}" style="color: #000000; text-decoration: none; margin: 0 10px; word-wrap: break-word;">Visit Website</a>
                                 <span style="color: #CCCCCC;">|</span>
@@ -2275,15 +2311,50 @@ app.get('/api/admin/inventory', adminAuth, async (req, res) => {
 
 app.post('/api/admin/inventory/update', adminAuth, async (req, res) => {
   try {
-    const { productId, variantId, stock } = req.body;
+    const { productId, variantId, stock, costPerUnit } = req.body;
     const inventory = await readDataFile('inventory');
     const item = inventory.find(i => 
       i.productId == productId && (variantId ? i.variantId === variantId : !i.variantId)
     );
     if (item) {
-      item.stock = parseInt(stock);
+      const oldStock = item.stock || 0;
+      const newStock = parseInt(stock);
+      const stockChange = newStock - oldStock;
+      
+      // Initialize stock cost if not exists
+      if (!item.stockCost) item.stockCost = 0;
+      if (!item.costPerUnit) item.costPerUnit = 0;
+      
+      // If stock is being added and cost per unit is provided
+      if (stockChange > 0 && costPerUnit !== undefined && costPerUnit !== null && costPerUnit !== '') {
+        const costPerUnitNum = parseFloat(costPerUnit);
+        if (!isNaN(costPerUnitNum) && costPerUnitNum >= 0) {
+          // Add new stock cost
+          const newStockCost = stockChange * costPerUnitNum;
+          item.stockCost = (item.stockCost || 0) + newStockCost;
+          // Recalculate average cost per unit
+          if (newStock > 0) {
+            item.costPerUnit = item.stockCost / newStock;
+          }
+        }
+      } else if (stockChange < 0) {
+        // Stock is being reduced - reduce stock cost proportionally
+        if (oldStock > 0 && item.stockCost > 0) {
+          const costPerUnit = item.stockCost / oldStock;
+          const reducedCost = Math.abs(stockChange) * costPerUnit;
+          item.stockCost = Math.max(0, item.stockCost - reducedCost);
+          if (newStock > 0) {
+            item.costPerUnit = item.stockCost / newStock;
+          } else {
+            item.costPerUnit = 0;
+          }
+        }
+      }
+      
+      item.stock = newStock;
+      item.updatedAt = new Date().toISOString();
       await writeDataFile('inventory', inventory);
-      res.json({ success: true });
+      res.json({ success: true, item });
     } else {
       res.status(404).json({ success: false, error: 'Item not found' });
     }
@@ -2444,7 +2515,8 @@ app.post('/api/admin/inbox/send', adminAuth, async (req, res) => {
           content: body,
           supportResponse: body,
           ctaText: 'Visit Our Website',
-          ctaLink: BRAND_WEBSITE
+          ctaLink: BRAND_WEBSITE,
+          includeSocialMedia: true // Always include footer
         });
       } else {
         // Regular email - simple HTML conversion
@@ -2778,7 +2850,8 @@ app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
         content: message,
         ctaText: 'Shop Now',
         ctaLink: BRAND_WEBSITE,
-        products: templateProducts
+        products: templateProducts,
+        includeSocialMedia: true // Always include footer
       });
       
       // Replace {{EMAIL}} placeholder in unsubscribe link (will be replaced per subscriber)
@@ -3216,12 +3289,55 @@ app.post('/api/admin/fulfillers/notify', adminAuth, async (req, res) => {
           }
         }
         
+        // Map order items to products with images
+        let orderProducts = [];
+        if (typeof orderDetailsObj === 'object' && orderDetailsObj) {
+          const orderItems = orderDetailsObj.orderItems || orderDetailsObj.items || [];
+          orderProducts = orderItems.map(cartItem => {
+            // Find product in PRODUCTS array by id or name
+            const product = PRODUCTS.find(p => 
+              p.id === cartItem.id || 
+              p.id === parseInt(cartItem.id) || 
+              p.name === cartItem.name
+            );
+            
+            let imageUrl = null;
+            if (product) {
+              // Try to get color-specific image first
+              if (cartItem.color && product.availableColors) {
+                const colorMatch = product.availableColors.find(c => 
+                  c.name.toLowerCase() === cartItem.color.toLowerCase()
+                );
+                if (colorMatch && colorMatch.image) {
+                  imageUrl = colorMatch.image.trim();
+                }
+              }
+              // Fallback to first product image
+              if (!imageUrl && product.images && product.images.length > 0) {
+                imageUrl = product.images[0].trim();
+              }
+              // Validate URL format
+              if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+                imageUrl = null;
+              }
+            }
+            
+            return {
+              name: cartItem.name || 'Product',
+              price: cartItem.price || 0,
+              description: `${cartItem.size ? `Size: ${cartItem.size}` : ''}${cartItem.color ? `${cartItem.size ? ', ' : ''}Color: ${cartItem.color}` : ''} - Qty: ${cartItem.quantity || 1}`.trim() || '',
+              image: imageUrl
+            };
+          });
+        }
+        
         const fulfillerEmailHtml = generateEmailTemplate('fulfiller-order', {
           heading: 'New Order to Fulfill',
           content: typeof orderDetailsObj === 'object' ? 
             `Hi ${fulfiller.name},\n\nYou have a new order to fulfill. Please review the order details below and process it as soon as possible.` :
             `Hi ${fulfiller.name},\n\nYou have a new order to fulfill. Please review the order details below and process it as soon as possible.\n\n${orderDetails}`,
           orderDetails: orderDetailsObj,
+          products: orderProducts, // Add product images
           ctaText: 'View Dashboard',
           ctaLink: `${BRAND_WEBSITE}/admin.html`
         });
@@ -3314,12 +3430,42 @@ app.get('/api/admin/dashboard', adminAuth, async (req, res) => {
     
     // Calculate stats
     const totalOrders = orders.length;
-    // Only count revenue from completed orders
-    const totalRevenue = orders
-      .filter(o => o.status === 'completed')
-      .reduce((sum, o) => sum + (parseFloat(o.total) || 0), 0);
-    const pendingOrders = orders.filter(o => o.status === 'pending').length;
-    const completedOrders = orders.filter(o => o.status === 'completed').length;
+    // Only count revenue from fulfilled orders (deduct delivery costs)
+    const fulfilledOrdersList = orders.filter(o => o.status === 'fulfilled');
+    const totalRevenue = fulfilledOrdersList.reduce((sum, o) => {
+      const orderTotal = parseFloat(o.total) || 0;
+      const deliveryCost = parseFloat(o.deliveryCost) || 0;
+      return sum + (orderTotal - deliveryCost);
+    }, 0);
+    
+    // Calculate total costs (stock costs + delivery costs)
+    let totalStockCost = 0;
+    let totalDeliveryCost = fulfilledOrdersList.reduce((sum, o) => sum + (parseFloat(o.deliveryCost) || 0), 0);
+    
+    // Calculate stock costs for fulfilled orders
+    fulfilledOrdersList.forEach(order => {
+      const orderItems = order.items || [];
+      orderItems.forEach(item => {
+        const inventoryItem = inventory.find(inv => 
+          inv.productId === item.id || 
+          inv.productId === parseInt(item.id) ||
+          inv.productName === item.name
+        );
+        if (inventoryItem && inventoryItem.costPerUnit) {
+          const quantity = item.quantity || 1;
+          totalStockCost += (inventoryItem.costPerUnit * quantity);
+        }
+      });
+    });
+    
+    const totalCosts = totalStockCost + totalDeliveryCost;
+    const totalProfit = totalRevenue - totalCosts;
+    
+    const pendingCheckoutOrders = orders.filter(o => o.status === 'pending checkout').length;
+    const pendingFulfillmentOrders = orders.filter(o => o.status === 'pending fulfillment').length;
+    const fulfilledOrders = orders.filter(o => o.status === 'fulfilled').length;
+    const pendingOrders = pendingCheckoutOrders + pendingFulfillmentOrders; // For backward compatibility
+    const completedOrders = fulfilledOrders; // For backward compatibility
     const lowStockItems = inventory.filter(i => (i.stock || 0) < 5).length;
     const unreadNotifications = notifications.filter(n => !n.read).length;
     const unreadEmails = inbox.filter(e => !e.read).length;
@@ -3338,13 +3484,15 @@ app.get('/api/admin/dashboard', adminAuth, async (req, res) => {
       monthlyRevenue[monthKey] = 0;
     }
     
-    // Only count revenue from completed orders in monthly revenue
+    // Only count revenue from fulfilled orders in monthly revenue (deduct delivery costs)
     orders.forEach(order => {
-      if (order.date && order.status === 'completed') {
+      if (order.date && order.status === 'fulfilled') {
         const orderDate = new Date(order.date);
         const monthKey = `${orderDate.getFullYear()}-${String(orderDate.getMonth() + 1).padStart(2, '0')}`;
         if (monthlyRevenue.hasOwnProperty(monthKey)) {
-          monthlyRevenue[monthKey] += parseFloat(order.total) || 0;
+          const orderTotal = parseFloat(order.total) || 0;
+          const deliveryCost = parseFloat(order.deliveryCost) || 0;
+          monthlyRevenue[monthKey] += (orderTotal - deliveryCost);
         }
       }
     });
@@ -3354,6 +3502,10 @@ app.get('/api/admin/dashboard', adminAuth, async (req, res) => {
       stats: {
         totalOrders,
         totalRevenue,
+        totalCosts,
+        totalProfit,
+        totalStockCost,
+        totalDeliveryCost,
         pendingOrders,
         completedOrders,
         totalSubscribers: subscribers.length,
@@ -3382,7 +3534,7 @@ app.get('/api/admin/orders', adminAuth, async (req, res) => {
       // Check if this cart already exists as an order (by email and similar items)
       const existingOrder = orders.find(o => 
         o.customerEmail?.toLowerCase().trim() === cart.email?.toLowerCase().trim() &&
-        o.status === 'pending'
+        (o.status === 'pending checkout' || o.status === 'pending')
       );
       
       // If order already exists, don't create duplicate
@@ -3404,7 +3556,7 @@ app.get('/api/admin/orders', adminAuth, async (req, res) => {
         shipping: cart.shipping || 0,
         total: cart.total || 0,
         date: cart.date || new Date().toISOString(),
-        status: 'pending',
+        status: 'pending checkout',
         paymentMethod: '',
         isAbandonedCart: true // Flag to identify abandoned carts
       };
@@ -3484,7 +3636,7 @@ setInterval(async () => {
 app.put('/api/admin/orders/:orderId/status', adminAuth, async (req, res) => {
   try {
     const { orderId } = req.params;
-    const { status } = req.body;
+    const { status, deliveryCost } = req.body;
     
     const orders = await readDataFile('orders');
     const orderIndex = orders.findIndex(o => o.id === orderId);
@@ -3493,8 +3645,51 @@ app.put('/api/admin/orders/:orderId/status', adminAuth, async (req, res) => {
       return res.status(404).json({ success: false, error: 'Order not found' });
     }
     
+    const oldStatus = orders[orderIndex].status;
     orders[orderIndex].status = status;
     orders[orderIndex].updatedAt = new Date().toISOString();
+    
+    // If changing from pending fulfillment to fulfilled, require delivery cost
+    if (oldStatus === 'pending fulfillment' && status === 'fulfilled') {
+      if (deliveryCost === undefined || deliveryCost === null || deliveryCost === '') {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Delivery cost is required when marking order as fulfilled',
+          requiresDeliveryCost: true
+        });
+      }
+      const deliveryCostNum = parseFloat(deliveryCost) || 0;
+      orders[orderIndex].deliveryCost = deliveryCostNum;
+      
+      // Reduce stock when order is fulfilled
+      try {
+        const inventory = await readDataFile('inventory');
+        const orderItems = orders[orderIndex].items || [];
+        
+        for (const item of orderItems) {
+          const inventoryItem = inventory.find(inv => 
+            inv.productId === item.id || 
+            inv.productId === parseInt(item.id) ||
+            inv.productName === item.name
+          );
+          
+          if (inventoryItem) {
+            const quantityToReduce = item.quantity || 1;
+            const currentStock = inventoryItem.stock || 0;
+            const newStock = Math.max(0, currentStock - quantityToReduce);
+            inventoryItem.stock = newStock;
+            inventoryItem.updatedAt = new Date().toISOString();
+            console.log(`✅ Reduced stock for ${inventoryItem.productName}: ${currentStock} -> ${newStock}`);
+          }
+        }
+        
+        await writeDataFile('inventory', inventory);
+      } catch (stockError) {
+        console.error('Error reducing stock:', stockError);
+        // Don't fail the order update if stock reduction fails
+      }
+    }
+    
     await writeDataFile('orders', orders);
     
     res.json({ success: true, order: orders[orderIndex] });
@@ -3521,9 +3716,35 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
       items,
       total,
       date: new Date().toISOString(),
-      status: paymentMethod === 'yoco' ? 'pending' : 'completed'
+      status: paymentMethod === 'yoco' ? 'pending checkout' : 'fulfilled' // Sale dashboard: cash/EFT = fulfilled, yoco = pending checkout
     });
     await writeDataFile('orders', orders);
+    
+    // Reduce stock when order is fulfilled (POS with cash/EFT)
+    if (paymentMethod !== 'yoco') {
+      try {
+        const inventory = await readDataFile('inventory');
+        for (const item of items) {
+          const inventoryItem = inventory.find(inv => 
+            inv.productId === item.id || 
+            inv.productId === parseInt(item.id) ||
+            inv.productName === item.name
+          );
+          
+          if (inventoryItem) {
+            const quantityToReduce = item.quantity || 1;
+            const currentStock = inventoryItem.stock || 0;
+            const newStock = Math.max(0, currentStock - quantityToReduce);
+            inventoryItem.stock = newStock;
+            inventoryItem.updatedAt = new Date().toISOString();
+            console.log(`✅ Reduced stock for ${inventoryItem.productName}: ${currentStock} -> ${newStock}`);
+          }
+        }
+        await writeDataFile('inventory', inventory);
+      } catch (stockError) {
+        console.error('Error reducing stock:', stockError);
+      }
+    }
 
     // Create notification
     const notifications = await readDataFile('notifications');
