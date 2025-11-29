@@ -1441,11 +1441,13 @@
                     const lowStockCount = product.variants.filter(v => (parseInt(v.stock) || 0) < 5).length;
                     const outOfStockCount = product.variants.filter(v => (parseInt(v.stock) || 0) === 0).length;
                     
+                    // Define productIdEscaped in outer scope so it's available for the save button
+                    const productIdEscaped = String(product.productId || '').replace(/'/g, "\\'");
+                    
                     const variantsHtml = product.variants.map(variant => {
                         const stockClass = variant.stock === 0 ? 'stock-low' : variant.stock < 5 ? 'stock-medium' : 'stock-high';
                         const stockStatus = variant.stock === 0 ? 'Out of Stock' : variant.stock < 5 ? 'Low Stock' : 'In Stock';
                         const variantId = String(variant.id || '').replace(/'/g, "\\'");
-                        const productIdEscaped = String(variant.productId || '').replace(/'/g, "\\'");
                         const variantIdEscaped = String(variant.variantId || '').replace(/'/g, "\\'");
                         
                         return `
