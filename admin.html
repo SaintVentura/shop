@@ -186,7 +186,7 @@
             padding: 1rem 1.5rem;
             border-bottom: 1px solid #f3f4f6;
             display: grid;
-            grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 1fr;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
             gap: 1rem;
             align-items: center;
         }
@@ -1436,6 +1436,8 @@
                 desktopContainer.innerHTML = Object.values(productGroups).map((product, index) => {
                     const productId = product.productId;
                     const totalStock = product.variants.reduce((sum, v) => sum + (parseInt(v.stock) || 0), 0);
+                    const totalStockCost = product.variants.reduce((sum, v) => sum + (parseFloat(v.stockCost) || 0), 0);
+                    const totalCostPerUnit = totalStock > 0 ? (totalStockCost / totalStock) : 0;
                     const lowStockCount = product.variants.filter(v => (parseInt(v.stock) || 0) < 5).length;
                     const outOfStockCount = product.variants.filter(v => (parseInt(v.stock) || 0) === 0).length;
                     
@@ -1453,12 +1455,6 @@
                                 </div>
                                 <div>
                                     <span class="font-semibold text-sm">R${(variant.price || product.price || 0).toFixed(2)}</span>
-                                </div>
-                                <div>
-                                    <span class="font-semibold text-sm">R${((variant.stockCost || 0)).toFixed(2)}</span>
-                                </div>
-                                <div>
-                                    <span class="font-semibold text-sm">R${((variant.costPerUnit || 0)).toFixed(2)}</span>
                                 </div>
                                 <div>
                                     <input type="number" value="${variant.stock}" data-id="${variantId}" data-product-id="${productIdEscaped}" data-variant="${variantIdEscaped}" 
@@ -1491,6 +1487,8 @@
                                             <p class="text-sm font-semibold">R${(product.price || 0).toFixed(2)}</p>
                                             <span class="text-sm text-gray-600">${product.variants.length} variant${product.variants.length !== 1 ? 's' : ''}</span>
                                             <span class="text-sm font-semibold">Total Stock: ${totalStock}</span>
+                                            <span class="text-sm font-semibold text-blue-600">Stock Cost: R${totalStockCost.toFixed(2)}</span>
+                                            <span class="text-sm font-semibold text-purple-600">Cost/Unit: R${totalCostPerUnit.toFixed(2)}</span>
                                             ${lowStockCount > 0 ? `<span class="text-sm text-yellow-600">⚠️ ${lowStockCount} low stock</span>` : ''}
                                             ${outOfStockCount > 0 ? `<span class="text-sm text-red-600">❌ ${outOfStockCount} out of stock</span>` : ''}
                                         </div>
@@ -1502,11 +1500,9 @@
                             </div>
                             <div class="product-variants" id="product-${productId}">
                                 <div class="p-4 bg-gray-50 border-b border-gray-200">
-                                    <div class="grid grid-cols-7 gap-4 text-sm font-semibold text-gray-700">
+                                    <div class="grid grid-cols-5 gap-4 text-sm font-semibold text-gray-700">
                                         <div>Variant</div>
                                         <div>Price</div>
-                                        <div>Stock Cost</div>
-                                        <div>Cost/Unit</div>
                                         <div>Stock</div>
                                         <div>Status</div>
                                         <div>Action</div>
@@ -1524,6 +1520,8 @@
                 mobileContainer.innerHTML = Object.values(productGroups).map((product) => {
                     const productId = product.productId;
                     const totalStock = product.variants.reduce((sum, v) => sum + (parseInt(v.stock) || 0), 0);
+                    const totalStockCost = product.variants.reduce((sum, v) => sum + (parseFloat(v.stockCost) || 0), 0);
+                    const totalCostPerUnit = totalStock > 0 ? (totalStockCost / totalStock) : 0;
                     
                     const variantsHtml = product.variants.map(variant => {
                         const stockClass = variant.stock === 0 ? 'stock-low' : variant.stock < 5 ? 'stock-medium' : 'stock-high';
@@ -1573,7 +1571,7 @@
                                     <img src="${productImage}" alt="${product.productName}" class="w-16 h-16 object-cover rounded-lg border border-gray-200" onerror="this.src='https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1'">
                                     <div class="flex-1">
                                         <p class="font-semibold text-base">${product.productName}</p>
-                                        <p class="text-xs text-gray-500 mt-1">${product.category || 'N/A'} • ${product.variants.length} variants • Stock: ${totalStock}</p>
+                                        <p class="text-xs text-gray-500 mt-1">${product.category || 'N/A'} • ${product.variants.length} variants • Stock: ${totalStock} • Stock Cost: R${totalStockCost.toFixed(2)} • Cost/Unit: R${totalCostPerUnit.toFixed(2)}</p>
                                     </div>
                                 </div>
                                 <svg class="expand-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1659,16 +1657,43 @@
 
         function saveStock(itemId, productId, variantId, buttonElement) {
             const input = document.querySelector(`input[data-id="${itemId}"]`);
-            const stock = parseInt(input.value);
+            const newStock = parseInt(input.value);
             
-            if (isNaN(stock) || stock < 0) {
+            if (isNaN(newStock) || newStock < 0) {
                 alert('Please enter a valid stock number');
                 return;
             }
             
+            // Always prompt for cost per unit when editing stock
+            const costInput = prompt('Enter cost per unit for this stock (R):');
+            if (costInput === null) {
+                // User cancelled, don't update
+                return;
+            }
+            const costNum = parseFloat(costInput);
+            if (isNaN(costNum) || costNum < 0) {
+                alert('Please enter a valid cost per unit (number >= 0)');
+                return;
+            }
+            
+            // Find current stock from inventory data
+            const currentItem = allInventoryData.find(item => 
+                String(item.id) === String(itemId) || 
+                (String(item.productId) === String(productId) && String(item.variantId || '') === String(variantId))
+            );
+            const oldStock = currentItem ? (currentItem.stock || 0) : 0;
+            const stockChange = newStock - oldStock;
+            
+            const requestBody = { 
+                productId, 
+                variantId, 
+                stock: newStock,
+                costPerUnit: costNum
+            };
+            
             adminFetch(`${BACKEND_URL}/api/admin/inventory/update`, {
                 method: 'POST',
-                body: JSON.stringify({ productId, variantId, stock })
+                body: JSON.stringify(requestBody)
             })
             .then(data => {
                 if (data.success) {
@@ -1686,11 +1711,13 @@
                     loadInventory();
                 } else {
                     alert('Error updating stock: ' + (data.error || 'Unknown error'));
+                    input.value = oldStock;
                 }
             })
             .catch(err => {
                 console.error('Error updating stock:', err);
                 alert('Error updating stock: ' + err.message);
+                input.value = oldStock;
             });
         }
 
