@@ -186,7 +186,7 @@
             padding: 1rem 1.5rem;
             border-bottom: 1px solid #f3f4f6;
             display: grid;
-            grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
             gap: 1rem;
             align-items: center;
         }
@@ -1464,10 +1464,6 @@
                                 <div>
                                     <span class="px-3 py-1 rounded-full text-xs font-semibold ${variant.stock === 0 ? 'bg-red-100 text-red-800' : variant.stock < 5 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}">${stockStatus}</span>
                                 </div>
-                                <div>
-                                    <button onclick="saveStock('${variantId}', '${productIdEscaped}', '${variantIdEscaped}', this)" 
-                                        class="px-4 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition">Save</button>
-                                </div>
                             </div>
                         `;
                     }).join('');
@@ -1500,15 +1496,20 @@
                             </div>
                             <div class="product-variants" id="product-${productId}">
                                 <div class="p-4 bg-gray-50 border-b border-gray-200">
-                                    <div class="grid grid-cols-5 gap-4 text-sm font-semibold text-gray-700">
+                                    <div class="grid grid-cols-4 gap-4 text-sm font-semibold text-gray-700">
                                         <div>Variant</div>
                                         <div>Price</div>
                                         <div>Stock</div>
                                         <div>Status</div>
-                                        <div>Action</div>
                                     </div>
                                 </div>
                                 ${variantsHtml}
+                                <div class="p-4 bg-gray-50 border-t border-gray-200">
+                                    <button onclick="saveAllVariants('${productIdEscaped}')" 
+                                        class="w-full px-6 py-3 bg-black text-white rounded-lg text-sm font-semibold hover:bg-gray-800 transition shadow-md hover:shadow-lg">
+                                        Save All Changes
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     `;
@@ -1655,19 +1656,19 @@
             // Stock value updated, will be saved when Save is clicked
         }
 
-        function saveStock(itemId, productId, variantId, buttonElement) {
-            const input = document.querySelector(`input[data-id="${itemId}"]`);
-            const newStock = parseInt(input.value);
+        function saveAllVariants(productId) {
+            // Find all variant inputs for this product
+            const variantInputs = document.querySelectorAll(`input[data-product-id="${productId}"]`);
             
-            if (isNaN(newStock) || newStock < 0) {
-                alert('Please enter a valid stock number');
+            if (variantInputs.length === 0) {
+                alert('No variants found for this product');
                 return;
             }
             
-            // Always prompt for cost per unit when editing stock
-            const costInput = prompt('Enter cost per unit for this stock (R):');
+            // Prompt for cost per unit (applies to all variants)
+            const costInput = prompt('Enter cost per unit for all stock changes (R):');
             if (costInput === null) {
-                // User cancelled, don't update
+                // User cancelled
                 return;
             }
             const costNum = parseFloat(costInput);
@@ -1676,49 +1677,103 @@
                 return;
             }
             
-            // Find current stock from inventory data
-            const currentItem = allInventoryData.find(item => 
-                String(item.id) === String(itemId) || 
-                (String(item.productId) === String(productId) && String(item.variantId || '') === String(variantId))
-            );
-            const oldStock = currentItem ? (currentItem.stock || 0) : 0;
-            const stockChange = newStock - oldStock;
+            // Collect all variant updates
+            const updates = [];
+            let hasChanges = false;
             
-            const requestBody = { 
-                productId, 
-                variantId, 
-                stock: newStock,
-                costPerUnit: costNum
+            variantInputs.forEach(input => {
+                const variantId = input.dataset.variant;
+                const newStock = parseInt(input.value);
+                
+                if (isNaN(newStock) || newStock < 0) {
+                    alert(`Invalid stock value for variant. Please check all inputs.`);
+                    return;
+                }
+                
+                // Find current stock from inventory data
+                const currentItem = allInventoryData.find(item => 
+                    String(item.productId) === String(productId) && 
+                    String(item.variantId || '') === String(variantId)
+                );
+                
+                const oldStock = currentItem ? (currentItem.stock || 0) : 0;
+                
+                if (newStock !== oldStock) {
+                    hasChanges = true;
+                    updates.push({
+                        productId: productId,
+                        variantId: variantId,
+                        stock: newStock,
+                        costPerUnit: costNum
+                    });
+                }
+            });
+            
+            if (!hasChanges) {
+                alert('No changes detected. All stock values are the same as before.');
+                return;
+            }
+            
+            // Disable button and show loading
+            const button = event.target;
+            const originalText = button.textContent;
+            button.disabled = true;
+            button.textContent = 'Saving...';
+            
+            // Save all variants sequentially
+            let savedCount = 0;
+            let errors = [];
+            
+            const saveNext = () => {
+                if (savedCount >= updates.length) {
+                    // All done
+                    if (errors.length > 0) {
+                        alert(`Saved ${savedCount - errors.length} variants. ${errors.length} failed: ${errors.join(', ')}`);
+                    } else {
+                        button.textContent = 'Saved!';
+                        button.classList.add('bg-green-600');
+                        button.classList.remove('bg-black');
+                        setTimeout(() => {
+                            button.textContent = originalText;
+                            button.classList.remove('bg-green-600');
+                            button.classList.add('bg-black');
+                            button.disabled = false;
+                        }, 2000);
+                        loadInventory();
+                    }
+                    return;
+                }
+                
+                const update = updates[savedCount];
+                adminFetch(`${BACKEND_URL}/api/admin/inventory/update`, {
+                    method: 'POST',
+                    body: JSON.stringify(update)
+                })
+                .then(data => {
+                    if (data.success) {
+                        savedCount++;
+                        saveNext();
+                    } else {
+                        errors.push(update.variantId || 'unknown');
+                        savedCount++;
+                        saveNext();
+                    }
+                })
+                .catch(err => {
+                    console.error('Error updating stock:', err);
+                    errors.push(update.variantId || 'unknown');
+                    savedCount++;
+                    saveNext();
+                });
             };
             
-            adminFetch(`${BACKEND_URL}/api/admin/inventory/update`, {
-                method: 'POST',
-                body: JSON.stringify(requestBody)
-            })
-            .then(data => {
-                if (data.success) {
-                    // Show success notification
-                    const button = buttonElement;
-                    const originalText = button.textContent;
-                    button.textContent = 'Saved!';
-                    button.classList.add('bg-green-600');
-                    button.classList.remove('bg-black');
-                    setTimeout(() => {
-                        button.textContent = originalText;
-                        button.classList.remove('bg-green-600');
-                        button.classList.add('bg-black');
-                    }, 2000);
-                    loadInventory();
-                } else {
-                    alert('Error updating stock: ' + (data.error || 'Unknown error'));
-                    input.value = oldStock;
-                }
-            })
-            .catch(err => {
-                console.error('Error updating stock:', err);
-                alert('Error updating stock: ' + err.message);
-                input.value = oldStock;
-            });
+            saveNext();
+        }
+        
+        // Keep old function for backward compatibility (not used anymore)
+        function saveStock(itemId, productId, variantId, buttonElement) {
+            // This function is deprecated - use saveAllVariants instead
+            alert('Please use the "Save All Changes" button at the bottom of the variants list.');
         }
 
         function refreshInventory() {
