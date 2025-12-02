@@ -381,46 +381,46 @@
                     </button>
                 </div>
                 <nav class="px-4 pb-4 space-y-0 -mt-1" id="sidebar-nav">
-                    <a href="javascript:void(0)" onclick="if(window.showSection) { window.showSection('dashboard'); } else { console.error('showSection not available'); }" data-section="dashboard" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
+                    <a href="#" onclick="event.preventDefault(); event.stopPropagation(); console.log('Dashboard clicked'); if(window.showSection) { window.showSection('dashboard'); } else { alert('showSection function not available'); } return false;" data-section="dashboard" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
                         <span>📊</span>
                         <span class="sidebar-text">Dashboard</span>
                     </a>
-                    <a href="javascript:void(0)" onclick="if(window.showSection) { window.showSection('orders'); } else { console.error('showSection not available'); }" data-section="orders" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
+                    <a href="#" onclick="event.preventDefault(); event.stopPropagation(); console.log('Orders clicked'); if(window.showSection) { window.showSection('orders'); } else { alert('showSection function not available'); } return false;" data-section="orders" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
                         <span>📋</span>
                         <span class="sidebar-text">Orders</span>
                     </a>
-                    <a href="javascript:void(0)" onclick="if(window.showSection) { window.showSection('inventory'); } else { console.error('showSection not available'); }" data-section="inventory" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
+                    <a href="#" onclick="event.preventDefault(); event.stopPropagation(); console.log('Inventory clicked'); if(window.showSection) { window.showSection('inventory'); } else { alert('showSection function not available'); } return false;" data-section="inventory" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
                         <span>📦</span>
                         <span class="sidebar-text">Stock Inventory</span>
                     </a>
-                    <a href="javascript:void(0)" onclick="if(window.showSection) { window.showSection('inbox'); } else { console.error('showSection not available'); }" data-section="inbox" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition relative cursor-pointer">
+                    <a href="#" onclick="event.preventDefault(); event.stopPropagation(); console.log('Inbox clicked'); if(window.showSection) { window.showSection('inbox'); } else { alert('showSection function not available'); } return false;" data-section="inbox" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition relative cursor-pointer">
                         <span>📧</span>
                         <span class="sidebar-text">Email Inbox</span>
                         <span id="inbox-badge" class="notification-badge hidden">0</span>
                     </a>
-                    <a href="javascript:void(0)" onclick="if(window.showSection) { window.showSection('broadcast'); } else { console.error('showSection not available'); }" data-section="broadcast" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
+                    <a href="#" onclick="event.preventDefault(); event.stopPropagation(); console.log('Broadcast clicked'); if(window.showSection) { window.showSection('broadcast'); } else { alert('showSection function not available'); } return false;" data-section="broadcast" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
                         <span>📢</span>
                         <span class="sidebar-text">Broadcast</span>
                     </a>
-                    <a href="javascript:void(0)" onclick="if(window.showSection) { window.showSection('abandoned-carts'); } else { console.error('showSection not available'); }" data-section="abandoned-carts" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition relative cursor-pointer">
+                    <a href="#" onclick="event.preventDefault(); event.stopPropagation(); console.log('Abandoned Carts clicked'); if(window.showSection) { window.showSection('abandoned-carts'); } else { alert('showSection function not available'); } return false;" data-section="abandoned-carts" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition relative cursor-pointer">
                         <span>🛒</span>
                         <span class="sidebar-text">Abandoned Carts</span>
                         <span id="carts-badge" class="notification-badge hidden">0</span>
                     </a>
-                    <a href="javascript:void(0)" onclick="if(window.showSection) { window.showSection('fulfillers'); } else { console.error('showSection not available'); }" data-section="fulfillers" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
+                    <a href="#" onclick="event.preventDefault(); event.stopPropagation(); console.log('Fulfillers clicked'); if(window.showSection) { window.showSection('fulfillers'); } else { alert('showSection function not available'); } return false;" data-section="fulfillers" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
                         <span>👥</span>
                         <span class="sidebar-text">Order Fulfillers</span>
                     </a>
-                    <a href="javascript:void(0)" onclick="if(window.showSection) { window.showSection('notifications'); } else { console.error('showSection not available'); }" data-section="notifications" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition relative cursor-pointer">
+                    <a href="#" onclick="event.preventDefault(); event.stopPropagation(); console.log('Notifications clicked'); if(window.showSection) { window.showSection('notifications'); } else { alert('showSection function not available'); } return false;" data-section="notifications" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition relative cursor-pointer">
                         <span>🔔</span>
                         <span class="sidebar-text">Notifications</span>
                         <span id="notifications-badge" class="notification-badge hidden">0</span>
                     </a>
-                    <a href="javascript:void(0)" onclick="if(window.showSection) { window.showSection('sales'); } else { console.error('showSection not available'); }" data-section="sales" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
+                    <a href="#" onclick="event.preventDefault(); event.stopPropagation(); console.log('Sales clicked'); if(window.showSection) { window.showSection('sales'); } else { alert('showSection function not available'); } return false;" data-section="sales" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
                         <span>💰</span>
                         <span class="sidebar-text">Sale Dashboard</span>
                     </a>
-                    <a href="javascript:void(0)" onclick="if(window.showSection) { window.showSection('analytics'); } else { console.error('showSection not available'); }" data-section="analytics" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
+                    <a href="#" onclick="event.preventDefault(); event.stopPropagation(); console.log('Analytics clicked'); if(window.showSection) { window.showSection('analytics'); } else { alert('showSection function not available'); } return false;" data-section="analytics" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
                         <span>📈</span>
                         <span class="sidebar-text">Analytics</span>
                     </a>
@@ -1109,6 +1109,7 @@
             console.log('📑 Found', allSections.length, 'sections');
             allSections.forEach(s => {
                 s.classList.add('hidden');
+                s.style.display = 'none'; // Force hide
             });
             
             // Remove active class and border from ALL sidebar items
@@ -1129,7 +1130,24 @@
             }
             
             console.log('✅ Showing section:', section);
+            console.log('✅ Target section element:', targetSection);
+            
+            // Remove hidden class and ensure it's visible
             targetSection.classList.remove('hidden');
+            targetSection.style.display = 'block';
+            targetSection.style.visibility = 'visible';
+            targetSection.style.opacity = '1';
+            
+            // Force display in case of other CSS issues
+            const computedStyle = window.getComputedStyle(targetSection);
+            console.log('✅ Section display style after removal:', computedStyle.display);
+            console.log('✅ Section visibility:', computedStyle.visibility);
+            
+            if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden') {
+                targetSection.style.display = 'block';
+                targetSection.style.visibility = 'visible';
+                console.log('✅ Forced section to be visible');
+            }
             
             const activeItem = document.querySelector(`[data-section="${section}"]`);
             if (activeItem) {
@@ -1138,6 +1156,7 @@
                 activeItem.style.backgroundColor = 'transparent';
                 activeItem.style.color = '#000';
                 activeItem.style.border = '2px solid #000';
+                console.log('✅ Active item styled');
             } else {
                 console.warn('⚠️ Active item not found for section:', section);
             }
