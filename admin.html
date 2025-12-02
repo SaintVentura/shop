@@ -318,19 +318,23 @@
                     const tryCall = () => {
                         retryCount++;
                         const realFn = window[functionName];
-                        // Simplified check: just check if the function name matches (not the placeholder name)
-                        const stillPlaceholder = !realFn || !realFn.name || realFn.name === 'placeholder';
-                        const hasName = realFn && realFn.name && realFn.name !== 'placeholder' && realFn.name === functionName;
+                        const placeholderRef = placeholderFunctions[functionName];
+                        
+                        // Check if it's still the placeholder by reference AND name
+                        const isStillPlaceholder = realFn === placeholderRef || (realFn && realFn.name === 'placeholder');
+                        const hasRealName = realFn && realFn.name && realFn.name !== 'placeholder' && realFn.name === functionName;
                         
                         if (retryCount % 5 === 0) { // Log every 5th attempt
                             console.log(`   Attempt ${retryCount}: checking ${functionName}...`);
                             console.log(`      realFn type:`, typeof realFn);
                             console.log(`      realFn name:`, realFn?.name);
-                            console.log(`      is placeholder:`, stillPlaceholder);
-                            console.log(`      has real name:`, hasName);
+                            console.log(`      is placeholder (by ref):`, realFn === placeholderRef);
+                            console.log(`      is placeholder (by name):`, realFn?.name === 'placeholder');
+                            console.log(`      has real name:`, hasRealName);
+                            console.log(`      window.${functionName} exists:`, typeof window[functionName]);
                         }
                         
-                        if (hasName && typeof realFn === 'function') {
+                        if (hasRealName && typeof realFn === 'function' && !isStillPlaceholder) {
                             console.log(`✅✅✅ ${functionName} now available (attempt ${retryCount}, name: ${realFn.name}), calling it`);
                             try {
                                 realFn.apply(null, arguments);
@@ -342,11 +346,13 @@
                         } else {
                             console.error(`❌ ${functionName} still not available after ${maxRetries} attempts`);
                             console.error(`   Current function type:`, typeof realFn);
-                            console.error(`   Is placeholder:`, stillPlaceholder);
+                            console.error(`   Is placeholder (by ref):`, realFn === placeholderRef);
+                            console.error(`   Is placeholder (by name):`, realFn?.name === 'placeholder');
                             console.error(`   Function name:`, realFn?.name);
-                            console.error(`   Has real name:`, hasName);
+                            console.error(`   Has real name:`, hasRealName);
+                            console.error(`   window.${functionName} === placeholder:`, window[functionName] === placeholderRef);
                             // Try to call it anyway if it's a function with a real name
-                            if (realFn && typeof realFn === 'function' && hasName) {
+                            if (realFn && typeof realFn === 'function' && hasRealName && !isStillPlaceholder) {
                                 console.log(`   ⚠️ Attempting to call anyway (function name: ${realFn.name})`);
                                 try {
                                     realFn.apply(null, arguments);
@@ -1803,6 +1809,14 @@
         console.log('✅✅✅ Real loadDashboardData function defined and assigned to window');
         console.log('   Function name:', window.loadDashboardData.name);
         console.log('   Function is placeholder:', window.loadDashboardData === window.placeholderFunctions?.loadDashboardData);
+        console.log('   window.loadDashboardData type:', typeof window.loadDashboardData);
+        console.log('   window.loadDashboardData === real function:', window.loadDashboardData.name === 'loadDashboardData');
+        // Force verify it's not the placeholder
+        if (window.loadDashboardData.name === 'placeholder') {
+            console.error('   ❌❌❌ ERROR: window.loadDashboardData is still the placeholder!');
+        } else {
+            console.log('   ✅✅✅ VERIFIED: window.loadDashboardData is the real function');
+        }
         
         // Store previous badge counts to detect changes
         let previousBadgeCounts = {
