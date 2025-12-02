@@ -3700,12 +3700,8 @@ Thank you!</textarea>
                         select.innerHTML = `<option value="">Error loading products</option>`;
                     }
                 });
-        }
-        // Make globally available - this replaces the placeholder
-        const oldBroadcast = window.loadBroadcast;
-        window.loadBroadcast = loadBroadcast;
-        console.log('✅ Real loadBroadcast function assigned to window');
-        console.log('   Old was placeholder:', oldBroadcast === window.placeholderFunctions?.loadBroadcast);
+        };
+        console.log('✅✅✅ Real loadBroadcast function defined and assigned to window');
 
         document.getElementById('broadcast-form').addEventListener('submit', (e) => {
             e.preventDefault();
@@ -3821,12 +3817,8 @@ Thank you!</textarea>
                     console.error('Error loading abandoned carts:', err);
                     list.innerHTML = `<div class="error-message">Error loading abandoned carts: ${err.message}<br><small>Backend URL: ${BACKEND_URL}</small></div>`;
                 });
-        }
-        // Make globally available - this replaces the placeholder
-        const oldAbandonedCarts = window.loadAbandonedCarts;
-        window.loadAbandonedCarts = loadAbandonedCarts;
-        console.log('✅ Real loadAbandonedCarts function assigned to window');
-        console.log('   Old was placeholder:', oldAbandonedCarts === window.placeholderFunctions?.loadAbandonedCarts);
+        };
+        console.log('✅✅✅ Real loadAbandonedCarts function defined and assigned to window');
 
         function sendCartReminder(cartId) {
             adminFetch(`${BACKEND_URL}/api/admin/abandoned-carts/remind`, {
@@ -3939,12 +3931,8 @@ Thank you!</textarea>
                         orderSelect.innerHTML = '<option value="">Error loading orders</option>';
                     }
                 });
-        }
-        // Make globally available - this replaces the placeholder
-        const oldFulfillers = window.loadFulfillers;
-        window.loadFulfillers = loadFulfillers;
-        console.log('✅ Real loadFulfillers function assigned to window');
-        console.log('   Old was placeholder:', oldFulfillers === window.placeholderFunctions?.loadFulfillers);
+        };
+        console.log('✅✅✅ Real loadFulfillers function defined and assigned to window');
         
         // Auto-fill order details when order is selected
         document.getElementById('fulfiller-order-select')?.addEventListener('change', async function(e) {
@@ -4217,12 +4205,8 @@ Thank you!</textarea>
                     const errorMsg = err.message || 'Unknown error';
                     list.innerHTML = `<div class="error-message">Error loading notifications: ${errorMsg}<br><small>Backend URL: ${BACKEND_URL}</small><br><small>Please check your connection and ensure the backend is running.</small></div>`;
                 });
-        }
-        // Make globally available - this replaces the placeholder
-        const oldNotifications = window.loadNotifications;
-        window.loadNotifications = loadNotifications;
-        console.log('✅ Real loadNotifications function assigned to window');
-        console.log('   Old was placeholder:', oldNotifications === window.placeholderFunctions?.loadNotifications);
+        };
+        console.log('✅✅✅ Real loadNotifications function defined and assigned to window');
 
         function markNotificationRead(notifId) {
             adminFetch(`${BACKEND_URL}/api/admin/notifications/read`, {
@@ -4299,12 +4283,8 @@ Thank you!</textarea>
                         tbody.innerHTML = `<tr><td colspan="8" class="text-center py-12"><div class="error-message">Error loading orders: ${err.message}</div></td></tr>`;
                     }
                 });
-        }
-        // Make globally available - this replaces the placeholder
-        const oldOrders = window.loadOrders;
-        window.loadOrders = loadOrders;
-        console.log('✅ Real loadOrders function assigned to window');
-        console.log('   Old was placeholder:', oldOrders === window.placeholderFunctions?.loadOrders);
+        };
+        console.log('✅✅✅ Real loadOrders function defined and assigned to window');
         
         function renderOrders(orders) {
             const tbody = document.getElementById('orders-table');
@@ -4528,12 +4508,8 @@ Thank you!</textarea>
                     console.error('Error loading analytics:', err);
                     document.getElementById('revenue-chart').innerHTML = `<div class="error-message">Error loading analytics: ${err.message}</div>`;
                 });
-        }
-        // Make globally available - this replaces the placeholder
-        const oldAnalytics = window.loadAnalytics;
-        window.loadAnalytics = loadAnalytics;
-        console.log('✅ Real loadAnalytics function assigned to window');
-        console.log('   Old was placeholder:', oldAnalytics === window.placeholderFunctions?.loadAnalytics);
+        };
+        console.log('✅✅✅ Real loadAnalytics function defined and assigned to window');
         
         function renderRevenueChart(monthlyRevenue) {
             const container = document.getElementById('revenue-chart');
@@ -4665,12 +4641,8 @@ Thank you!</textarea>
                     console.error('Error loading POS products:', err);
                     container.innerHTML = `<div class="col-span-2 md:col-span-3 lg:col-span-4 error-message">Error loading products: ${err.message}<br><small>Backend URL: ${BACKEND_URL}</small></div>`;
                 });
-        }
-        // Make globally available - this replaces the placeholder
-        const oldSales = window.loadSales;
-        window.loadSales = loadSales;
-        console.log('✅ Real loadSales function assigned to window');
-        console.log('   Old was placeholder:', oldSales === window.placeholderFunctions?.loadSales);
+        };
+        console.log('✅✅✅ Real loadSales function defined and assigned to window');
 
         function showVariantModal(productId) {
             adminFetch(`${BACKEND_URL}/api/admin/products`)
