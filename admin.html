@@ -1696,7 +1696,9 @@
                     }
                 });
         }
-
+        // Make globally available
+        window.loadDashboardData = loadDashboardData;
+        
         // Store previous badge counts to detect changes
         let previousBadgeCounts = {
             inbox: 0,
@@ -1881,6 +1883,8 @@
                     }
                 });
         }
+        // Make globally available
+        window.loadInventory = loadInventory;
         
         function renderInventory(data) {
             const desktopContainer = document.getElementById('inventory-table');
@@ -2306,6 +2310,8 @@
                     list.innerHTML = `<div class="error-message">Error loading emails: ${err.message}<br><small>Backend URL: ${BACKEND_URL}</small></div>`;
                 });
         }
+        // Make globally available
+        window.loadInbox = loadInbox;
 
         // currentViewingEmail is declared at the top of the script
         
@@ -3579,6 +3585,8 @@ Thank you!</textarea>
                     }
                 });
         }
+        // Make globally available
+        window.loadBroadcast = loadBroadcast;
 
         document.getElementById('broadcast-form').addEventListener('submit', (e) => {
             e.preventDefault();
@@ -3688,6 +3696,8 @@ Thank you!</textarea>
                     list.innerHTML = `<div class="error-message">Error loading abandoned carts: ${err.message}<br><small>Backend URL: ${BACKEND_URL}</small></div>`;
                 });
         }
+        // Make globally available
+        window.loadAbandonedCarts = loadAbandonedCarts;
 
         function sendCartReminder(cartId) {
             adminFetch(`${BACKEND_URL}/api/admin/abandoned-carts/remind`, {
@@ -3794,6 +3804,8 @@ Thank you!</textarea>
                     }
                 });
         }
+        // Make globally available
+        window.loadFulfillers = loadFulfillers;
         
         // Auto-fill order details when order is selected
         document.getElementById('fulfiller-order-select')?.addEventListener('change', async function(e) {
@@ -4061,6 +4073,8 @@ Thank you!</textarea>
                     list.innerHTML = `<div class="error-message">Error loading notifications: ${errorMsg}<br><small>Backend URL: ${BACKEND_URL}</small><br><small>Please check your connection and ensure the backend is running.</small></div>`;
                 });
         }
+        // Make globally available
+        window.loadNotifications = loadNotifications;
 
         function markNotificationRead(notifId) {
             adminFetch(`${BACKEND_URL}/api/admin/notifications/read`, {
@@ -4138,6 +4152,8 @@ Thank you!</textarea>
                     }
                 });
         }
+        // Make globally available
+        window.loadOrders = loadOrders;
         
         function renderOrders(orders) {
             const tbody = document.getElementById('orders-table');
@@ -4359,6 +4375,8 @@ Thank you!</textarea>
                     document.getElementById('revenue-chart').innerHTML = `<div class="error-message">Error loading analytics: ${err.message}</div>`;
                 });
         }
+        // Make globally available
+        window.loadAnalytics = loadAnalytics;
         
         function renderRevenueChart(monthlyRevenue) {
             const container = document.getElementById('revenue-chart');
@@ -4484,6 +4502,8 @@ Thank you!</textarea>
                     container.innerHTML = `<div class="col-span-2 md:col-span-3 lg:col-span-4 error-message">Error loading products: ${err.message}<br><small>Backend URL: ${BACKEND_URL}</small></div>`;
                 });
         }
+        // Make globally available
+        window.loadSales = loadSales;
 
         function showVariantModal(productId) {
             adminFetch(`${BACKEND_URL}/api/admin/products`)
