@@ -3811,6 +3811,35 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
   try {
     const { customerName, customerEmail, customerPhone, paymentMethod, items, total, subscribe } = req.body;
     
+    console.log('📦 POS Order Request:', { 
+      customerName, 
+      paymentMethod, 
+      itemsCount: items?.length, 
+      total,
+      subscribe 
+    });
+    
+    // Validate required fields
+    if (!customerName || !customerEmail || !customerPhone) {
+      console.error('❌ Missing required customer information');
+      return res.status(400).json({ success: false, error: 'Missing required customer information' });
+    }
+    
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      console.error('❌ No items in order');
+      return res.status(400).json({ success: false, error: 'Order must contain at least one item' });
+    }
+    
+    if (!total || parseFloat(total) <= 0) {
+      console.error('❌ Invalid order total:', total);
+      return res.status(400).json({ success: false, error: 'Invalid order total' });
+    }
+    
+    if (!paymentMethod) {
+      console.error('❌ Missing payment method');
+      return res.status(400).json({ success: false, error: 'Payment method is required' });
+    }
+    
     // Handle subscription if customer wants to subscribe
     if (subscribe && customerEmail) {
       try {
@@ -3936,16 +3965,21 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
     }
 
     // Create notification
-    const notifications = await readDataFile('notifications');
-    notifications.push({
-      id: Date.now().toString(),
-      type: 'order',
-      title: 'New POS Order',
-      message: `${customerName} - R${total.toFixed(2)} (${paymentMethod})`,
-      date: new Date().toISOString(),
-      read: false
-    });
-    await writeDataFile('notifications', notifications);
+    try {
+      const notifications = await readDataFile('notifications');
+      notifications.push({
+        id: Date.now().toString(),
+        type: 'order',
+        title: 'New POS Order',
+        message: `${customerName} - R${parseFloat(total).toFixed(2)} (${paymentMethod})`,
+        date: new Date().toISOString(),
+        read: false
+      });
+      await writeDataFile('notifications', notifications);
+    } catch (notifError) {
+      console.error('Error creating notification:', notifError);
+      // Don't fail the order if notification fails
+    }
 
     // If Yoco payment, create checkout
     if (paymentMethod === 'yoco') {
@@ -4019,10 +4053,21 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
         });
       }
     } else {
-      res.json({ success: true, orderId });
+      // Cash or EFT payment - order is already fulfilled
+      console.log(`✅ Processing ${paymentMethod} order ${orderId} as fulfilled`);
+      res.json({ 
+        success: true, 
+        orderId,
+        status: orderStatus,
+        message: `Order ${orderId} processed successfully as fulfilled`
+      });
     }
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Error processing POS order:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Failed to process order'
+    });
   }
 });
 
