@@ -313,20 +313,8 @@
         // Store placeholder references by function name
         const placeholderFunctions = {};
         
-        // Define stub functions that will be replaced by real functions in body script
-        // These just show a loading message until real functions are available
-        window.loadDashboardData = function() { console.log('⏳ loadDashboardData - waiting for real function'); };
-        window.loadOrders = function() { console.log('⏳ loadOrders - waiting for real function'); };
-        window.loadInventory = function() { console.log('⏳ loadInventory - waiting for real function'); };
-        window.loadInbox = function() { console.log('⏳ loadInbox - waiting for real function'); };
-        window.loadBroadcast = function() { console.log('⏳ loadBroadcast - waiting for real function'); };
-        window.loadAbandonedCarts = function() { console.log('⏳ loadAbandonedCarts - waiting for real function'); };
-        window.loadFulfillers = function() { console.log('⏳ loadFulfillers - waiting for real function'); };
-        window.loadNotifications = function() { console.log('⏳ loadNotifications - waiting for real function'); };
-        window.loadSales = function() { console.log('⏳ loadSales - waiting for real function'); };
-        window.loadAnalytics = function() { console.log('⏳ loadAnalytics - waiting for real function'); };
-        
-        console.log('✅ Stub load functions created in head script');
+        // Load functions will be defined in body script - no stubs needed
+        // They will be available immediately when body script executes
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
@@ -1207,19 +1195,7 @@
         // This ensures they're always available even if there's an error later
         console.log('🔧 Defining all load functions at top level...');
         
-        // Stub functions - will be replaced by real implementations below
-        window.loadDashboardData = function loadDashboardData() { console.log('⏳ loadDashboardData stub called'); };
-        window.loadOrders = function loadOrders() { console.log('⏳ loadOrders stub called'); };
-        window.loadInventory = function loadInventory() { console.log('⏳ loadInventory stub called'); };
-        window.loadInbox = function loadInbox() { console.log('⏳ loadInbox stub called'); };
-        window.loadBroadcast = function loadBroadcast() { console.log('⏳ loadBroadcast stub called'); };
-        window.loadAbandonedCarts = function loadAbandonedCarts() { console.log('⏳ loadAbandonedCarts stub called'); };
-        window.loadFulfillers = function loadFulfillers() { console.log('⏳ loadFulfillers stub called'); };
-        window.loadNotifications = function loadNotifications() { console.log('⏳ loadNotifications stub called'); };
-        window.loadSales = function loadSales() { console.log('⏳ loadSales stub called'); };
-        window.loadAnalytics = function loadAnalytics() { console.log('⏳ loadAnalytics stub called'); };
-        
-        console.log('✅ All load function stubs defined');
+        // Load functions will be defined below - no stubs needed
         
         // Define BACKEND_URL and adminFetch BEFORE defining real functions
         // Auto-detect backend URL based on environment (same as index.html)
@@ -2419,43 +2395,11 @@
             }
         }
 
-        // Inventory functions
-        // allInventoryData is declared at the top of the script
+        // NOTE: All load functions (loadInventory, loadInbox, loadOrders, etc.) are already defined above, outside the try block
+        // They are available immediately and should not be redefined here
+        // The following code is for helper functions and setup only
         
-        window.loadInventory = function loadInventory() {
-            const tbody = document.getElementById('inventory-table');
-            const mobileContainer = document.getElementById('inventory-table-mobile');
-            
-            // Show loading state
-            if (tbody) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-12 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading inventory...</span></div></td></tr>';
-            }
-            if (mobileContainer) {
-                mobileContainer.innerHTML = '<div class="text-center py-8 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading inventory...</span></div></div>';
-            }
-            
-            adminFetch(`${BACKEND_URL}/api/admin/inventory`)
-                .then(data => {
-                    console.log('Inventory data received:', data);
-                    if (!Array.isArray(data)) {
-                        throw new Error('Invalid data format received - expected array');
-                    }
-                    allInventoryData = data;
-                    renderInventory(data);
-                })
-                .catch(err => {
-                    console.error('Inventory loading error:', err);
-                    const errorMsg = `Error loading inventory: ${err.message}. Please check your connection and ensure the backend is running at ${BACKEND_URL}`;
-                    if (tbody) {
-                        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-12"><div class="error-message">${errorMsg}<br><small>Backend URL: ${BACKEND_URL}</small></div></td></tr>`;
-                    }
-                    if (mobileContainer) {
-                        mobileContainer.innerHTML = `<div class="error-message">${errorMsg}<br><small>Backend URL: ${BACKEND_URL}</small></div>`;
-                    }
-                });
-        };
-        console.log('✅✅✅ Real loadInventory function defined and assigned to window');
-        
+        // Helper function for inventory rendering (not a load function)
         function renderInventory(data) {
             const desktopContainer = document.getElementById('inventory-table');
             const mobileContainer = document.getElementById('inventory-table-mobile');
@@ -2838,56 +2782,7 @@
             loadInventory();
         }
 
-        // Inbox functions
-        window.loadInbox = function loadInbox() {
-            console.log('📧 Loading inbox (real function)...');
-            const list = document.getElementById('inbox-list');
-            if (!list) {
-                console.error('❌ inbox-list element not found');
-                return;
-            }
-            list.innerHTML = '<div class="text-center py-8 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading emails...</span></div></div>';
-            
-            const backendUrl = window.BACKEND_URL || BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
-            console.log('📧 Using backend URL:', backendUrl);
-            adminFetch(`${backendUrl}/api/admin/inbox`)
-                .then(data => {
-                    console.log('Inbox data received:', data);
-                    if (!Array.isArray(data)) {
-                        throw new Error('Invalid data format');
-                    }
-                    // Sort by date (newest first) to ensure latest emails are shown
-                    const sortedData = data.sort((a, b) => {
-                        const dateA = new Date(a.date || 0);
-                        const dateB = new Date(b.date || 0);
-                        return dateB - dateA;
-                    });
-                    if (sortedData.length === 0) {
-                        list.innerHTML = '<div class="text-center py-8 text-gray-500">No emails</div>';
-                        return;
-                    }
-                    list.innerHTML = sortedData.map(email => `
-                        <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition cursor-pointer ${email.read ? '' : 'bg-blue-50 border-blue-200'} ${email.sent ? 'bg-green-50 border-green-200' : ''}" onclick="viewEmail('${email.id}')">
-                            <div class="flex justify-between items-start">
-                                <div class="flex-1">
-                                    <p class="font-semibold ${email.read ? 'text-gray-700' : 'text-black'}">${email.subject || '(No Subject)'}</p>
-                                    <p class="text-sm text-gray-600 mt-1">${email.sent ? 'To:' : 'From:'} ${email.name || email.from || email.to || 'Unknown'}</p>
-                                    <p class="text-xs text-gray-500 mt-1">${email.date ? new Date(email.date).toLocaleString() : 'Unknown date'}</p>
-                                </div>
-                                <div class="flex items-center space-x-2">
-                                    ${email.sent ? '<span class="px-2 py-1 bg-green-500 text-white rounded-full text-xs">Sent</span>' : ''}
-                                    ${!email.read ? '<span class="px-2 py-1 bg-blue-500 text-white rounded-full text-xs">New</span>' : ''}
-                                </div>
-                            </div>
-                        </div>
-                    `).join('');
-                })
-                .catch(err => {
-                    console.error('Inbox loading error:', err);
-                    list.innerHTML = `<div class="error-message">Error loading emails: ${err.message}<br><small>Backend URL: ${BACKEND_URL}</small></div>`;
-                });
-        };
-        console.log('✅✅✅ Real loadInbox function defined and assigned to window');
+        // Inbox helper functions (loadInbox is already defined above, outside try block)
 
         // currentViewingEmail is declared at the top of the script
         
@@ -4359,7 +4254,9 @@ Thank you!</textarea>
             loadAbandonedCarts();
         }
 
-        // Fulfillers functions
+        // Fulfillers helper functions (loadFulfillers is already defined above, outside try block)
+        // Removed duplicate definition
+        if (false) { // This block is intentionally disabled - function already defined above
         window.loadFulfillers = function loadFulfillers() {
             console.log('🚚 Loading fulfillers (real function)...');
             const list = document.getElementById('fulfillers-list');
@@ -4647,7 +4544,9 @@ Thank you!</textarea>
             });
         });
 
-        // Notifications functions
+        // Notifications helper functions (loadNotifications is already defined above, outside try block)
+        // Removed duplicate definition
+        if (false) { // This block is intentionally disabled - function already defined above
         window.loadNotifications = function loadNotifications() {
             console.log('🔔 Loading notifications (real function)...');
             const list = document.getElementById('notifications-list');
@@ -4756,9 +4655,10 @@ Thank you!</textarea>
             loadNotifications();
         }
 
-        // Orders Management functions
+        // Orders Management helper functions (loadOrders is already defined above, outside try block)
         // allOrdersData is declared at the top of the script
-        
+        // Removed duplicate definition
+        if (false) { // This block is intentionally disabled - function already defined above
         window.loadOrders = function loadOrders() {
             const tbody = document.getElementById('orders-table');
             if (tbody) {
@@ -4985,7 +4885,9 @@ Thank you!</textarea>
             renderOrders(filtered);
         }
 
-        // Analytics functions
+        // Analytics helper functions (loadAnalytics is already defined above, outside try block)
+        // Removed duplicate definition
+        if (false) { // This block is intentionally disabled - function already defined above
         window.loadAnalytics = function loadAnalytics() {
             console.log('📊 Loading analytics (real function)...');
             const backendUrl = window.BACKEND_URL || BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
