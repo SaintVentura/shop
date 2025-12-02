@@ -1238,6 +1238,7 @@
     </div>
 
     <script>
+        console.log('🚀🚀🚀 BODY SCRIPT STARTING - This should appear immediately when page loads');
         const ADMIN_PASSWORD = 'WEAR3+H3$@!N+$*';
         
         // Initialize data arrays and variables at the top level to avoid initialization errors
@@ -1797,20 +1798,33 @@
                 });
         }
         // Make globally available - this replaces the placeholder
+        console.log('🔧 About to assign loadDashboardData to window...');
         const oldDashboardData = window.loadDashboardData;
+        console.log('   Old function type:', typeof oldDashboardData);
+        console.log('   Old function name:', oldDashboardData?.name);
+        console.log('   Old is placeholder:', oldDashboardData === window.placeholderFunctions?.loadDashboardData);
+        
         // Ensure function has proper name
-        Object.defineProperty(loadDashboardData, 'name', { value: 'loadDashboardData', configurable: true });
+        try {
+            Object.defineProperty(loadDashboardData, 'name', { value: 'loadDashboardData', configurable: true });
+            console.log('   ✅ Function name set to: loadDashboardData');
+        } catch (e) {
+            console.error('   ❌ Failed to set function name:', e);
+        }
+        
         window.loadDashboardData = loadDashboardData;
         console.log('✅✅✅ Real loadDashboardData function assigned to window');
-        console.log('   Old function was placeholder:', oldDashboardData === window.placeholderFunctions?.loadDashboardData);
         console.log('   New function name:', window.loadDashboardData.name);
         console.log('   New function is placeholder:', window.loadDashboardData === window.placeholderFunctions?.loadDashboardData);
         console.log('   Function is now:', typeof window.loadDashboardData === 'function' ? 'function' : typeof window.loadDashboardData);
+        
         // Force verify
-        if (window.loadDashboardData === loadDashboardData) {
-            console.log('   ✅✅✅ VERIFIED: window.loadDashboardData is the real function');
+        if (window.loadDashboardData === loadDashboardData && window.loadDashboardData.name === 'loadDashboardData') {
+            console.log('   ✅✅✅ VERIFIED: window.loadDashboardData is the real function with correct name');
         } else {
-            console.error('   ❌❌❌ ERROR: window.loadDashboardData is NOT the real function!');
+            console.error('   ❌❌❌ ERROR: window.loadDashboardData assignment failed!');
+            console.error('   Name is:', window.loadDashboardData?.name);
+            console.error('   Functions match:', window.loadDashboardData === loadDashboardData);
         }
         
         // Store previous badge counts to detect changes
