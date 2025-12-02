@@ -1022,7 +1022,23 @@
                 activeItem.style.color = '#000';
                 activeItem.style.border = '2px solid #000';
             }
+            
+            // Setup POS form when sales section is shown
+            if (section === 'sales') {
+                setTimeout(() => {
+                    setupPOSForm();
+                    loadPOSProducts();
+                }, 100);
+            }
             currentSection = section;
+            
+            // Setup POS form when sales section is shown
+            if (section === 'sales') {
+                setTimeout(() => {
+                    setupPOSForm();
+                    loadPOSProducts();
+                }, 100);
+            }
             
             // Load section data
             try {
@@ -4139,12 +4155,28 @@ Thank you!</textarea>
             updatePOSCart();
         }
 
-        document.getElementById('pos-order-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (posCart.length === 0) {
-                alert('Please add items to cart');
+        // Setup POS order form handler
+        function setupPOSForm() {
+            const posForm = document.getElementById('pos-order-form');
+            if (!posForm) {
+                console.warn('POS form not found, will retry when sales section is shown');
                 return;
             }
+            
+            // Remove existing listener if any
+            const newForm = posForm.cloneNode(true);
+            posForm.parentNode.replaceChild(newForm, posForm);
+            
+            newForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                console.log('📝 POS form submitted');
+                
+                if (posCart.length === 0) {
+                    alert('Please add items to cart');
+                    return;
+                }
             
             const customerName = document.getElementById('pos-customer-name').value.trim();
             const customerEmail = document.getElementById('pos-customer-email').value.trim();
@@ -4248,6 +4280,14 @@ Thank you!</textarea>
                 }
             }
         });
+        
+        // Try to setup form on page load (in case sales section is visible by default)
+        setTimeout(() => {
+            if (document.getElementById('pos-order-form')) {
+                console.log('🔧 Setting up POS form on page load');
+                setupPOSForm();
+            }
+        }, 500);
     </script>
 </body>
 </html>
