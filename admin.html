@@ -2585,6 +2585,9 @@
                     btn.textContent = 'Fetch Emails';
                 }
             });
+        } else {
+            // Form not found yet, will be set up when broadcast section is loaded
+            console.log('⚠️ Broadcast form not found yet, will be set up when section loads');
         }
         
         // Make showComposeEmail globally accessible
@@ -3703,7 +3706,10 @@ Thank you!</textarea>
         };
         console.log('✅✅✅ Real loadBroadcast function defined and assigned to window');
 
-        document.getElementById('broadcast-form').addEventListener('submit', (e) => {
+        // Setup broadcast form handler when DOM is ready
+        const broadcastForm = document.getElementById('broadcast-form');
+        if (broadcastForm) {
+            broadcastForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const submitBtn = e.target.querySelector('button[type="submit"]');
             const originalText = submitBtn.textContent;
