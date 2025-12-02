@@ -289,38 +289,52 @@
         console.log('✅ window.showSection available:', typeof window.showSection === 'function');
         
         // Define placeholder load functions that will be replaced when real functions are defined
-        // These immediately try to call the real function, or wait and retry
+        // Store references to placeholders so we can check if a function is still a placeholder
+        const placeholderFunctions = new Set();
+        
         function createPlaceholderLoader(functionName) {
-            return function() {
+            const placeholder = function() {
                 console.log(`⏳ ${functionName} called, checking for real function...`);
-                const realFunction = window[functionName];
+                const currentFunction = window[functionName];
                 
-                // Check if this is the real function (not the placeholder)
-                if (realFunction && realFunction !== arguments.callee && typeof realFunction === 'function') {
-                    console.log(`✅ ${functionName} found, calling real function`);
+                // Check if the function has been replaced (not a placeholder anymore)
+                if (currentFunction && !placeholderFunctions.has(currentFunction) && typeof currentFunction === 'function') {
+                    console.log(`✅ ${functionName} found (real function), calling it`);
                     try {
-                        return realFunction.apply(null, arguments);
+                        return currentFunction.apply(null, arguments);
                     } catch (err) {
                         console.error(`Error calling ${functionName}:`, err);
                     }
                 } else {
                     // Real function not available yet, retry after a delay
-                    console.log(`⏳ ${functionName} not available yet, retrying in 100ms...`);
-                    setTimeout(() => {
+                    console.log(`⏳ ${functionName} not available yet, retrying in 200ms...`);
+                    let retryCount = 0;
+                    const maxRetries = 20; // Try for up to 4 seconds
+                    
+                    const tryCall = () => {
+                        retryCount++;
                         const realFn = window[functionName];
-                        if (realFn && realFn !== arguments.callee && typeof realFn === 'function') {
-                            console.log(`✅ ${functionName} now available, calling it`);
+                        if (realFn && !placeholderFunctions.has(realFn) && typeof realFn === 'function') {
+                            console.log(`✅ ${functionName} now available (attempt ${retryCount}), calling it`);
                             try {
                                 realFn.apply(null, arguments);
                             } catch (err) {
                                 console.error(`Error calling ${functionName}:`, err);
                             }
+                        } else if (retryCount < maxRetries) {
+                            setTimeout(tryCall, 200);
                         } else {
-                            console.error(`❌ ${functionName} still not available after retry`);
+                            console.error(`❌ ${functionName} still not available after ${maxRetries} attempts`);
                         }
-                    }, 100);
+                    };
+                    
+                    setTimeout(tryCall, 200);
                 }
             };
+            
+            // Mark this as a placeholder
+            placeholderFunctions.add(placeholder);
+            return placeholder;
         }
         
         // Create placeholders for all load functions
