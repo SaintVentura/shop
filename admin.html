@@ -381,46 +381,46 @@
                     </button>
                 </div>
                 <nav class="px-4 pb-4 space-y-0 -mt-1" id="sidebar-nav">
-                    <a href="javascript:void(0)" data-section="dashboard" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
+                    <a href="javascript:void(0)" onclick="if(window.showSection) { window.showSection('dashboard'); } else { console.error('showSection not available'); }" data-section="dashboard" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
                         <span>📊</span>
                         <span class="sidebar-text">Dashboard</span>
                     </a>
-                    <a href="javascript:void(0)" data-section="orders" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
+                    <a href="javascript:void(0)" onclick="if(window.showSection) { window.showSection('orders'); } else { console.error('showSection not available'); }" data-section="orders" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
                         <span>📋</span>
                         <span class="sidebar-text">Orders</span>
                     </a>
-                    <a href="javascript:void(0)" data-section="inventory" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
+                    <a href="javascript:void(0)" onclick="if(window.showSection) { window.showSection('inventory'); } else { console.error('showSection not available'); }" data-section="inventory" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
                         <span>📦</span>
                         <span class="sidebar-text">Stock Inventory</span>
                     </a>
-                    <a href="javascript:void(0)" data-section="inbox" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition relative cursor-pointer">
+                    <a href="javascript:void(0)" onclick="if(window.showSection) { window.showSection('inbox'); } else { console.error('showSection not available'); }" data-section="inbox" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition relative cursor-pointer">
                         <span>📧</span>
                         <span class="sidebar-text">Email Inbox</span>
                         <span id="inbox-badge" class="notification-badge hidden">0</span>
                     </a>
-                    <a href="javascript:void(0)" data-section="broadcast" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
+                    <a href="javascript:void(0)" onclick="if(window.showSection) { window.showSection('broadcast'); } else { console.error('showSection not available'); }" data-section="broadcast" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
                         <span>📢</span>
                         <span class="sidebar-text">Broadcast</span>
                     </a>
-                    <a href="javascript:void(0)" data-section="abandoned-carts" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition relative cursor-pointer">
+                    <a href="javascript:void(0)" onclick="if(window.showSection) { window.showSection('abandoned-carts'); } else { console.error('showSection not available'); }" data-section="abandoned-carts" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition relative cursor-pointer">
                         <span>🛒</span>
                         <span class="sidebar-text">Abandoned Carts</span>
                         <span id="carts-badge" class="notification-badge hidden">0</span>
                     </a>
-                    <a href="javascript:void(0)" data-section="fulfillers" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
+                    <a href="javascript:void(0)" onclick="if(window.showSection) { window.showSection('fulfillers'); } else { console.error('showSection not available'); }" data-section="fulfillers" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
                         <span>👥</span>
                         <span class="sidebar-text">Order Fulfillers</span>
                     </a>
-                    <a href="javascript:void(0)" data-section="notifications" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition relative cursor-pointer">
+                    <a href="javascript:void(0)" onclick="if(window.showSection) { window.showSection('notifications'); } else { console.error('showSection not available'); }" data-section="notifications" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition relative cursor-pointer">
                         <span>🔔</span>
                         <span class="sidebar-text">Notifications</span>
                         <span id="notifications-badge" class="notification-badge hidden">0</span>
                     </a>
-                    <a href="javascript:void(0)" data-section="sales" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
+                    <a href="javascript:void(0)" onclick="if(window.showSection) { window.showSection('sales'); } else { console.error('showSection not available'); }" data-section="sales" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
                         <span>💰</span>
                         <span class="sidebar-text">Sale Dashboard</span>
                     </a>
-                    <a href="javascript:void(0)" data-section="analytics" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
+                    <a href="javascript:void(0)" onclick="if(window.showSection) { window.showSection('analytics'); } else { console.error('showSection not available'); }" data-section="analytics" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
                         <span>📈</span>
                         <span class="sidebar-text">Analytics</span>
                     </a>
@@ -1281,38 +1281,104 @@
                 return;
             }
             
+            // Check if already set up
+            if (sidebarNav.hasAttribute('data-handlers-attached')) {
+                console.log('✅ Sidebar navigation already set up');
+                return;
+            }
+            
             console.log('🔧 Setting up sidebar navigation handlers');
             
             // Add click handlers to all sidebar items
             const sidebarItems = sidebarNav.querySelectorAll('.sidebar-item');
             console.log('📋 Found', sidebarItems.length, 'sidebar items');
             
-            sidebarItems.forEach(item => {
-                item.addEventListener('click', function(e) {
+            if (sidebarItems.length === 0) {
+                console.warn('⚠️ No sidebar items found');
+                return;
+            }
+            
+            sidebarItems.forEach((item, index) => {
+                // Remove any existing listeners by cloning
+                const newItem = item.cloneNode(true);
+                item.parentNode.replaceChild(newItem, item);
+                
+                newItem.addEventListener('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
                     
                     const section = this.getAttribute('data-section');
-                    console.log('🖱️ Sidebar item clicked:', section);
+                    console.log('🖱️ Sidebar item clicked:', section, 'Index:', index);
                     
-                    if (section && typeof showSection === 'function') {
-                        showSection(section);
+                    if (!section) {
+                        console.error('❌ No section attribute found on clicked item');
+                        return;
+                    }
+                    
+                    if (typeof window.showSection === 'function') {
+                        console.log('✅ Calling showSection with:', section);
+                        window.showSection(section);
                     } else {
-                        console.error('❌ Section not found or showSection not defined:', section);
-                        alert('Navigation error: ' + (section || 'No section specified'));
+                        console.error('❌ showSection function not defined');
+                        alert('Navigation error: showSection function not available');
                     }
                 });
+                
+                console.log('✅ Handler attached to item', index, 'section:', newItem.getAttribute('data-section'));
             });
             
-            console.log('✅ Sidebar navigation handlers attached');
+            sidebarNav.setAttribute('data-handlers-attached', 'true');
+            console.log('✅ Sidebar navigation handlers attached to', sidebarItems.length, 'items');
         }
         
-        // Setup sidebar navigation when DOM is ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', setupSidebarNavigation);
-        } else {
-            setupSidebarNavigation();
+        // Setup sidebar navigation when DOM is ready and after login
+        function initializeSidebarNavigation() {
+            // Wait a bit to ensure DOM is fully ready, especially after login
+            setTimeout(() => {
+                setupSidebarNavigation();
+            }, 300);
         }
+        
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeSidebarNavigation);
+        } else {
+            initializeSidebarNavigation();
+        }
+        
+        // Also setup when dashboard becomes visible (after login)
+        let navigationObserver = null;
+        function setupNavigationObserver() {
+            const adminDashboard = document.getElementById('admin-dashboard');
+            if (adminDashboard && !navigationObserver) {
+                navigationObserver = new MutationObserver(function(mutations) {
+                    if (adminDashboard && !adminDashboard.classList.contains('hidden')) {
+                        const sidebarNav = document.getElementById('sidebar-nav');
+                        if (sidebarNav && !sidebarNav.hasAttribute('data-handlers-attached')) {
+                            console.log('🔄 Dashboard visible, setting up sidebar navigation');
+                            setupSidebarNavigation();
+                        }
+                    }
+                });
+                navigationObserver.observe(adminDashboard, { attributes: true, attributeFilter: ['class'] });
+                console.log('✅ Navigation observer set up');
+            }
+        }
+        
+        // Setup observer when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setupNavigationObserver);
+        } else {
+            setupNavigationObserver();
+        }
+        
+        // Also try to setup immediately after a delay (in case observer doesn't fire)
+        setTimeout(() => {
+            const adminDashboard = document.getElementById('admin-dashboard');
+            if (adminDashboard && !adminDashboard.classList.contains('hidden')) {
+                console.log('🔄 Dashboard is visible, ensuring navigation is set up');
+                setupSidebarNavigation();
+            }
+        }, 1000);
         
         function logout() {
             console.log('🚪 Logging out');
