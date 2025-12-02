@@ -565,13 +565,6 @@
                 <h1 class="text-3xl font-bold mb-2">Saint Ventura</h1>
                 <p class="text-gray-600">Admin Dashboard</p>
             </div>
-            <button onclick="toggleMobileSidebar()" class="md:hidden p-2 hover:bg-gray-100 rounded-lg" aria-label="Toggle mobile menu" title="Toggle mobile menu">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                    <line x1="3" y1="6" x2="21" y2="6"></line>
-                    <line x1="3" y1="12" x2="21" y2="12"></line>
-                    <line x1="3" y1="18" x2="21" y2="18"></line>
-                </svg>
-            </button>
             <form id="login-form" class="space-y-4" onsubmit="return handleLogin(event);">
                 <div>
                     <label class="block text-sm font-medium mb-2">Password</label>
@@ -594,11 +587,6 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
                         </svg>
                     </button>
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="3" y1="6" x2="21" y2="6"></line>
-                            <line x1="3" y1="12" x2="21" y2="12"></line>
-                            <line x1="3" y1="18" x2="21" y2="18"></line>
-                        </svg>
                     </button>
                     <img src="https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1" alt="SV Logo" class="w-10 h-10 md:w-12 md:h-12 rounded-lg object-cover" onerror="this.style.display='none'">
                     <h1 class="text-xl md:text-2xl font-bold">Saint Ventura Admin</h1>
@@ -1100,7 +1088,8 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium mb-2">Subject</label>
-                        <input type="text" id="compose-subject" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required placeholder="Email subject">
+                        <label for="compose-subject" class="block text-sm font-medium mb-2">Subject</label>
+                        <input type="text" id="compose-subject" name="compose-subject" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required placeholder="Email subject">
                     </div>
                 </div>
                 
