@@ -1775,11 +1775,9 @@
         const oldDashboardData = window.loadDashboardData;
         window.loadDashboardData = loadDashboardData;
         console.log('✅ Real loadDashboardData function assigned to window');
-        console.log('   Old function was placeholder:', oldDashboardData === placeholderFunctions?.loadDashboardData);
-        // If placeholder was queued, execute now
-        if (oldDashboardData && oldDashboardData !== loadDashboardData) {
-            console.log('   Placeholder was replaced, function is now available');
-        }
+        console.log('   Old function was placeholder:', oldDashboardData === window.placeholderFunctions?.loadDashboardData);
+        console.log('   New function name:', loadDashboardData.name);
+        console.log('   Function is now:', typeof window.loadDashboardData === 'function' ? 'function' : typeof window.loadDashboardData);
         
         // Store previous badge counts to detect changes
         let previousBadgeCounts = {
@@ -1966,8 +1964,10 @@
                 });
         }
         // Make globally available - this replaces the placeholder
+        const oldInventory = window.loadInventory;
         window.loadInventory = loadInventory;
         console.log('✅ Real loadInventory function assigned to window');
+        console.log('   Old was placeholder:', oldInventory === window.placeholderFunctions?.loadInventory);
         
         function renderInventory(data) {
             const desktopContainer = document.getElementById('inventory-table');
@@ -2401,8 +2401,10 @@
                 });
         }
         // Make globally available - this replaces the placeholder
+        const oldInbox = window.loadInbox;
         window.loadInbox = loadInbox;
         console.log('✅ Real loadInbox function assigned to window');
+        console.log('   Old was placeholder:', oldInbox === window.placeholderFunctions?.loadInbox);
 
         // currentViewingEmail is declared at the top of the script
         
@@ -3680,8 +3682,10 @@ Thank you!</textarea>
                 });
         }
         // Make globally available - this replaces the placeholder
+        const oldBroadcast = window.loadBroadcast;
         window.loadBroadcast = loadBroadcast;
         console.log('✅ Real loadBroadcast function assigned to window');
+        console.log('   Old was placeholder:', oldBroadcast === window.placeholderFunctions?.loadBroadcast);
 
         document.getElementById('broadcast-form').addEventListener('submit', (e) => {
             e.preventDefault();
@@ -3799,8 +3803,10 @@ Thank you!</textarea>
                 });
         }
         // Make globally available - this replaces the placeholder
+        const oldAbandonedCarts = window.loadAbandonedCarts;
         window.loadAbandonedCarts = loadAbandonedCarts;
         console.log('✅ Real loadAbandonedCarts function assigned to window');
+        console.log('   Old was placeholder:', oldAbandonedCarts === window.placeholderFunctions?.loadAbandonedCarts);
 
         function sendCartReminder(cartId) {
             adminFetch(`${BACKEND_URL}/api/admin/abandoned-carts/remind`, {
@@ -3915,8 +3921,10 @@ Thank you!</textarea>
                 });
         }
         // Make globally available - this replaces the placeholder
+        const oldFulfillers = window.loadFulfillers;
         window.loadFulfillers = loadFulfillers;
         console.log('✅ Real loadFulfillers function assigned to window');
+        console.log('   Old was placeholder:', oldFulfillers === window.placeholderFunctions?.loadFulfillers);
         
         // Auto-fill order details when order is selected
         document.getElementById('fulfiller-order-select')?.addEventListener('change', async function(e) {
@@ -4191,8 +4199,10 @@ Thank you!</textarea>
                 });
         }
         // Make globally available - this replaces the placeholder
+        const oldNotifications = window.loadNotifications;
         window.loadNotifications = loadNotifications;
         console.log('✅ Real loadNotifications function assigned to window');
+        console.log('   Old was placeholder:', oldNotifications === window.placeholderFunctions?.loadNotifications);
 
         function markNotificationRead(notifId) {
             adminFetch(`${BACKEND_URL}/api/admin/notifications/read`, {
@@ -4271,8 +4281,10 @@ Thank you!</textarea>
                 });
         }
         // Make globally available - this replaces the placeholder
+        const oldOrders = window.loadOrders;
         window.loadOrders = loadOrders;
         console.log('✅ Real loadOrders function assigned to window');
+        console.log('   Old was placeholder:', oldOrders === window.placeholderFunctions?.loadOrders);
         
         function renderOrders(orders) {
             const tbody = document.getElementById('orders-table');
@@ -4498,8 +4510,10 @@ Thank you!</textarea>
                 });
         }
         // Make globally available - this replaces the placeholder
+        const oldAnalytics = window.loadAnalytics;
         window.loadAnalytics = loadAnalytics;
         console.log('✅ Real loadAnalytics function assigned to window');
+        console.log('   Old was placeholder:', oldAnalytics === window.placeholderFunctions?.loadAnalytics);
         
         function renderRevenueChart(monthlyRevenue) {
             const container = document.getElementById('revenue-chart');
@@ -4633,8 +4647,10 @@ Thank you!</textarea>
                 });
         }
         // Make globally available - this replaces the placeholder
+        const oldSales = window.loadSales;
         window.loadSales = loadSales;
         console.log('✅ Real loadSales function assigned to window');
+        console.log('   Old was placeholder:', oldSales === window.placeholderFunctions?.loadSales);
 
         function showVariantModal(productId) {
             adminFetch(`${BACKEND_URL}/api/admin/products`)
