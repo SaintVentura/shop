@@ -1074,38 +1074,154 @@
             }
         }
 
-        // Login
-        document.getElementById('login-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const password = document.getElementById('admin-password').value;
-            if (password === ADMIN_PASSWORD) {
-                document.getElementById('login-screen').classList.add('hidden');
-                document.getElementById('admin-dashboard').classList.remove('hidden');
-                localStorage.setItem('adminLoggedIn', 'true');
-                loadDashboard();
-                // Start real-time sync immediately after login
-                startRealTimeSync();
-            } else {
-                document.getElementById('login-error').textContent = 'Invalid password';
-                document.getElementById('login-error').classList.remove('hidden');
+        // Login - setup with error handling
+        function setupLoginForm() {
+            const loginForm = document.getElementById('login-form');
+            if (!loginForm) {
+                console.error('❌ Login form not found');
+                return;
             }
-        });
+            
+            // Remove existing listener if any
+            const newForm = loginForm.cloneNode(true);
+            loginForm.parentNode.replaceChild(newForm, loginForm);
+            
+            console.log('🔧 Setting up login form handler');
+            
+            newForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                console.log('📝 Login form submitted');
+                
+                const passwordInput = document.getElementById('admin-password');
+                const password = passwordInput ? passwordInput.value : '';
+                const errorElement = document.getElementById('login-error');
+                
+                console.log('🔑 Password entered:', password ? '***' : '(empty)');
+                console.log('🔑 Expected password:', ADMIN_PASSWORD ? '***' : '(not set)');
+                
+                if (!password) {
+                    if (errorElement) {
+                        errorElement.textContent = 'Please enter a password';
+                        errorElement.classList.remove('hidden');
+                    }
+                    return;
+                }
+                
+                if (password === ADMIN_PASSWORD) {
+                    console.log('✅ Login successful');
+                    const loginScreen = document.getElementById('login-screen');
+                    const adminDashboard = document.getElementById('admin-dashboard');
+                    
+                    if (loginScreen) {
+                        loginScreen.classList.add('hidden');
+                    }
+                    if (adminDashboard) {
+                        adminDashboard.classList.remove('hidden');
+                    }
+                    
+                    localStorage.setItem('adminLoggedIn', 'true');
+                    
+                    // Load dashboard
+                    if (typeof loadDashboard === 'function') {
+                        loadDashboard();
+                    }
+                    
+                    // Start real-time sync
+                    if (typeof startRealTimeSync === 'function') {
+                        startRealTimeSync();
+                    }
+                    
+                    // Show dashboard section
+                    if (typeof showSection === 'function') {
+                        showSection('dashboard');
+                    }
+                } else {
+                    console.log('❌ Invalid password');
+                    if (errorElement) {
+                        errorElement.textContent = 'Invalid password. Please try again.';
+                        errorElement.classList.remove('hidden');
+                    }
+                    // Clear password field
+                    if (passwordInput) {
+                        passwordInput.value = '';
+                        passwordInput.focus();
+                    }
+                }
+            });
+        }
+        
+        // Setup login form
+        setupLoginForm();
 
         // Check if already logged in
-        if (localStorage.getItem('adminLoggedIn') === 'true') {
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('admin-dashboard').classList.remove('hidden');
-            loadDashboard();
-            // Start real-time sync immediately when logged in
-            startRealTimeSync();
+        function checkLoginStatus() {
+            const isLoggedIn = localStorage.getItem('adminLoggedIn') === 'true';
+            const loginScreen = document.getElementById('login-screen');
+            const adminDashboard = document.getElementById('admin-dashboard');
+            
+            if (isLoggedIn && loginScreen && adminDashboard) {
+                console.log('✅ User already logged in, showing dashboard');
+                loginScreen.classList.add('hidden');
+                adminDashboard.classList.remove('hidden');
+                
+                if (typeof loadDashboard === 'function') {
+                    loadDashboard();
+                }
+                
+                if (typeof startRealTimeSync === 'function') {
+                    startRealTimeSync();
+                }
+                
+                if (typeof showSection === 'function') {
+                    showSection('dashboard');
+                }
+            } else {
+                console.log('🔐 User not logged in, showing login screen');
+                if (loginScreen) {
+                    loginScreen.classList.remove('hidden');
+                }
+                if (adminDashboard) {
+                    adminDashboard.classList.add('hidden');
+                }
+            }
         }
+        
+        // Check login status on page load
+        checkLoginStatus();
 
         function logout() {
+            console.log('🚪 Logging out');
             localStorage.removeItem('adminLoggedIn');
-            document.getElementById('login-screen').classList.remove('hidden');
-            document.getElementById('admin-dashboard').classList.add('hidden');
+            
+            const loginScreen = document.getElementById('login-screen');
+            const adminDashboard = document.getElementById('admin-dashboard');
+            
+            if (loginScreen) {
+                loginScreen.classList.remove('hidden');
+            }
+            if (adminDashboard) {
+                adminDashboard.classList.add('hidden');
+            }
+            
             // Stop real-time sync when logging out
-            stopRealTimeSync();
+            if (typeof stopRealTimeSync === 'function') {
+                stopRealTimeSync();
+            }
+            
+            // Clear password field
+            const passwordInput = document.getElementById('admin-password');
+            if (passwordInput) {
+                passwordInput.value = '';
+            }
+            
+            // Clear error message
+            const errorElement = document.getElementById('login-error');
+            if (errorElement) {
+                errorElement.textContent = '';
+                errorElement.classList.add('hidden');
+            }
         }
 
 
