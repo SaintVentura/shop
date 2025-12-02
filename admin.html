@@ -722,6 +722,10 @@
                                         <option value="eft">EFT</option>
                                     </select>
                                 </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="pos-subscribe" class="w-4 h-4 border border-gray-300 rounded text-black focus:ring-black">
+                                    <label for="pos-subscribe" class="ml-2 text-sm font-medium">Subscribe to newsletter</label>
+                                </div>
                                 <button type="submit" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition">Process Order</button>
                             </form>
                         </div>
@@ -1480,15 +1484,15 @@
                                     <img src="${productImage}" alt="${product.productName}" class="w-16 h-16 object-cover rounded-lg border border-gray-200" onerror="this.src='https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1'">
                                     <div class="flex-1">
                                         <p class="font-semibold text-lg">${product.productName}</p>
-                                        <div class="flex items-center space-x-4 mt-1">
-                                            <p class="text-sm text-gray-500">${product.category || 'N/A'}</p>
-                                            <p class="text-sm font-semibold">R${(product.price || 0).toFixed(2)}</p>
-                                            <span class="text-sm text-gray-600">${product.variants.length} variant${product.variants.length !== 1 ? 's' : ''}</span>
-                                            <span class="text-sm font-semibold">Total Stock: ${totalStock}</span>
-                                            <span class="text-sm font-semibold text-blue-600">Stock Cost: R${totalStockCost.toFixed(2)}</span>
-                                            <span class="text-sm font-semibold text-purple-600">Cost/Unit: R${totalCostPerUnit.toFixed(2)}</span>
-                                            ${lowStockCount > 0 ? `<span class="text-sm text-yellow-600">⚠️ ${lowStockCount} low stock</span>` : ''}
-                                            ${outOfStockCount > 0 ? `<span class="text-sm text-red-600">❌ ${outOfStockCount} out of stock</span>` : ''}
+                                        <div class="flex items-center space-x-3 mt-1 flex-wrap">
+                                            <p class="text-xs text-gray-500">${product.category || 'N/A'}</p>
+                                            <p class="text-xs font-semibold">R${(product.price || 0).toFixed(2)}</p>
+                                            <span class="text-xs text-gray-600">${product.variants.length} variant${product.variants.length !== 1 ? 's' : ''}</span>
+                                            <span class="text-xs font-semibold">Total Stock: ${totalStock}</span>
+                                            <span class="text-xs font-semibold text-blue-600">Stock Cost: R${totalStockCost.toFixed(2)}</span>
+                                            <span class="text-xs font-semibold text-purple-600">Cost/Unit: R${totalCostPerUnit.toFixed(2)}</span>
+                                            ${lowStockCount > 0 ? `<span class="text-xs text-yellow-600">⚠️ ${lowStockCount} low stock</span>` : ''}
+                                            ${outOfStockCount > 0 ? `<span class="text-xs text-red-600">❌ ${outOfStockCount} out of stock</span>` : ''}
                                         </div>
                                     </div>
                                 </div>
@@ -4146,6 +4150,7 @@ Thank you!</textarea>
             const customerEmail = document.getElementById('pos-customer-email').value;
             const customerPhone = document.getElementById('pos-customer-phone').value;
             const paymentMethod = document.getElementById('pos-payment-method').value;
+            const subscribe = document.getElementById('pos-subscribe').checked;
             const total = posCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
             adminFetch(`${BACKEND_URL}/api/admin/pos/order`, {
@@ -4156,7 +4161,8 @@ Thank you!</textarea>
                     customerPhone,
                     paymentMethod,
                     items: posCart,
-                    total
+                    total,
+                    subscribe
                 })
             })
             .then(data => {

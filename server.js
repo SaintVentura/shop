@@ -3809,11 +3809,37 @@ app.put('/api/admin/orders/:orderId/status', adminAuth, async (req, res) => {
 // POS/Sales Dashboard routes
 app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
   try {
-    const { customerName, customerEmail, customerPhone, paymentMethod, items, total } = req.body;
+    const { customerName, customerEmail, customerPhone, paymentMethod, items, total, subscribe } = req.body;
+    
+    // Handle subscription if customer wants to subscribe
+    if (subscribe && customerEmail) {
+      try {
+        const subscribers = await readDataFile('subscribers');
+        const emailLower = customerEmail.toLowerCase().trim();
+        const existingSubscriber = subscribers.find(s => s.email.toLowerCase().trim() === emailLower);
+        
+        if (!existingSubscriber) {
+          subscribers.push({
+            email: emailLower,
+            subscribedAt: new Date().toISOString(),
+            source: 'pos'
+          });
+          await writeDataFile('subscribers', subscribers);
+          console.log(`✅ Added subscriber from POS: ${emailLower}`);
+        }
+      } catch (subError) {
+        console.error('Error adding subscriber:', subError);
+        // Don't fail the order if subscription fails
+      }
+    }
     
     // Store order
     const orders = await readDataFile('orders');
     const orderId = `POS-${Date.now()}`;
+    const orderDate = new Date().toISOString();
+    // EFT and cash payments are immediately fulfilled orders
+    const orderStatus = (paymentMethod === 'cash' || paymentMethod === 'eft') ? 'fulfilled' : 'pending checkout';
+    
     orders.push({
       id: orderId,
       customerName,
@@ -3822,32 +3848,88 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
       paymentMethod,
       items,
       total,
-      date: new Date().toISOString(),
-      status: paymentMethod === 'yoco' ? 'pending checkout' : 'fulfilled' // Sale dashboard: cash/EFT = fulfilled, yoco = pending checkout
+      date: orderDate,
+      status: orderStatus,
+      deliveryCost: 0 // POS orders typically don't have delivery costs
     });
     await writeDataFile('orders', orders);
     
-    // Reduce stock when order is fulfilled (POS with cash/EFT)
-    if (paymentMethod !== 'yoco') {
+    // Process fulfilled orders: reduce stock (revenue/profit calculated automatically from fulfilled orders)
+    if (orderStatus === 'fulfilled') {
       try {
         const inventory = await readDataFile('inventory');
+        let stockUpdated = false;
+        
         for (const item of items) {
-          const inventoryItem = inventory.find(inv => 
-            inv.productId === item.id || 
-            inv.productId === parseInt(item.id) ||
-            inv.productName === item.name
-          );
+          const quantityToReduce = item.quantity || 1;
+          
+          // Try to find inventory item by productId and variant (size/color)
+          let inventoryItem = null;
+          
+          // First, try to match by productId and variantId (if size/color provided)
+          if (item.size || item.color) {
+            const variantId = item.size && item.color 
+              ? `${item.size}-${item.color}` 
+              : item.size || item.color;
+            
+            inventoryItem = inventory.find(inv => {
+              const productMatch = inv.productId === item.id || 
+                                   inv.productId === parseInt(item.id) ||
+                                   String(inv.productId) === String(item.id);
+              
+              if (!productMatch) return false;
+              
+              // Match variant if both have variant info
+              if (inv.variantId && variantId) {
+                return inv.variantId === variantId || 
+                       inv.variantId === item.size || 
+                       inv.variantId === item.color ||
+                       inv.variant === item.size ||
+                       inv.variant === item.color;
+              }
+              
+              // If inventory item has no variant, it's a single-variant product
+              return !inv.variantId && !inv.variant;
+            });
+          }
+          
+          // Fallback: match by productId only (for products without variants)
+          if (!inventoryItem) {
+            inventoryItem = inventory.find(inv => 
+              inv.productId === item.id || 
+              inv.productId === parseInt(item.id) ||
+              String(inv.productId) === String(item.id)
+            );
+          }
+          
+          // Final fallback: match by product name
+          if (!inventoryItem) {
+            inventoryItem = inventory.find(inv => 
+              inv.productName === item.name || 
+              inv.name === item.name
+            );
+          }
           
           if (inventoryItem) {
-            const quantityToReduce = item.quantity || 1;
-            const currentStock = inventoryItem.stock || 0;
+            const currentStock = parseInt(inventoryItem.stock) || 0;
             const newStock = Math.max(0, currentStock - quantityToReduce);
             inventoryItem.stock = newStock;
             inventoryItem.updatedAt = new Date().toISOString();
-            console.log(`✅ Reduced stock for ${inventoryItem.productName}: ${currentStock} -> ${newStock}`);
+            stockUpdated = true;
+            console.log(`✅ Reduced stock for ${inventoryItem.productName || inventoryItem.name}${inventoryItem.variantId ? ` (${inventoryItem.variantId})` : ''}: ${currentStock} -> ${newStock}`);
+          } else {
+            console.warn(`⚠️ Could not find inventory item for: ${item.name} (ID: ${item.id}, Size: ${item.size}, Color: ${item.color})`);
           }
         }
-        await writeDataFile('inventory', inventory);
+        
+        if (stockUpdated) {
+          await writeDataFile('inventory', inventory);
+          console.log('✅ Stock updated successfully');
+        }
+        
+        // Revenue and profit are automatically calculated from fulfilled orders in the stats endpoint
+        // No need to manually update them here as they're computed from the orders array
+        
       } catch (stockError) {
         console.error('Error reducing stock:', stockError);
       }
