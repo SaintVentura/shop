@@ -1331,9 +1331,452 @@
         };
         console.log('✅ loadDashboardData defined');
         
-        // Define other load functions as stubs for now - they'll be replaced in try block
-        // But at least they exist and won't cause "function not available" errors
-        console.log('✅ All load functions are now available (some as stubs, will be replaced)');
+        // Now define ALL other load functions OUTSIDE try block so they're always available
+        // This ensures they work even if there's an error in the try block
+        
+        // Replace stub with real loadInventory function
+        window.loadInventory = function loadInventory() {
+            const tbody = document.getElementById('inventory-table');
+            const mobileContainer = document.getElementById('inventory-table-mobile');
+            
+            // Show loading state
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-12 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading inventory...</span></div></td></tr>';
+            }
+            if (mobileContainer) {
+                mobileContainer.innerHTML = '<div class="text-center py-8 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading inventory...</span></div></div>';
+            }
+            
+            adminFetch(`${BACKEND_URL}/api/admin/inventory`)
+                .then(data => {
+                    console.log('Inventory data received:', data);
+                    if (!Array.isArray(data)) {
+                        throw new Error('Invalid data format received - expected array');
+                    }
+                    if (typeof window.allInventoryData !== 'undefined') {
+                        window.allInventoryData = data;
+                    }
+                    if (typeof renderInventory === 'function') {
+                        renderInventory(data);
+                    } else {
+                        console.warn('renderInventory function not available yet');
+                    }
+                })
+                .catch(err => {
+                    console.error('Inventory loading error:', err);
+                    const errorMsg = `Error loading inventory: ${err.message}. Please check your connection and ensure the backend is running at ${BACKEND_URL}`;
+                    if (tbody) {
+                        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-12"><div class="error-message">${errorMsg}<br><small>Backend URL: ${BACKEND_URL}</small></div></td></tr>`;
+                    }
+                    if (mobileContainer) {
+                        mobileContainer.innerHTML = `<div class="error-message">${errorMsg}<br><small>Backend URL: ${BACKEND_URL}</small></div>`;
+                    }
+                });
+        };
+        console.log('✅ loadInventory defined');
+        
+        // Replace stub with real loadInbox function
+        window.loadInbox = function loadInbox() {
+            console.log('📧 Loading inbox (real function)...');
+            const list = document.getElementById('inbox-list');
+            if (!list) {
+                console.error('❌ inbox-list element not found');
+                return;
+            }
+            list.innerHTML = '<div class="text-center py-8 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading emails...</span></div></div>';
+            
+            const backendUrl = window.BACKEND_URL || BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
+            console.log('📧 Using backend URL:', backendUrl);
+            adminFetch(`${backendUrl}/api/admin/inbox`)
+                .then(data => {
+                    console.log('Inbox data received:', data);
+                    if (!Array.isArray(data)) {
+                        throw new Error('Invalid data format');
+                    }
+                    // Sort by date (newest first)
+                    const sortedData = data.sort((a, b) => {
+                        const dateA = new Date(a.date || 0);
+                        const dateB = new Date(b.date || 0);
+                        return dateB - dateA;
+                    });
+                    if (sortedData.length === 0) {
+                        list.innerHTML = '<div class="text-center py-8 text-gray-500">No emails</div>';
+                        return;
+                    }
+                    list.innerHTML = sortedData.map(email => `
+                        <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition cursor-pointer ${email.read ? '' : 'bg-blue-50 border-blue-200'} ${email.sent ? 'bg-green-50 border-green-200' : ''}" onclick="if(typeof viewEmail==='function')viewEmail('${email.id}')">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <p class="font-semibold ${email.read ? 'text-gray-700' : 'text-black'}">${email.subject || '(No Subject)'}</p>
+                                    <p class="text-sm text-gray-600 mt-1">${email.sent ? 'To:' : 'From:'} ${email.name || email.from || email.to || 'Unknown'}</p>
+                                    <p class="text-xs text-gray-500 mt-1">${email.date ? new Date(email.date).toLocaleString() : 'Unknown date'}</p>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    ${email.sent ? '<span class="px-2 py-1 bg-green-500 text-white rounded-full text-xs">Sent</span>' : ''}
+                                    ${!email.read ? '<span class="px-2 py-1 bg-blue-500 text-white rounded-full text-xs">New</span>' : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                })
+                .catch(err => {
+                    console.error('Inbox loading error:', err);
+                    list.innerHTML = `<div class="error-message">Error loading emails: ${err.message}<br><small>Backend URL: ${BACKEND_URL}</small></div>`;
+                });
+        };
+        console.log('✅ loadInbox defined');
+        
+        // Replace stub with real loadBroadcast function
+        window.loadBroadcast = function loadBroadcast() {
+            console.log('📢 Loading broadcast (real function)...');
+            const backendUrl = window.BACKEND_URL || BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
+            console.log('📢 Using backend URL:', backendUrl);
+            // Load subscribers
+            adminFetch(`${backendUrl}/api/admin/subscribers`)
+                .then(data => {
+                    if (!Array.isArray(data)) {
+                        throw new Error('Invalid subscribers data format');
+                    }
+                    const countEl = document.getElementById('subscriber-count');
+                    if (countEl) countEl.textContent = data.length;
+                    const list = document.getElementById('subscribers-list');
+                    if (list) {
+                        if (data.length === 0) {
+                            list.innerHTML = '<div class="text-center py-4 text-gray-500">No subscribers</div>';
+                        } else {
+                            list.innerHTML = data.map(sub => `
+                                <div class="flex justify-between items-center p-2 border border-gray-200 rounded">
+                                    <span class="text-sm">${sub.email}</span>
+                                    <span class="text-xs text-gray-500">${new Date(sub.date).toLocaleDateString()}</span>
+                                </div>
+                            `).join('');
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.error('Error loading subscribers:', err);
+                    const list = document.getElementById('subscribers-list');
+                    if (list) {
+                        list.innerHTML = `<div class="error-message">Error loading subscribers: ${err.message || 'Unknown error'}</div>`;
+                    }
+                });
+            
+            // Load products
+            adminFetch(`${backendUrl}/api/admin/products`)
+                .then(data => {
+                    if (!Array.isArray(data)) {
+                        throw new Error('Invalid products data format');
+                    }
+                    const select = document.getElementById('broadcast-products');
+                    if (select) {
+                        select.innerHTML = '<option value="">Select products...</option>' +
+                            data.map(p => `<option value="${p.id}">${p.name} - R${(p.price || 0).toFixed(2)}</option>`).join('');
+                    }
+                })
+                .catch(err => {
+                    console.error('Error loading products:', err);
+                    const select = document.getElementById('broadcast-products');
+                    if (select) {
+                        select.innerHTML = `<option value="">Error loading products</option>`;
+                    }
+                });
+        };
+        console.log('✅ loadBroadcast defined');
+        
+        // Replace stub with real loadAbandonedCarts function
+        window.loadAbandonedCarts = function loadAbandonedCarts() {
+            console.log('🛒 Loading abandoned carts (real function)...');
+            const list = document.getElementById('abandoned-carts-list');
+            if (!list) {
+                console.error('❌ abandoned-carts-list element not found');
+                return;
+            }
+            list.innerHTML = '<div class="text-center py-8 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading abandoned carts...</span></div></div>';
+            
+            const backendUrl = window.BACKEND_URL || BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
+            console.log('🛒 Using backend URL:', backendUrl);
+            adminFetch(`${backendUrl}/api/admin/abandoned-carts`)
+                .then(data => {
+                    console.log('Abandoned carts data received:', data);
+                    if (!Array.isArray(data)) {
+                        throw new Error('Invalid data format');
+                    }
+                    if (data.length === 0) {
+                        list.innerHTML = '<div class="text-center py-8 text-gray-500">No abandoned carts</div>';
+                        return;
+                    }
+                    list.innerHTML = data.map(cart => {
+                        let timeAbandoned = 'Unknown';
+                        if (cart.date) {
+                            const abandonedDate = new Date(cart.date);
+                            const now = new Date();
+                            const diffMs = now - abandonedDate;
+                            const diffMins = Math.floor(diffMs / 60000);
+                            const diffHours = Math.floor(diffMs / 3600000);
+                            const diffDays = Math.floor(diffMs / 86400000);
+                            
+                            if (diffMins < 1) {
+                                timeAbandoned = 'Just now';
+                            } else if (diffMins < 60) {
+                                timeAbandoned = `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+                            } else if (diffHours < 24) {
+                                timeAbandoned = `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+                            } else if (diffDays < 30) {
+                                timeAbandoned = `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+                            } else {
+                                const diffMonths = Math.floor(diffDays / 30);
+                                timeAbandoned = `${diffMonths} month${diffMonths !== 1 ? 's' : ''} ago`;
+                            }
+                        }
+                        
+                        return `
+                        <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition">
+                            <div class="flex justify-between items-start mb-3">
+                                <div class="flex-1">
+                                    <p class="font-semibold text-lg">${cart.email || 'Guest'}</p>
+                                    <p class="text-sm text-gray-600 mt-1">${(cart.items || []).length} item${(cart.items || []).length !== 1 ? 's' : ''}</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-xs font-medium text-gray-500 mb-1">Abandoned</p>
+                                    <p class="text-sm font-semibold text-red-600">${timeAbandoned}</p>
+                                    <p class="text-xs text-gray-400 mt-1">${cart.date ? new Date(cart.date).toLocaleString() : 'N/A'}</p>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center mt-3 pt-3 border-t border-gray-200">
+                                <p class="text-lg font-bold">Total: R${(cart.total || 0).toFixed(2)}</p>
+                                ${cart.email ? `<button onclick="if(typeof sendCartReminder==='function')sendCartReminder('${cart.id}')" class="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 transition">Send Reminder</button>` : '<span class="text-xs text-gray-400">No email</span>'}
+                            </div>
+                        </div>
+                    `;
+                    }).join('');
+                })
+                .catch(err => {
+                    console.error('Error loading abandoned carts:', err);
+                    list.innerHTML = `<div class="error-message">Error loading abandoned carts: ${err.message}<br><small>Backend URL: ${BACKEND_URL}</small></div>`;
+                });
+        };
+        console.log('✅ loadAbandonedCarts defined');
+        
+        // Replace stub with real loadFulfillers function
+        window.loadFulfillers = function loadFulfillers() {
+            console.log('🚚 Loading fulfillers (real function)...');
+            const list = document.getElementById('fulfillers-list');
+            const select = document.getElementById('fulfiller-select');
+            if (!list) {
+                console.error('❌ fulfillers-list element not found');
+                return;
+            }
+            list.innerHTML = '<div class="text-center py-4 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading fulfillers...</span></div></div>';
+            
+            const backendUrl = window.BACKEND_URL || BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
+            console.log('🚚 Using backend URL:', backendUrl);
+            adminFetch(`${backendUrl}/api/admin/fulfillers`)
+                .then(data => {
+                    console.log('Fulfillers data received:', data);
+                    if (!Array.isArray(data)) {
+                        throw new Error('Invalid data format');
+                    }
+                    if (data.length === 0) {
+                        list.innerHTML = '<div class="text-center py-4 text-gray-500">No fulfillers added</div>';
+                        if (select) select.innerHTML = '<option value="">No fulfillers available</option>';
+                    } else {
+                        list.innerHTML = data.map(f => `
+                            <div class="flex justify-between items-center p-3 border border-gray-200 rounded-lg">
+                                <div class="flex-1">
+                                    <p class="font-semibold text-base">${f.name || 'Unknown'}</p>
+                                    <p class="text-sm text-gray-600">${f.email || 'No email'}</p>
+                                    ${f.phone ? `<p class="text-xs text-gray-500">${f.phone}</p>` : ''}
+                                </div>
+                                <button onclick="if(typeof deleteFulfiller==='function')deleteFulfiller('${f.id}')" class="ml-4 px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition">Delete</button>
+                            </div>
+                        `).join('');
+                        if (select) {
+                            select.innerHTML = '<option value="">Select a fulfiller...</option>' +
+                                data.map(f => `<option value="${f.id}">${f.name || 'Unknown'} (${f.email || 'No email'})</option>`).join('');
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.error('Error loading fulfillers:', err);
+                    if (list) {
+                        list.innerHTML = `<div class="error-message">Error loading fulfillers: ${err.message}<br><small>Backend URL: ${BACKEND_URL}</small></div>`;
+                    }
+                    if (select) {
+                        select.innerHTML = '<option value="">Error loading fulfillers</option>';
+                    }
+                });
+        };
+        console.log('✅ loadFulfillers defined');
+        
+        // Replace stub with real loadNotifications function
+        window.loadNotifications = function loadNotifications() {
+            console.log('🔔 Loading notifications (real function)...');
+            const list = document.getElementById('notifications-list');
+            if (!list) {
+                console.error('❌ notifications-list element not found');
+                return;
+            }
+            
+            list.innerHTML = '<div class="text-center py-8 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading notifications...</span></div></div>';
+            
+            const backendUrl = window.BACKEND_URL || BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
+            console.log('🔔 Using backend URL:', backendUrl);
+            adminFetch(`${backendUrl}/api/admin/notifications`)
+                .then(data => {
+                    console.log('Notifications data received:', data);
+                    if (!data) {
+                        throw new Error('No data received from server');
+                    }
+                    if (!Array.isArray(data)) {
+                        if (data.error) {
+                            throw new Error(data.error);
+                        }
+                        throw new Error('Invalid data format - expected array');
+                    }
+                    if (data.length === 0) {
+                        list.innerHTML = '<div class="text-center py-8 text-gray-500">No notifications</div>';
+                        return;
+                    }
+                    list.innerHTML = data.map(notif => {
+                        const notifId = notif.id || Date.now().toString();
+                        const notifTitle = (notif.title || 'Notification').replace(/'/g, "\\'");
+                        const notifMessage = (notif.message || 'No message').replace(/'/g, "\\'");
+                        return `
+                        <div class="border border-gray-200 rounded-lg p-4 ${notif.read ? 'bg-gray-50' : 'bg-white'}">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="font-semibold">${notifTitle}</p>
+                                    <p class="text-sm text-gray-600">${notifMessage}</p>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-xs text-gray-500">${notif.date ? new Date(notif.date).toLocaleString() : 'N/A'}</span>
+                                    ${!notif.read ? `<button onclick="if(typeof markNotificationRead==='function')markNotificationRead('${notifId}')" class="ml-2 text-sm text-blue-600 hover:underline">Mark Read</button>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    }).join('');
+                })
+                .catch(err => {
+                    console.error('Error loading notifications:', err);
+                    const errorMsg = err.message || 'Unknown error';
+                    list.innerHTML = `<div class="error-message">Error loading notifications: ${errorMsg}<br><small>Backend URL: ${BACKEND_URL}</small><br><small>Please check your connection and ensure the backend is running.</small></div>`;
+                });
+        };
+        console.log('✅ loadNotifications defined');
+        
+        // Replace stub with real loadOrders function
+        window.loadOrders = function loadOrders() {
+            const tbody = document.getElementById('orders-table');
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-12 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading orders...</span></div></td></tr>';
+            }
+            
+            adminFetch(`${BACKEND_URL}/api/admin/orders`)
+                .then(data => {
+                    console.log('Orders data received:', data);
+                    if (!Array.isArray(data)) {
+                        throw new Error('Invalid data format');
+                    }
+                    if (typeof window.allOrdersData !== 'undefined') {
+                        window.allOrdersData = data;
+                    }
+                    if (typeof renderOrders === 'function') {
+                        renderOrders(data);
+                    } else {
+                        console.warn('renderOrders function not available yet');
+                        if (tbody) {
+                            tbody.innerHTML = '<tr><td colspan="8" class="text-center py-12 text-gray-500">Orders loaded but render function not ready</td></tr>';
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.error('Error loading orders:', err);
+                    if (tbody) {
+                        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-12"><div class="error-message">Error loading orders: ${err.message}</div></td></tr>`;
+                    }
+                });
+        };
+        console.log('✅ loadOrders defined');
+        
+        // Replace stub with real loadAnalytics function
+        window.loadAnalytics = function loadAnalytics() {
+            console.log('📊 Loading analytics (real function)...');
+            const backendUrl = window.BACKEND_URL || BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
+            console.log('📊 Using backend URL:', backendUrl);
+            adminFetch(`${backendUrl}/api/admin/dashboard`)
+                .then(data => {
+                    if (data.success) {
+                        if (typeof renderRevenueChart === 'function') {
+                            renderRevenueChart(data.monthlyRevenue);
+                        }
+                        if (typeof renderStatusChart === 'function') {
+                            renderStatusChart(data.stats);
+                        }
+                        if (typeof renderSalesSummary === 'function') {
+                            renderSalesSummary(data);
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.error('Error loading analytics:', err);
+                    const container = document.getElementById('revenue-chart');
+                    if (container) {
+                        container.innerHTML = `<div class="error-message">Error loading analytics: ${err.message}</div>`;
+                    }
+                });
+        };
+        console.log('✅ loadAnalytics defined');
+        
+        // Replace stub with real loadSales function
+        window.loadSales = function loadSales() {
+            console.log('💰 Loading sales/POS (real function)...');
+            const container = document.getElementById('pos-products');
+            if (!container) {
+                console.error('❌ pos-products element not found');
+                return;
+            }
+            container.innerHTML = '<div class="col-span-2 md:col-span-3 lg:col-span-4 text-center py-8 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading products...</span></div></div>';
+            
+            const backendUrl = window.BACKEND_URL || BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
+            console.log('💰 Using backend URL:', backendUrl);
+            adminFetch(`${backendUrl}/api/admin/products`)
+                .then(data => {
+                    console.log('POS products data received:', data);
+                    if (!Array.isArray(data)) {
+                        throw new Error('Invalid products data format');
+                    }
+                    if (data.length === 0) {
+                        container.innerHTML = '<div class="col-span-2 md:col-span-3 lg:col-span-4 text-center py-8 text-gray-500">No products available</div>';
+                        return;
+                    }
+                    container.innerHTML = data.map(p => {
+                        const firstImage = p.images && p.images.length > 0 ? p.images[0] : (p.availableColors && p.availableColors.length > 0 ? p.availableColors[0].image : 'https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1');
+                        const hasVariants = (p.sizes && p.sizes.length > 1) || (p.colors && p.colors.length > 1);
+                        return `
+                        <div class="border border-gray-200 rounded-xl p-4 hover:shadow-lg transition-all duration-200 bg-white">
+                            <div class="aspect-square mb-3 bg-gray-100 rounded-lg overflow-hidden">
+                                <img src="${firstImage}" alt="${p.name}" class="w-full h-full object-cover" onerror="this.src='https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1'">
+                            </div>
+                            <p class="font-semibold text-sm md:text-base mb-1">${p.name || 'Unknown Product'}</p>
+                            <p class="text-gray-600 text-sm md:text-base font-bold mb-2">R${(p.price || 0).toFixed(2)}</p>
+                            ${hasVariants ? `
+                                <button onclick="if(typeof showVariantModal==='function')showVariantModal(${p.id})" class="w-full px-3 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition">Select Variant</button>
+                            ` : `
+                                <button onclick="if(typeof addToPOSCart==='function')addToPOSCart(${p.id}, '${(p.name || '').replace(/'/g, "\\'")}', ${p.price || 0}, null, null)" class="w-full px-3 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition">Add to Cart</button>
+                            `}
+                        </div>
+                    `;
+                    }).join('');
+                })
+                .catch(err => {
+                    console.error('Error loading POS products:', err);
+                    container.innerHTML = `<div class="col-span-2 md:col-span-3 lg:col-span-4 error-message">Error loading products: ${err.message}<br><small>Backend URL: ${BACKEND_URL}</small></div>`;
+                });
+        };
+        console.log('✅ loadSales defined');
+        
+        console.log('✅✅✅ ALL load functions defined and available BEFORE try block');
         
         try {
             console.log('🚀🚀🚀 BODY SCRIPT STARTING - This should appear immediately when page loads');
