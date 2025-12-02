@@ -4922,30 +4922,19 @@ Thank you!</textarea>
             }
         }, 500);
         
-        // Make all load functions globally available so showSection can access them
-        // This ensures functions are available even if called before DOM is fully ready
-        window.loadDashboardData = loadDashboardData;
-        window.loadOrders = loadOrders;
-        window.loadInventory = loadInventory;
-        window.loadInbox = loadInbox;
-        window.loadBroadcast = loadBroadcast;
-        window.loadAbandonedCarts = loadAbandonedCarts;
-        window.loadFulfillers = loadFulfillers;
-        window.loadNotifications = loadNotifications;
-        window.loadSales = loadSales;
-        window.loadAnalytics = loadAnalytics;
-        
-        console.log('✅ All load functions made globally available');
-        console.log('✅ loadDashboardData available:', typeof window.loadDashboardData === 'function');
-        console.log('✅ loadOrders available:', typeof window.loadOrders === 'function');
-        console.log('✅ loadInventory available:', typeof window.loadInventory === 'function');
-        console.log('✅ loadInbox available:', typeof window.loadInbox === 'function');
-        console.log('✅ loadBroadcast available:', typeof window.loadBroadcast === 'function');
-        console.log('✅ loadAbandonedCarts available:', typeof window.loadAbandonedCarts === 'function');
-        console.log('✅ loadFulfillers available:', typeof window.loadFulfillers === 'function');
-        console.log('✅ loadNotifications available:', typeof window.loadNotifications === 'function');
-        console.log('✅ loadSales available:', typeof window.loadSales === 'function');
-        console.log('✅ loadAnalytics available:', typeof window.loadAnalytics === 'function');
+        // All load functions are already defined directly on window (e.g., window.loadDashboardData = function loadDashboardData() { ... })
+        // So they're already globally available - no need to reassign them
+        console.log('✅✅✅ BODY SCRIPT COMPLETED - Verifying all functions are assigned');
+        console.log('✅ loadDashboardData:', typeof window.loadDashboardData === 'function', 'name:', window.loadDashboardData?.name, 'is placeholder:', window.loadDashboardData?.name === 'placeholder');
+        console.log('✅ loadOrders:', typeof window.loadOrders === 'function', 'name:', window.loadOrders?.name, 'is placeholder:', window.loadOrders?.name === 'placeholder');
+        console.log('✅ loadInventory:', typeof window.loadInventory === 'function', 'name:', window.loadInventory?.name, 'is placeholder:', window.loadInventory?.name === 'placeholder');
+        console.log('✅ loadInbox:', typeof window.loadInbox === 'function', 'name:', window.loadInbox?.name, 'is placeholder:', window.loadInbox?.name === 'placeholder');
+        console.log('✅ loadBroadcast:', typeof window.loadBroadcast === 'function', 'name:', window.loadBroadcast?.name, 'is placeholder:', window.loadBroadcast?.name === 'placeholder');
+        console.log('✅ loadAbandonedCarts:', typeof window.loadAbandonedCarts === 'function', 'name:', window.loadAbandonedCarts?.name, 'is placeholder:', window.loadAbandonedCarts?.name === 'placeholder');
+        console.log('✅ loadFulfillers:', typeof window.loadFulfillers === 'function', 'name:', window.loadFulfillers?.name, 'is placeholder:', window.loadFulfillers?.name === 'placeholder');
+        console.log('✅ loadNotifications:', typeof window.loadNotifications === 'function', 'name:', window.loadNotifications?.name, 'is placeholder:', window.loadNotifications?.name === 'placeholder');
+        console.log('✅ loadSales:', typeof window.loadSales === 'function', 'name:', window.loadSales?.name, 'is placeholder:', window.loadSales?.name === 'placeholder');
+        console.log('✅ loadAnalytics:', typeof window.loadAnalytics === 'function', 'name:', window.loadAnalytics?.name, 'is placeholder:', window.loadAnalytics?.name === 'placeholder');
         } catch (error) {
             console.error('❌❌❌ CRITICAL ERROR IN BODY SCRIPT:', error);
             console.error('Error name:', error.name);
