@@ -2340,10 +2340,17 @@
 
         // Inbox functions
         function loadInbox() {
+            console.log('📧 Loading inbox (real function)...');
             const list = document.getElementById('inbox-list');
+            if (!list) {
+                console.error('❌ inbox-list element not found');
+                return;
+            }
             list.innerHTML = '<div class="text-center py-8 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading emails...</span></div></div>';
             
-            adminFetch(`${BACKEND_URL}/api/admin/inbox`)
+            const backendUrl = window.BACKEND_URL || BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
+            console.log('📧 Using backend URL:', backendUrl);
+            adminFetch(`${backendUrl}/api/admin/inbox`)
                 .then(data => {
                     console.log('Inbox data received:', data);
                     if (!Array.isArray(data)) {
@@ -3707,10 +3714,17 @@ Thank you!</textarea>
 
         // Abandoned carts functions
         function loadAbandonedCarts() {
+            console.log('🛒 Loading abandoned carts (real function)...');
             const list = document.getElementById('abandoned-carts-list');
+            if (!list) {
+                console.error('❌ abandoned-carts-list element not found');
+                return;
+            }
             list.innerHTML = '<div class="text-center py-8 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading abandoned carts...</span></div></div>';
             
-            adminFetch(`${BACKEND_URL}/api/admin/abandoned-carts`)
+            const backendUrl = window.BACKEND_URL || BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
+            console.log('🛒 Using backend URL:', backendUrl);
+            adminFetch(`${backendUrl}/api/admin/abandoned-carts`)
                 .then(data => {
                     console.log('Abandoned carts data received:', data);
                     if (!Array.isArray(data)) {
@@ -4109,12 +4123,18 @@ Thank you!</textarea>
 
         // Notifications functions
         function loadNotifications() {
+            console.log('🔔 Loading notifications (real function)...');
             const list = document.getElementById('notifications-list');
-            if (!list) return;
+            if (!list) {
+                console.error('❌ notifications-list element not found');
+                return;
+            }
             
             list.innerHTML = '<div class="text-center py-8 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading notifications...</span></div></div>';
             
-            adminFetch(`${BACKEND_URL}/api/admin/notifications`)
+            const backendUrl = window.BACKEND_URL || BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
+            console.log('🔔 Using backend URL:', backendUrl);
+            adminFetch(`${backendUrl}/api/admin/notifications`)
                 .then(data => {
                     console.log('Notifications data received:', data);
                     if (!data) {
@@ -4555,10 +4575,17 @@ Thank you!</textarea>
 
         // Sales/POS functions
         function loadSales() {
+            console.log('💰 Loading sales/POS (real function)...');
             const container = document.getElementById('pos-products');
-                    container.innerHTML = '<div class="col-span-2 md:col-span-3 lg:col-span-4 text-center py-8 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading products...</span></div></div>';
+            if (!container) {
+                console.error('❌ pos-products element not found');
+                return;
+            }
+            container.innerHTML = '<div class="col-span-2 md:col-span-3 lg:col-span-4 text-center py-8 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading products...</span></div></div>';
             
-            adminFetch(`${BACKEND_URL}/api/admin/products`)
+            const backendUrl = window.BACKEND_URL || BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
+            console.log('💰 Using backend URL:', backendUrl);
+            adminFetch(`${backendUrl}/api/admin/products`)
                 .then(data => {
                     console.log('POS products data received:', data);
                     if (!Array.isArray(data)) {
