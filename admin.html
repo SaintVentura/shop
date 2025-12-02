@@ -1798,10 +1798,12 @@
         }
         // Make globally available - this replaces the placeholder
         const oldDashboardData = window.loadDashboardData;
+        // Ensure function has proper name
+        Object.defineProperty(loadDashboardData, 'name', { value: 'loadDashboardData', configurable: true });
         window.loadDashboardData = loadDashboardData;
         console.log('✅✅✅ Real loadDashboardData function assigned to window');
         console.log('   Old function was placeholder:', oldDashboardData === window.placeholderFunctions?.loadDashboardData);
-        console.log('   New function name:', loadDashboardData.name);
+        console.log('   New function name:', window.loadDashboardData.name);
         console.log('   New function is placeholder:', window.loadDashboardData === window.placeholderFunctions?.loadDashboardData);
         console.log('   Function is now:', typeof window.loadDashboardData === 'function' ? 'function' : typeof window.loadDashboardData);
         // Force verify
