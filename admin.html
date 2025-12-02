@@ -285,32 +285,57 @@
         const placeholderFunctions = {};
         
         // Create simple placeholder functions that will be replaced by real functions
-        // These just log and wait for the real functions to be available
+        // These immediately check if the real function exists and call it, otherwise wait
         function createSimplePlaceholder(functionName) {
-            return function() {
-                console.log(`⏳ ${functionName} called, waiting for real function...`);
-                // Wait a bit for the body script to load, then check
-                setTimeout(() => {
-                    const realFn = window[functionName];
-                    if (realFn && typeof realFn === 'function' && realFn.name === functionName) {
-                        console.log(`✅ ${functionName} found, calling it`);
-                        try {
-                            realFn.apply(null, arguments);
-                        } catch (err) {
-                            console.error(`Error calling ${functionName}:`, err);
-                        }
-                    } else {
-                        console.error(`❌ ${functionName} not available. Real function name:`, realFn?.name);
-                        // Show error in the section
-                        const sectionId = functionName.replace('load', '').toLowerCase() + '-section';
-                        const section = document.getElementById(sectionId);
-                        if (section) {
-                            const content = section.querySelector('.section-content') || section;
-                            content.innerHTML = `<div class="text-center py-8 text-red-500">Error: Function ${functionName} is not available. Please refresh the page.</div>`;
-                        }
+            const placeholder = function() {
+                const realFn = window[functionName];
+                // Check if real function exists and has the correct name
+                if (realFn && typeof realFn === 'function' && realFn.name === functionName) {
+                    console.log(`✅ ${functionName} found (real function), calling it`);
+                    try {
+                        return realFn.apply(null, arguments);
+                    } catch (err) {
+                        console.error(`Error calling ${functionName}:`, err);
                     }
-                }, 100);
+                } else {
+                    // Real function not ready yet, wait a bit and retry
+                    console.log(`⏳ ${functionName} not ready yet (current: ${realFn?.name || 'undefined'}), waiting...`);
+                    setTimeout(() => {
+                        const fn = window[functionName];
+                        if (fn && typeof fn === 'function' && fn.name === functionName) {
+                            console.log(`✅ ${functionName} now available, calling it`);
+                            try {
+                                fn.apply(null, arguments);
+                            } catch (err) {
+                                console.error(`Error calling ${functionName}:`, err);
+                            }
+                        } else {
+                            console.error(`❌ ${functionName} still not available after wait`);
+                            // Show error in the section
+                            const sectionMap = {
+                                'loadDashboardData': 'dashboard',
+                                'loadOrders': 'orders',
+                                'loadInventory': 'inventory',
+                                'loadInbox': 'inbox',
+                                'loadBroadcast': 'broadcast',
+                                'loadAbandonedCarts': 'abandoned-carts',
+                                'loadFulfillers': 'fulfillers',
+                                'loadNotifications': 'notifications',
+                                'loadSales': 'sales',
+                                'loadAnalytics': 'analytics'
+                            };
+                            const sectionId = sectionMap[functionName] + '-section';
+                            const section = document.getElementById(sectionId);
+                            if (section) {
+                                section.innerHTML = `<div class="text-center py-8 text-red-500">Error: Function ${functionName} is not available. Please refresh the page.</div>`;
+                            }
+                        }
+                    }, 500);
+                }
             };
+            // Give placeholder a distinct name so we can identify it
+            placeholder.name = 'placeholder_' + functionName;
+            return placeholder;
         }
         
         // Create simple placeholders - these will be replaced when body script runs
@@ -1744,16 +1769,14 @@
                     }
                 });
         };
-        console.log('✅✅✅ Real loadDashboardData function defined and assigned to window');
-        console.log('   Function name:', window.loadDashboardData.name);
-        console.log('   Function is placeholder:', window.loadDashboardData === window.placeholderFunctions?.loadDashboardData);
-        console.log('   window.loadDashboardData type:', typeof window.loadDashboardData);
-        console.log('   window.loadDashboardData === real function:', window.loadDashboardData.name === 'loadDashboardData');
-        // Force verify it's not the placeholder
-        if (window.loadDashboardData.name === 'placeholder') {
-            console.error('   ❌❌❌ ERROR: window.loadDashboardData is still the placeholder!');
+        // Verify the function was assigned correctly
+        if (window.loadDashboardData && window.loadDashboardData.name === 'loadDashboardData') {
+            console.log('✅✅✅ VERIFIED: window.loadDashboardData is the real function (name:', window.loadDashboardData.name + ')');
         } else {
-            console.log('   ✅✅✅ VERIFIED: window.loadDashboardData is the real function');
+            console.error('❌❌❌ ERROR: window.loadDashboardData assignment failed!');
+            console.error('   Current value:', window.loadDashboardData);
+            console.error('   Type:', typeof window.loadDashboardData);
+            console.error('   Name:', window.loadDashboardData?.name);
         }
         
         // Store previous badge counts to detect changes
