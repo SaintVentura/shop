@@ -73,9 +73,9 @@
                             startRealTimeSync();
                         }
                         
-                        if (typeof showSection === 'function') {
+                        if (typeof window.showSection === 'function') {
                             console.log('📑 Showing dashboard section');
-                            showSection('dashboard');
+                            window.showSection('dashboard');
                         }
                     } catch (err) {
                         console.error('Error loading dashboard:', err);
@@ -97,6 +97,127 @@
                 return false;
             }
         }
+        
+        // Define showSection function early so it's available for onclick handlers
+        // This function MUST be available immediately when HTML is parsed
+        window.showSection = function(section) {
+            console.log('📑 showSection called with:', section);
+            console.log('📑 window.showSection type:', typeof window.showSection);
+            console.log('📑 Document ready state:', document.readyState);
+            
+            if (!section) {
+                console.error('❌ No section specified');
+                return;
+            }
+            
+            // Wait for DOM if not ready
+            if (document.readyState === 'loading') {
+                console.log('⏳ DOM not ready, waiting...');
+                document.addEventListener('DOMContentLoaded', function() {
+                    window.showSection(section);
+                });
+                return;
+            }
+            
+            // Close mobile sidebar if open
+            if (window.innerWidth <= 768) {
+                try {
+                    if (typeof closeMobileSidebar === 'function') {
+                        closeMobileSidebar();
+                    }
+                } catch (e) {
+                    console.warn('closeMobileSidebar not available:', e);
+                }
+            }
+            
+            // Hide all sections
+            const allSections = document.querySelectorAll('.section');
+            console.log('📑 Found', allSections.length, 'sections');
+            allSections.forEach(s => {
+                s.classList.add('hidden');
+                s.style.display = 'none'; // Force hide
+            });
+            
+            // Remove active class and border from ALL sidebar items
+            document.querySelectorAll('.sidebar-item').forEach(item => {
+                item.classList.remove('active');
+                item.style.backgroundColor = '';
+                item.style.color = '';
+                item.style.border = '';
+            });
+            
+            // Show selected section
+            const targetSection = document.getElementById(`${section}-section`);
+            if (!targetSection) {
+                console.error(`❌ Section not found: ${section}-section`);
+                console.error('Available sections:', Array.from(document.querySelectorAll('[id$="-section"]')).map(s => s.id));
+                alert(`Section "${section}" not found. Please check the console for details.`);
+                return;
+            }
+            
+            console.log('✅ Showing section:', section);
+            console.log('✅ Target section element:', targetSection);
+            
+            // Remove hidden class and ensure it's visible
+            targetSection.classList.remove('hidden');
+            targetSection.style.display = 'block';
+            targetSection.style.visibility = 'visible';
+            targetSection.style.opacity = '1';
+            
+            // Force display in case of other CSS issues
+            const computedStyle = window.getComputedStyle(targetSection);
+            console.log('✅ Section display style after removal:', computedStyle.display);
+            
+            if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden') {
+                targetSection.style.display = 'block';
+                targetSection.style.visibility = 'visible';
+                console.log('✅ Forced section to be visible');
+            }
+            
+            const activeItem = document.querySelector(`[data-section="${section}"]`);
+            if (activeItem) {
+                activeItem.classList.add('active');
+                activeItem.style.backgroundColor = 'transparent';
+                activeItem.style.color = '#000';
+                activeItem.style.border = '2px solid #000';
+                console.log('✅ Active item styled');
+            } else {
+                console.warn('⚠️ Active item not found for section:', section);
+            }
+            
+            // Load section data - wait for main script functions to be available
+            setTimeout(function() {
+                try {
+                    if (section === 'dashboard' && typeof loadDashboardData === 'function') {
+                        loadDashboardData();
+                    } else if (section === 'orders' && typeof loadOrders === 'function') {
+                        loadOrders();
+                    } else if (section === 'inventory' && typeof loadInventory === 'function') {
+                        loadInventory();
+                    } else if (section === 'inbox' && typeof loadInbox === 'function') {
+                        loadInbox();
+                    } else if (section === 'broadcast' && typeof loadBroadcast === 'function') {
+                        loadBroadcast();
+                    } else if (section === 'abandoned-carts' && typeof loadAbandonedCarts === 'function') {
+                        loadAbandonedCarts();
+                    } else if (section === 'fulfillers' && typeof loadFulfillers === 'function') {
+                        loadFulfillers();
+                    } else if (section === 'notifications' && typeof loadNotifications === 'function') {
+                        loadNotifications();
+                    } else if (section === 'sales' && typeof loadSales === 'function') {
+                        loadSales();
+                    } else if (section === 'analytics' && typeof loadAnalytics === 'function') {
+                        loadAnalytics();
+                    }
+                } catch (err) {
+                    console.error('Error loading section data:', err);
+                }
+            }, 100);
+        };
+        
+        // Ensure it's always available
+        console.log('✅ showSection function defined in head script');
+        console.log('✅ window.showSection available:', typeof window.showSection === 'function');
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
@@ -1084,132 +1205,43 @@
         }
         
         // Close mobile sidebar when clicking a menu item
-        // Make showSection globally accessible
-        window.showSection = function(section) {
-            console.log('📑 showSection called with:', section);
-            
-            // Close mobile sidebar if open
-            if (window.innerWidth <= 768) {
-                closeMobileSidebar();
-            }
-            
-            if (!section) {
-                console.error('❌ No section specified');
-                return;
-            }
-            
-            if (window.innerWidth <= 768) {
-                if (typeof closeMobileSidebar === 'function') {
-                    closeMobileSidebar();
-                }
-            }
-            
-            // Hide all sections
-            const allSections = document.querySelectorAll('.section');
-            console.log('📑 Found', allSections.length, 'sections');
-            allSections.forEach(s => {
-                s.classList.add('hidden');
-                s.style.display = 'none'; // Force hide
-            });
-            
-            // Remove active class and border from ALL sidebar items
-            document.querySelectorAll('.sidebar-item').forEach(item => {
-                item.classList.remove('active');
-                // Remove all inline styles to reset to default
-                item.style.backgroundColor = '';
-                item.style.color = '';
-                item.style.border = '';
-            });
-            
-            // Show selected section
-            const targetSection = document.getElementById(`${section}-section`);
-            if (!targetSection) {
-                console.error(`❌ Section not found: ${section}-section`);
-                alert(`Section "${section}" not found. Please check the console for details.`);
-                return;
-            }
-            
-            console.log('✅ Showing section:', section);
-            console.log('✅ Target section element:', targetSection);
-            
-            // Remove hidden class and ensure it's visible
-            targetSection.classList.remove('hidden');
-            targetSection.style.display = 'block';
-            targetSection.style.visibility = 'visible';
-            targetSection.style.opacity = '1';
-            
-            // Force display in case of other CSS issues
-            const computedStyle = window.getComputedStyle(targetSection);
-            console.log('✅ Section display style after removal:', computedStyle.display);
-            console.log('✅ Section visibility:', computedStyle.visibility);
-            
-            if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden') {
-                targetSection.style.display = 'block';
-                targetSection.style.visibility = 'visible';
-                console.log('✅ Forced section to be visible');
-            }
-            
-            const activeItem = document.querySelector(`[data-section="${section}"]`);
-            if (activeItem) {
-                activeItem.classList.add('active');
-                // Ensure black border for active item, black text
-                activeItem.style.backgroundColor = 'transparent';
-                activeItem.style.color = '#000';
-                activeItem.style.border = '2px solid #000';
-                console.log('✅ Active item styled');
-            } else {
-                console.warn('⚠️ Active item not found for section:', section);
-            }
-            
-            // Setup POS form when sales section is shown
-            if (section === 'sales') {
-                setTimeout(() => {
-                    setupPOSForm();
-                    loadPOSProducts();
-                }, 100);
-            }
-            currentSection = section;
-            
-            // Setup POS form when sales section is shown
-            if (section === 'sales') {
-                setTimeout(() => {
-                    setupPOSForm();
-                    loadPOSProducts();
-                }, 100);
-            }
-            
-            // Load section data
-            try {
-                if (section === 'dashboard') {
-                    loadDashboardData();
-                } else if (section === 'orders') {
-                    loadOrders();
-                } else if (section === 'inventory') {
-                    loadInventory();
-                } else if (section === 'inbox') {
-                    loadInbox();
-                } else if (section === 'broadcast') {
-                    loadBroadcast();
-                } else if (section === 'abandoned-carts') {
-                    loadAbandonedCarts();
-                } else if (section === 'fulfillers') {
-                    loadFulfillers();
+        // Enhance the showSection function defined in head script with additional features
+        // The function is already defined in head, but we can add enhancements here
+        const originalShowSection = window.showSection;
+        if (originalShowSection && typeof originalShowSection === 'function') {
+            // Wrap the original function to add enhancements
+            window.showSection = function(section) {
+                // Call original function first
+                originalShowSection(section);
+                
+                // Additional enhancements that require functions defined later
+                try {
+                    // Setup POS form when sales section is shown
+                    if (section === 'sales') {
+                        setTimeout(() => {
+                            if (typeof setupPOSForm === 'function') {
+                                setupPOSForm();
+                            }
+                            if (typeof loadPOSProducts === 'function') {
+                                loadPOSProducts();
+                            }
+                        }, 100);
+                    }
+                    
                     // Set up the Add Fulfiller button when section is shown
-                    setTimeout(() => {
-                        if (typeof setupAddFulfillerButton === 'function') {
-                            setupAddFulfillerButton();
-                        }
-                    }, 100);
-                } else if (section === 'notifications') {
-                    loadNotifications();
-                } else if (section === 'sales') {
-                    loadSales();
-                } else if (section === 'analytics') {
-                    loadAnalytics();
+                    if (section === 'fulfillers') {
+                        setTimeout(() => {
+                            if (typeof setupAddFulfillerButton === 'function') {
+                                setupAddFulfillerButton();
+                            }
+                        }, 100);
+                    }
+                } catch (error) {
+                    console.error('Error in showSection enhancements:', error);
                 }
-            } catch (error) {
-                console.error(`Error loading section ${section}:`, error);
-            }
+            };
+        } else {
+            console.error('❌ showSection not found in head script! Navigation may not work properly.');
         }
 
         // handleLogin is already defined in head script
