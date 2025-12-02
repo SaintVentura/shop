@@ -289,16 +289,18 @@
         console.log('✅ window.showSection available:', typeof window.showSection === 'function');
         
         // Define placeholder load functions that will be replaced when real functions are defined
-        // Store references to placeholders so we can check if a function is still a placeholder
-        const placeholderFunctions = new Set();
+        // Store placeholder references by function name
+        const placeholderFunctions = {};
         
         function createPlaceholderLoader(functionName) {
             const placeholder = function() {
                 console.log(`⏳ ${functionName} called, checking for real function...`);
                 const currentFunction = window[functionName];
                 
-                // Check if the function has been replaced (not a placeholder anymore)
-                if (currentFunction && !placeholderFunctions.has(currentFunction) && typeof currentFunction === 'function') {
+                // Check if this is still the placeholder (by reference) or if it's been replaced
+                const isPlaceholder = currentFunction === placeholderFunctions[functionName];
+                
+                if (!isPlaceholder && currentFunction && typeof currentFunction === 'function') {
                     console.log(`✅ ${functionName} found (real function), calling it`);
                     try {
                         return currentFunction.apply(null, arguments);
@@ -309,12 +311,14 @@
                     // Real function not available yet, retry after a delay
                     console.log(`⏳ ${functionName} not available yet, retrying in 200ms...`);
                     let retryCount = 0;
-                    const maxRetries = 20; // Try for up to 4 seconds
+                    const maxRetries = 30; // Try for up to 6 seconds
                     
                     const tryCall = () => {
                         retryCount++;
                         const realFn = window[functionName];
-                        if (realFn && !placeholderFunctions.has(realFn) && typeof realFn === 'function') {
+                        const stillPlaceholder = realFn === placeholderFunctions[functionName];
+                        
+                        if (!stillPlaceholder && realFn && typeof realFn === 'function') {
                             console.log(`✅ ${functionName} now available (attempt ${retryCount}), calling it`);
                             try {
                                 realFn.apply(null, arguments);
@@ -325,6 +329,9 @@
                             setTimeout(tryCall, 200);
                         } else {
                             console.error(`❌ ${functionName} still not available after ${maxRetries} attempts`);
+                            console.error(`   Current function type:`, typeof realFn);
+                            console.error(`   Is placeholder:`, stillPlaceholder);
+                            console.error(`   Function name:`, realFn?.name);
                         }
                     };
                     
@@ -332,8 +339,8 @@
                 }
             };
             
-            // Mark this as a placeholder
-            placeholderFunctions.add(placeholder);
+            // Store placeholder reference
+            placeholderFunctions[functionName] = placeholder;
             return placeholder;
         }
         
@@ -1765,8 +1772,14 @@
                 });
         }
         // Make globally available - this replaces the placeholder
+        const oldDashboardData = window.loadDashboardData;
         window.loadDashboardData = loadDashboardData;
         console.log('✅ Real loadDashboardData function assigned to window');
+        console.log('   Old function was placeholder:', oldDashboardData === placeholderFunctions?.loadDashboardData);
+        // If placeholder was queued, execute now
+        if (oldDashboardData && oldDashboardData !== loadDashboardData) {
+            console.log('   Placeholder was replaced, function is now available');
+        }
         
         // Store previous badge counts to detect changes
         let previousBadgeCounts = {
