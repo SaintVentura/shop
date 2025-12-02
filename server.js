@@ -1215,13 +1215,13 @@ Thank you for choosing Saint Ventura!
     }
 
     // Prepare Telegram message for support
-    const orderItemsText = orderItems.map(item => {
+    const orderItemsTextForTelegram = orderItems.map(item => {
       const sizeText = item.size ? `, Size: ${item.size}` : '';
       const colorText = item.color ? `, Color: ${item.color}` : '';
       return `• ${item.name}${sizeText}${colorText}\n  Qty: ${item.quantity} × R${item.price.toFixed(2)} = R${(item.price * item.quantity).toFixed(2)}`;
     }).join('\n\n');
 
-    const supportTelegramMessage = `✅ *NEW ORDER CONFIRMED - PAYMENT SUCCESSFUL*\n\n*Order ${orderId ? `ID: ${orderId}` : 'Details'}:*\nDate: ${orderDate}\n\n*Customer Information:*\nName: ${customerName}\nEmail: ${customerEmail}\n\n*Order Items:*\n${orderItemsText}\n\n*Order Summary:*\nSubtotal: R${subtotal.toFixed(2)}\nShipping: R${shipping.toFixed(2)}\n*TOTAL: R${total.toFixed(2)}*\n\n*Delivery Method:*\n${shippingMethod === 'door' ? 'Door-to-Door Courier' : shippingMethod === 'uj' ? 'UJ Campus Delivery' : 'Testing Delivery'}\n${deliveryAddress ? `\n*Delivery Address:*\n${deliveryAddress}` : ''}\n\n🎉 Payment successful! Please process this order.`;
+    const supportTelegramMessage = `✅ *NEW ORDER CONFIRMED - PAYMENT SUCCESSFUL*\n\n*Order ${orderId ? `ID: ${orderId}` : 'Details'}:*\nDate: ${orderDate}\n\n*Customer Information:*\nName: ${customerName}\nEmail: ${customerEmail}\n\n*Order Items:*\n${orderItemsTextForTelegram}\n\n*Order Summary:*\nSubtotal: R${subtotal.toFixed(2)}\nShipping: R${shipping.toFixed(2)}\n*TOTAL: R${total.toFixed(2)}*\n\n*Delivery Method:*\n${shippingMethod === 'door' ? 'Door-to-Door Courier' : shippingMethod === 'uj' ? 'UJ Campus Delivery' : 'Testing Delivery'}\n${deliveryAddress ? `\n*Delivery Address:*\n${deliveryAddress}` : ''}\n\n🎉 Payment successful! Please process this order.`;
 
     // Send email to customer
     if (resendClient || emailTransporter) {
