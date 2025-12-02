@@ -1112,10 +1112,10 @@
                     <div id="email-builder" class="border border-gray-300 rounded-lg p-4 min-h-[400px] bg-white space-y-4">
                         <div class="email-section" data-type="text">
                             <div class="flex justify-between items-center mb-2">
-                                <span class="text-xs text-gray-500">Text Section</span>
+                                <label for="email-builder-text-dynamic" class="text-xs text-gray-500 font-medium">Text Section</label>
                                 <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
                             </div>
-                            <textarea class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="3" placeholder="Enter text content..."></textarea>
+                            <textarea id="email-builder-text-dynamic" name="email-builder-text-dynamic" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="3" placeholder="Enter text content..."></textarea>
                         </div>
                     </div>
                 </div>
@@ -3373,10 +3373,10 @@
                         </div>
                         <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="text">
                             <div class="flex justify-between items-center mb-2">
-                                <span class="text-xs text-gray-500 font-medium">Text Section</span>
+                                <label for="email-text-collection" class="text-xs text-gray-500 font-medium">Text Section</label>
                                 <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
                             </div>
-                            <textarea class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="4" placeholder="Enter text content...">We're excited to introduce our latest collection! Discover new styles and be the first to get your hands on these exclusive pieces.</textarea>
+                            <textarea id="email-text-collection" name="email-text-collection" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="4" placeholder="Enter text content...">We're excited to introduce our latest collection! Discover new styles and be the first to get your hands on these exclusive pieces.</textarea>
                         </div>
                         <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="button">
                             <div class="flex justify-between items-center mb-2">
@@ -3412,10 +3412,10 @@
                         </div>
                         <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="text">
                             <div class="flex justify-between items-center mb-2">
-                                <span class="text-xs text-gray-500 font-medium">Text Section</span>
+                                <label for="email-text-news" class="text-xs text-gray-500 font-medium">Text Section</label>
                                 <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
                             </div>
-                            <textarea class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="6" placeholder="Enter text content...">Stay updated with the latest news from Saint Ventura. We have exciting updates to share with you!</textarea>
+                            <textarea id="email-text-news" name="email-text-news" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="6" placeholder="Enter text content...">Stay updated with the latest news from Saint Ventura. We have exciting updates to share with you!</textarea>
                         </div>
                     `;
                     break;
@@ -3424,10 +3424,10 @@
                         templateHtml = `
                             <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="text">
                                 <div class="flex justify-between items-center mb-2">
-                                    <span class="text-xs text-gray-500 font-medium">Text Section</span>
+                                    <label for="email-text-welcome" class="text-xs text-gray-500 font-medium">Text Section</label>
                                     <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
                                 </div>
-                                <textarea class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="8" placeholder="Enter text content...">Hi there,
+                                <textarea id="email-text-welcome" name="email-text-welcome" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="8" placeholder="Enter text content...">Hi there,
 
 You have a new order to fulfill:
 
@@ -3693,7 +3693,8 @@ Thank you!</textarea>
                     emailBuilderSections = null;
                 } else {
                     // If no saved sections, restore default
-                    builder.innerHTML = '<div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="text"><div class="flex justify-between items-center mb-2"><span class="text-xs text-gray-500 font-medium">Text Section</span><button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button></div><textarea class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="4" placeholder="Enter text content..."></textarea></div>';
+                    const defaultTextareaId = 'email-text-default-' + Date.now();
+                    builder.innerHTML = `<div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="text"><div class="flex justify-between items-center mb-2"><label for="${defaultTextareaId}" class="text-xs text-gray-500 font-medium">Text Section</label><button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button></div><textarea id="${defaultTextareaId}" name="${defaultTextareaId}" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="4" placeholder="Enter text content..."></textarea></div>`;
                 }
             }
         }
