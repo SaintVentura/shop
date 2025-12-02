@@ -1164,13 +1164,31 @@
 
     <script>
         console.log('🔵🔵🔵 SCRIPT TAG PARSED - Body script tag is being processed');
-        // Cache buster: v2024-01-15-fix-syntax-v3
-        // Define functions OUTSIDE try-catch to ensure they're always available
+        // Cache buster: v2024-01-15-fix-syntax-v4
+        // Define functions IMMEDIATELY at top level so they're always available
         const ADMIN_PASSWORD = 'WEAR3+H3$@!N+$*';
+        
+        // Define all load functions IMMEDIATELY at the top - before try block
+        // This ensures they're always available even if there's an error later
+        console.log('🔧 Defining all load functions at top level...');
+        
+        // Stub functions - will be replaced by real implementations below
+        window.loadDashboardData = function loadDashboardData() { console.log('⏳ loadDashboardData stub called'); };
+        window.loadOrders = function loadOrders() { console.log('⏳ loadOrders stub called'); };
+        window.loadInventory = function loadInventory() { console.log('⏳ loadInventory stub called'); };
+        window.loadInbox = function loadInbox() { console.log('⏳ loadInbox stub called'); };
+        window.loadBroadcast = function loadBroadcast() { console.log('⏳ loadBroadcast stub called'); };
+        window.loadAbandonedCarts = function loadAbandonedCarts() { console.log('⏳ loadAbandonedCarts stub called'); };
+        window.loadFulfillers = function loadFulfillers() { console.log('⏳ loadFulfillers stub called'); };
+        window.loadNotifications = function loadNotifications() { console.log('⏳ loadNotifications stub called'); };
+        window.loadSales = function loadSales() { console.log('⏳ loadSales stub called'); };
+        window.loadAnalytics = function loadAnalytics() { console.log('⏳ loadAnalytics stub called'); };
+        
+        console.log('✅ All load function stubs defined');
         
         try {
             console.log('🚀🚀🚀 BODY SCRIPT STARTING - This should appear immediately when page loads');
-            console.log('🚀🚀🚀 BODY SCRIPT VERSION: v2024-01-15-fix-syntax-v3');
+            console.log('🚀🚀🚀 BODY SCRIPT VERSION: v2024-01-15-fix-syntax-v4');
             
             // Initialize data arrays and variables at the top level to avoid initialization errors
         let allInventoryData = [];
