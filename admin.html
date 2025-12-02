@@ -9,6 +9,8 @@
     <script>
         // Define login handler function immediately so it's available for inline onsubmit
         const ADMIN_PASSWORD = 'WEAR3+H3$@!N+$*';
+        // Make it globally available for adminFetch
+        window.ADMIN_PASSWORD = ADMIN_PASSWORD;
         
         function handleLogin(e) {
             if (e) {
@@ -186,33 +188,89 @@
             }
             
             // Load section data - wait for main script functions to be available
-            setTimeout(function() {
+            // Use a retry mechanism to ensure functions are loaded
+            let retryCount = 0;
+            const maxRetries = 10;
+            const retryDelay = 200; // 200ms between retries
+            
+            function tryLoadSection() {
                 try {
-                    if (section === 'dashboard' && typeof loadDashboardData === 'function') {
-                        loadDashboardData();
-                    } else if (section === 'orders' && typeof loadOrders === 'function') {
-                        loadOrders();
-                    } else if (section === 'inventory' && typeof loadInventory === 'function') {
-                        loadInventory();
-                    } else if (section === 'inbox' && typeof loadInbox === 'function') {
-                        loadInbox();
-                    } else if (section === 'broadcast' && typeof loadBroadcast === 'function') {
-                        loadBroadcast();
-                    } else if (section === 'abandoned-carts' && typeof loadAbandonedCarts === 'function') {
-                        loadAbandonedCarts();
-                    } else if (section === 'fulfillers' && typeof loadFulfillers === 'function') {
-                        loadFulfillers();
-                    } else if (section === 'notifications' && typeof loadNotifications === 'function') {
-                        loadNotifications();
-                    } else if (section === 'sales' && typeof loadSales === 'function') {
-                        loadSales();
-                    } else if (section === 'analytics' && typeof loadAnalytics === 'function') {
-                        loadAnalytics();
+                    console.log(`🔄 Attempting to load section: ${section} (attempt ${retryCount + 1})`);
+                    
+                    let loadFunction = null;
+                    let functionName = '';
+                    
+                    if (section === 'dashboard') {
+                        loadFunction = typeof loadDashboardData === 'function' ? loadDashboardData : null;
+                        functionName = 'loadDashboardData';
+                    } else if (section === 'orders') {
+                        loadFunction = typeof loadOrders === 'function' ? loadOrders : null;
+                        functionName = 'loadOrders';
+                    } else if (section === 'inventory') {
+                        loadFunction = typeof loadInventory === 'function' ? loadInventory : null;
+                        functionName = 'loadInventory';
+                    } else if (section === 'inbox') {
+                        loadFunction = typeof loadInbox === 'function' ? loadInbox : null;
+                        functionName = 'loadInbox';
+                    } else if (section === 'broadcast') {
+                        loadFunction = typeof loadBroadcast === 'function' ? loadBroadcast : null;
+                        functionName = 'loadBroadcast';
+                    } else if (section === 'abandoned-carts') {
+                        loadFunction = typeof loadAbandonedCarts === 'function' ? loadAbandonedCarts : null;
+                        functionName = 'loadAbandonedCarts';
+                    } else if (section === 'fulfillers') {
+                        loadFunction = typeof loadFulfillers === 'function' ? loadFulfillers : null;
+                        functionName = 'loadFulfillers';
+                    } else if (section === 'notifications') {
+                        loadFunction = typeof loadNotifications === 'function' ? loadNotifications : null;
+                        functionName = 'loadNotifications';
+                    } else if (section === 'sales') {
+                        loadFunction = typeof loadSales === 'function' ? loadSales : null;
+                        functionName = 'loadSales';
+                    } else if (section === 'analytics') {
+                        loadFunction = typeof loadAnalytics === 'function' ? loadAnalytics : null;
+                        functionName = 'loadAnalytics';
+                    }
+                    
+                    if (loadFunction) {
+                        console.log(`✅ Found ${functionName}, calling it now`);
+                        loadFunction();
+                    } else {
+                        retryCount++;
+                        if (retryCount < maxRetries) {
+                            console.log(`⏳ ${functionName} not available yet, retrying in ${retryDelay}ms...`);
+                            setTimeout(tryLoadSection, retryDelay);
+                        } else {
+                            console.error(`❌ ${functionName} not available after ${maxRetries} attempts`);
+                            // Show error message in the section
+                            const sectionElement = document.getElementById(`${section}-section`);
+                            if (sectionElement) {
+                                const errorDiv = sectionElement.querySelector('.error-message') || document.createElement('div');
+                                errorDiv.className = 'error-message p-4 m-4 bg-red-50 border border-red-200 rounded';
+                                errorDiv.innerHTML = `<strong>Error:</strong> Failed to load ${section} data. Function ${functionName} is not available. Please refresh the page.`;
+                                if (!sectionElement.querySelector('.error-message')) {
+                                    sectionElement.insertBefore(errorDiv, sectionElement.firstChild);
+                                }
+                            }
+                        }
                     }
                 } catch (err) {
                     console.error('Error loading section data:', err);
+                    // Show error in the section
+                    const sectionElement = document.getElementById(`${section}-section`);
+                    if (sectionElement) {
+                        const errorDiv = sectionElement.querySelector('.error-message') || document.createElement('div');
+                        errorDiv.className = 'error-message p-4 m-4 bg-red-50 border border-red-200 rounded';
+                        errorDiv.innerHTML = `<strong>Error:</strong> ${err.message || 'Unknown error loading section data'}`;
+                        if (!sectionElement.querySelector('.error-message')) {
+                            sectionElement.insertBefore(errorDiv, sectionElement.firstChild);
+                        }
+                    }
                 }
-            }, 100);
+            }
+            
+            // Start trying to load after a short delay
+            setTimeout(tryLoadSection, 100);
         };
         
         // Ensure it's always available
@@ -1559,45 +1617,72 @@
         }
         
         function loadDashboardData() {
+            console.log('📊 Loading dashboard data...');
             adminFetch(`${BACKEND_URL}/api/admin/dashboard`)
                 .then(data => {
+                    console.log('✅ Dashboard data received:', data);
                     if (data.success) {
                         // Update stats
-                        document.getElementById('stat-total-revenue').textContent = `R${data.stats.totalRevenue.toFixed(2)}`;
-                        document.getElementById('stat-total-profit').textContent = `R${(data.stats.totalProfit || 0).toFixed(2)}`;
-                        document.getElementById('stat-total-orders').textContent = data.stats.completedOrders;
-                        document.getElementById('stat-pending-orders').textContent = data.stats.pendingOrders;
-                        document.getElementById('stat-subscribers').textContent = data.stats.totalSubscribers;
-                        document.getElementById('stat-low-stock').textContent = data.stats.lowStockItems;
-                        document.getElementById('stat-notifications').textContent = data.stats.unreadNotifications;
-                        document.getElementById('stat-emails').textContent = data.stats.unreadEmails;
-                        document.getElementById('stat-carts').textContent = data.stats.abandonedCarts;
+                        const statElements = {
+                            'stat-total-revenue': `R${data.stats.totalRevenue.toFixed(2)}`,
+                            'stat-total-profit': `R${(data.stats.totalProfit || 0).toFixed(2)}`,
+                            'stat-total-orders': data.stats.completedOrders,
+                            'stat-pending-orders': data.stats.pendingOrders,
+                            'stat-subscribers': data.stats.totalSubscribers,
+                            'stat-low-stock': data.stats.lowStockItems,
+                            'stat-notifications': data.stats.unreadNotifications,
+                            'stat-emails': data.stats.unreadEmails,
+                            'stat-carts': data.stats.abandonedCarts
+                        };
+                        
+                        for (const [id, value] of Object.entries(statElements)) {
+                            const element = document.getElementById(id);
+                            if (element) {
+                                element.textContent = value;
+                            } else {
+                                console.warn(`⚠️ Element not found: ${id}`);
+                            }
+                        }
                         
                         // Update recent orders
                         const recentList = document.getElementById('recent-orders-list');
-                        if (data.recentOrders && data.recentOrders.length > 0) {
-                            recentList.innerHTML = data.recentOrders.map(order => `
-                                <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition">
-                                    <div class="flex justify-between items-start">
-                                        <div>
-                                            <p class="font-semibold">${order.customerName || 'Unknown'}</p>
-                                            <p class="text-sm text-gray-600">${order.id || 'N/A'}</p>
+                        if (recentList) {
+                            if (data.recentOrders && data.recentOrders.length > 0) {
+                                recentList.innerHTML = data.recentOrders.map(order => `
+                                    <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition">
+                                        <div class="flex justify-between items-start">
+                                            <div>
+                                                <p class="font-semibold">${order.customerName || 'Unknown'}</p>
+                                                <p class="text-sm text-gray-600">${order.id || 'N/A'}</p>
+                                            </div>
+                                            <div class="text-right">
+                                                <p class="font-semibold">R${(order.total || 0).toFixed(2)}</p>
+                                                <span class="px-2 py-1 rounded-full text-xs font-semibold ${order.status === 'fulfilled' ? 'bg-green-100 text-green-800' : order.status === 'pending fulfillment' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}">${order.status || 'pending checkout'}</span>
+                                            </div>
                                         </div>
-                                        <div class="text-right">
-                                            <p class="font-semibold">R${(order.total || 0).toFixed(2)}</p>
-                                            <span class="px-2 py-1 rounded-full text-xs font-semibold ${order.status === 'fulfilled' ? 'bg-green-100 text-green-800' : order.status === 'pending fulfillment' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}">${order.status || 'pending checkout'}</span>
-                                        </div>
+                                        <p class="text-xs text-gray-500 mt-2">${order.date ? new Date(order.date).toLocaleString() : 'N/A'}</p>
                                     </div>
-                                    <p class="text-xs text-gray-500 mt-2">${order.date ? new Date(order.date).toLocaleString() : 'N/A'}</p>
-                                </div>
-                            `).join('');
+                                `).join('');
+                            } else {
+                                recentList.innerHTML = '<div class="text-center py-8 text-gray-500">No recent orders</div>';
+                            }
                         } else {
-                            recentList.innerHTML = '<div class="text-center py-8 text-gray-500">No recent orders</div>';
+                            console.warn('⚠️ recent-orders-list element not found');
+                        }
+                    } else {
+                        console.error('❌ Dashboard data not successful:', data);
+                        const recentList = document.getElementById('recent-orders-list');
+                        if (recentList) {
+                            recentList.innerHTML = `<div class="text-center py-8 text-red-500">Error: ${data.error || 'Failed to load dashboard data'}</div>`;
                         }
                     }
                 })
                 .catch(err => {
-                    console.error('Error loading dashboard data:', err);
+                    console.error('❌ Error loading dashboard data:', err);
+                    const recentList = document.getElementById('recent-orders-list');
+                    if (recentList) {
+                        recentList.innerHTML = `<div class="text-center py-8 text-red-500">Error loading dashboard: ${err.message || 'Unknown error'}<br><small>Backend: ${BACKEND_URL}</small></div>`;
+                    }
                 });
         }
 
@@ -1661,8 +1746,15 @@
             if (!options) options = {};
             if (!options.headers) options.headers = {};
             
+            // Get ADMIN_PASSWORD from global scope (defined in head script)
+            const adminPassword = window.ADMIN_PASSWORD || ADMIN_PASSWORD || 'WEAR3+H3$@!N+$*';
+            if (!adminPassword) {
+                console.error('❌ ADMIN_PASSWORD not found!');
+                return Promise.reject(new Error('Admin password not configured'));
+            }
+            
             // Set required headers
-            options.headers['x-admin-password'] = ADMIN_PASSWORD;
+            options.headers['x-admin-password'] = adminPassword;
             options.headers['Content-Type'] = 'application/json';
             options.headers['Accept'] = 'application/json';
             
