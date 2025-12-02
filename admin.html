@@ -289,33 +289,37 @@
         console.log('✅ window.showSection available:', typeof window.showSection === 'function');
         
         // Define placeholder load functions that will be replaced when real functions are defined
-        // These queue calls until the real functions are available
-        const loadFunctionQueue = {};
-        
+        // These immediately try to call the real function, or wait and retry
         function createPlaceholderLoader(functionName) {
-            return function(...args) {
-                console.log(`⏳ ${functionName} called but not yet available, queuing...`);
-                if (!loadFunctionQueue[functionName]) {
-                    loadFunctionQueue[functionName] = [];
-                }
-                loadFunctionQueue[functionName].push(args);
+            return function() {
+                console.log(`⏳ ${functionName} called, checking for real function...`);
+                const realFunction = window[functionName];
                 
-                // Try to find the real function after a delay
-                setTimeout(() => {
-                    const realFunction = window[functionName];
-                    if (typeof realFunction === 'function') {
-                        console.log(`✅ ${functionName} now available, executing queued calls`);
-                        // Execute all queued calls
-                        loadFunctionQueue[functionName].forEach(queueArgs => {
-                            try {
-                                realFunction.apply(null, queueArgs);
-                            } catch (err) {
-                                console.error(`Error executing queued ${functionName}:`, err);
-                            }
-                        });
-                        loadFunctionQueue[functionName] = [];
+                // Check if this is the real function (not the placeholder)
+                if (realFunction && realFunction !== arguments.callee && typeof realFunction === 'function') {
+                    console.log(`✅ ${functionName} found, calling real function`);
+                    try {
+                        return realFunction.apply(null, arguments);
+                    } catch (err) {
+                        console.error(`Error calling ${functionName}:`, err);
                     }
-                }, 100);
+                } else {
+                    // Real function not available yet, retry after a delay
+                    console.log(`⏳ ${functionName} not available yet, retrying in 100ms...`);
+                    setTimeout(() => {
+                        const realFn = window[functionName];
+                        if (realFn && realFn !== arguments.callee && typeof realFn === 'function') {
+                            console.log(`✅ ${functionName} now available, calling it`);
+                            try {
+                                realFn.apply(null, arguments);
+                            } catch (err) {
+                                console.error(`Error calling ${functionName}:`, err);
+                            }
+                        } else {
+                            console.error(`❌ ${functionName} still not available after retry`);
+                        }
+                    }, 100);
+                }
             };
         }
         
