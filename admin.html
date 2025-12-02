@@ -197,73 +197,65 @@
                 try {
                     console.log(`🔄 Attempting to load section: ${section} (attempt ${retryCount + 1})`);
                     
-                    let loadFunction = null;
-                    let functionName = '';
+                    // Map section names to function names
+                    const functionMap = {
+                        'dashboard': 'loadDashboardData',
+                        'orders': 'loadOrders',
+                        'inventory': 'loadInventory',
+                        'inbox': 'loadInbox',
+                        'broadcast': 'loadBroadcast',
+                        'abandoned-carts': 'loadAbandonedCarts',
+                        'fulfillers': 'loadFulfillers',
+                        'notifications': 'loadNotifications',
+                        'sales': 'loadSales',
+                        'analytics': 'loadAnalytics'
+                    };
                     
-                    // Check both window and local scope for functions
-                    if (section === 'dashboard') {
-                        loadFunction = (typeof window.loadDashboardData === 'function' ? window.loadDashboardData : null) || 
-                                      (typeof loadDashboardData === 'function' ? loadDashboardData : null);
-                        functionName = 'loadDashboardData';
-                    } else if (section === 'orders') {
-                        loadFunction = (typeof window.loadOrders === 'function' ? window.loadOrders : null) || 
-                                      (typeof loadOrders === 'function' ? loadOrders : null);
-                        functionName = 'loadOrders';
-                    } else if (section === 'inventory') {
-                        loadFunction = (typeof window.loadInventory === 'function' ? window.loadInventory : null) || 
-                                      (typeof loadInventory === 'function' ? loadInventory : null);
-                        functionName = 'loadInventory';
-                    } else if (section === 'inbox') {
-                        loadFunction = (typeof window.loadInbox === 'function' ? window.loadInbox : null) || 
-                                      (typeof loadInbox === 'function' ? loadInbox : null);
-                        functionName = 'loadInbox';
-                    } else if (section === 'broadcast') {
-                        loadFunction = (typeof window.loadBroadcast === 'function' ? window.loadBroadcast : null) || 
-                                      (typeof loadBroadcast === 'function' ? loadBroadcast : null);
-                        functionName = 'loadBroadcast';
-                    } else if (section === 'abandoned-carts') {
-                        loadFunction = (typeof window.loadAbandonedCarts === 'function' ? window.loadAbandonedCarts : null) || 
-                                      (typeof loadAbandonedCarts === 'function' ? loadAbandonedCarts : null);
-                        functionName = 'loadAbandonedCarts';
-                    } else if (section === 'fulfillers') {
-                        loadFunction = (typeof window.loadFulfillers === 'function' ? window.loadFulfillers : null) || 
-                                      (typeof loadFulfillers === 'function' ? loadFulfillers : null);
-                        functionName = 'loadFulfillers';
-                    } else if (section === 'notifications') {
-                        loadFunction = (typeof window.loadNotifications === 'function' ? window.loadNotifications : null) || 
-                                      (typeof loadNotifications === 'function' ? loadNotifications : null);
-                        functionName = 'loadNotifications';
-                    } else if (section === 'sales') {
-                        loadFunction = (typeof window.loadSales === 'function' ? window.loadSales : null) || 
-                                      (typeof loadSales === 'function' ? loadSales : null);
-                        functionName = 'loadSales';
-                    } else if (section === 'analytics') {
-                        loadFunction = (typeof window.loadAnalytics === 'function' ? window.loadAnalytics : null) || 
-                                      (typeof loadAnalytics === 'function' ? loadAnalytics : null);
-                        functionName = 'loadAnalytics';
-                    }
-                    
-                    if (loadFunction) {
-                        console.log(`✅ Found ${functionName}, calling it now`);
-                        loadFunction();
-                    } else {
-                        retryCount++;
-                        if (retryCount < maxRetries) {
-                            console.log(`⏳ ${functionName} not available yet, retrying in ${retryDelay}ms...`);
-                            setTimeout(tryLoadSection, retryDelay);
-                        } else {
-                            console.error(`❌ ${functionName} not available after ${maxRetries} attempts`);
-                            // Show error message in the section
-                            const sectionElement = document.getElementById(`${section}-section`);
-                            if (sectionElement) {
-                                const errorDiv = sectionElement.querySelector('.error-message') || document.createElement('div');
-                                errorDiv.className = 'error-message p-4 m-4 bg-red-50 border border-red-200 rounded';
-                                errorDiv.innerHTML = `<strong>Error:</strong> Failed to load ${section} data. Function ${functionName} is not available. Please refresh the page.`;
-                                if (!sectionElement.querySelector('.error-message')) {
-                                    sectionElement.insertBefore(errorDiv, sectionElement.firstChild);
+                    const functionName = functionMap[section];
+                    if (functionName) {
+                        const loadFunction = window[functionName];
+                        if (loadFunction && typeof loadFunction === 'function') {
+                            // Check if it's the real function (has the correct name) or placeholder
+                            if (loadFunction.name === functionName) {
+                                console.log(`✅ Found real ${functionName}, calling it now`);
+                                try {
+                                    loadFunction();
+                                    return; // Success, exit retry loop
+                                } catch (err) {
+                                    console.error(`Error calling ${functionName}:`, err);
+                                    const errorDiv = document.createElement('div');
+                                    errorDiv.className = 'text-center py-8 text-red-500';
+                                    errorDiv.textContent = `Error loading ${section}: ${err.message}`;
+                                    targetSection.innerHTML = '';
+                                    targetSection.appendChild(errorDiv);
+                                    return; // Exit retry loop
+                                }
+                            } else {
+                                console.log(`⏳ ${functionName} is still placeholder (name: ${loadFunction.name}), calling it anyway`);
+                                try {
+                                    loadFunction();
+                                    return; // Placeholder will handle waiting
+                                } catch (err) {
+                                    console.error(`Error calling placeholder ${functionName}:`, err);
                                 }
                             }
                         }
+                        
+                        // Function not found or not ready, retry
+                        retryCount++;
+                        if (retryCount < maxRetries) {
+                            console.log(`⏳ ${functionName} not ready yet, retrying in ${retryDelay}ms...`);
+                            setTimeout(tryLoadSection, retryDelay);
+                        } else {
+                            console.error(`❌ ${functionName} not available after ${maxRetries} attempts`);
+                            const errorDiv = document.createElement('div');
+                            errorDiv.className = 'text-center py-8 text-red-500';
+                            errorDiv.textContent = `Error: Function ${functionName} is not available. Please refresh the page.`;
+                            targetSection.innerHTML = '';
+                            targetSection.appendChild(errorDiv);
+                        }
+                    } else {
+                        console.log(`No load function mapped for section: ${section}`);
                     }
                 } catch (err) {
                     console.error('Error loading section data:', err);
