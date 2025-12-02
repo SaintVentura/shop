@@ -1300,6 +1300,7 @@
         
         console.log('Admin Dashboard - Backend URL:', BACKEND_URL);
         console.log('✅ BACKEND_URL made globally available:', window.BACKEND_URL);
+        console.log('✅ Body script is executing - functions will be assigned soon');
         
         let currentSection = 'dashboard';
         let posCart = [];
@@ -1774,10 +1775,17 @@
         // Make globally available - this replaces the placeholder
         const oldDashboardData = window.loadDashboardData;
         window.loadDashboardData = loadDashboardData;
-        console.log('✅ Real loadDashboardData function assigned to window');
+        console.log('✅✅✅ Real loadDashboardData function assigned to window');
         console.log('   Old function was placeholder:', oldDashboardData === window.placeholderFunctions?.loadDashboardData);
         console.log('   New function name:', loadDashboardData.name);
+        console.log('   New function is placeholder:', window.loadDashboardData === window.placeholderFunctions?.loadDashboardData);
         console.log('   Function is now:', typeof window.loadDashboardData === 'function' ? 'function' : typeof window.loadDashboardData);
+        // Force verify
+        if (window.loadDashboardData === loadDashboardData) {
+            console.log('   ✅✅✅ VERIFIED: window.loadDashboardData is the real function');
+        } else {
+            console.error('   ❌❌❌ ERROR: window.loadDashboardData is NOT the real function!');
+        }
         
         // Store previous badge counts to detect changes
         let previousBadgeCounts = {
