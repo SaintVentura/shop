@@ -297,11 +297,13 @@
                 console.log(`⏳ ${functionName} called, checking for real function...`);
                 const currentFunction = window[functionName];
                 
-                // Check if this is still the placeholder (by reference) or if it's been replaced
-                const isPlaceholder = currentFunction === placeholderFunctions[functionName];
+                // Check if this is still the placeholder by checking the function name
+                // Real functions have their actual name (e.g., "loadDashboardData"), placeholders are anonymous or named "placeholder"
+                const isPlaceholder = !currentFunction || !currentFunction.name || currentFunction.name === '' || currentFunction.name === 'placeholder' || currentFunction === placeholderFunctions[functionName];
+                const hasRealName = currentFunction && currentFunction.name && currentFunction.name !== '' && currentFunction.name !== 'placeholder' && currentFunction.name === functionName;
                 
-                if (!isPlaceholder && currentFunction && typeof currentFunction === 'function') {
-                    console.log(`✅ ${functionName} found (real function), calling it`);
+                if (hasRealName && typeof currentFunction === 'function') {
+                    console.log(`✅ ${functionName} found (real function with name: ${currentFunction.name}), calling it`);
                     try {
                         return currentFunction.apply(null, arguments);
                     } catch (err) {
@@ -309,17 +311,26 @@
                     }
                 } else {
                     // Real function not available yet, retry after a delay
-                    console.log(`⏳ ${functionName} not available yet, retrying in 200ms...`);
+                    console.log(`⏳ ${functionName} not available yet (isPlaceholder: ${isPlaceholder}, hasRealName: ${hasRealName}), retrying in 200ms...`);
                     let retryCount = 0;
-                    const maxRetries = 30; // Try for up to 6 seconds
+                    const maxRetries = 50; // Try for up to 10 seconds
                     
                     const tryCall = () => {
                         retryCount++;
                         const realFn = window[functionName];
-                        const stillPlaceholder = realFn === placeholderFunctions[functionName];
+                        const stillPlaceholder = !realFn || !realFn.name || realFn.name === '' || realFn.name === 'placeholder' || realFn === placeholderFunctions[functionName];
+                        const hasName = realFn && realFn.name && realFn.name !== '' && realFn.name !== 'placeholder' && realFn.name === functionName;
                         
-                        if (!stillPlaceholder && realFn && typeof realFn === 'function') {
-                            console.log(`✅ ${functionName} now available (attempt ${retryCount}), calling it`);
+                        if (retryCount % 5 === 0) { // Log every 5th attempt
+                            console.log(`   Attempt ${retryCount}: checking ${functionName}...`);
+                            console.log(`      realFn type:`, typeof realFn);
+                            console.log(`      realFn name:`, realFn?.name);
+                            console.log(`      is placeholder:`, stillPlaceholder);
+                            console.log(`      has real name:`, hasName);
+                        }
+                        
+                        if (hasName && typeof realFn === 'function') {
+                            console.log(`✅✅✅ ${functionName} now available (attempt ${retryCount}, name: ${realFn.name}), calling it`);
                             try {
                                 realFn.apply(null, arguments);
                             } catch (err) {
@@ -332,12 +343,25 @@
                             console.error(`   Current function type:`, typeof realFn);
                             console.error(`   Is placeholder:`, stillPlaceholder);
                             console.error(`   Function name:`, realFn?.name);
+                            console.error(`   Has real name:`, hasName);
+                            // Try to call it anyway if it's a function with a real name
+                            if (realFn && typeof realFn === 'function' && hasName) {
+                                console.log(`   ⚠️ Attempting to call anyway (function name: ${realFn.name})`);
+                                try {
+                                    realFn.apply(null, arguments);
+                                } catch (err) {
+                                    console.error(`   ❌ Failed to call:`, err);
+                                }
+                            }
                         }
                     };
                     
                     setTimeout(tryCall, 200);
                 }
             };
+            
+            // Give the placeholder a name so we can identify it
+            placeholder.name = 'placeholder';
             
             // Store placeholder reference
             placeholderFunctions[functionName] = placeholder;
