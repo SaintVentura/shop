@@ -1078,67 +1078,94 @@
         function setupLoginForm() {
             const loginForm = document.getElementById('login-form');
             if (!loginForm) {
-                console.error('❌ Login form not found');
+                console.error('❌ Login form not found - will retry');
+                // Retry after a short delay
+                setTimeout(setupLoginForm, 100);
                 return;
             }
             
-            // Remove existing listener if any
-            const newForm = loginForm.cloneNode(true);
-            loginForm.parentNode.replaceChild(newForm, loginForm);
+            // Check if already set up
+            if (loginForm.hasAttribute('data-handler-attached')) {
+                console.log('✅ Login form handler already attached');
+                return;
+            }
             
             console.log('🔧 Setting up login form handler');
+            loginForm.setAttribute('data-handler-attached', 'true');
             
-            newForm.addEventListener('submit', (e) => {
+            loginForm.addEventListener('submit', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 
                 console.log('📝 Login form submitted');
                 
                 const passwordInput = document.getElementById('admin-password');
-                const password = passwordInput ? passwordInput.value : '';
+                const password = passwordInput ? passwordInput.value.trim() : '';
                 const errorElement = document.getElementById('login-error');
                 
-                console.log('🔑 Password entered:', password ? '***' : '(empty)');
-                console.log('🔑 Expected password:', ADMIN_PASSWORD ? '***' : '(not set)');
+                console.log('🔑 Password entered length:', password.length);
+                console.log('🔑 Expected password length:', ADMIN_PASSWORD ? ADMIN_PASSWORD.length : 0);
+                console.log('🔑 Password match:', password === ADMIN_PASSWORD);
                 
                 if (!password) {
+                    console.log('❌ No password entered');
                     if (errorElement) {
                         errorElement.textContent = 'Please enter a password';
                         errorElement.classList.remove('hidden');
                     }
-                    return;
+                    return false;
                 }
                 
+                // Trim and compare passwords
                 if (password === ADMIN_PASSWORD) {
-                    console.log('✅ Login successful');
+                    console.log('✅ Login successful - password matches');
+                    
                     const loginScreen = document.getElementById('login-screen');
                     const adminDashboard = document.getElementById('admin-dashboard');
                     
-                    if (loginScreen) {
-                        loginScreen.classList.add('hidden');
+                    if (!loginScreen || !adminDashboard) {
+                        console.error('❌ Login screen or dashboard element not found');
+                        alert('Error: Page elements not found. Please refresh the page.');
+                        return false;
                     }
-                    if (adminDashboard) {
-                        adminDashboard.classList.remove('hidden');
-                    }
+                    
+                    console.log('✅ Hiding login screen and showing dashboard');
+                    loginScreen.classList.add('hidden');
+                    adminDashboard.classList.remove('hidden');
                     
                     localStorage.setItem('adminLoggedIn', 'true');
+                    console.log('✅ Login status saved to localStorage');
+                    
+                    // Hide error message
+                    if (errorElement) {
+                        errorElement.classList.add('hidden');
+                    }
                     
                     // Load dashboard
-                    if (typeof loadDashboard === 'function') {
-                        loadDashboard();
+                    try {
+                        if (typeof loadDashboard === 'function') {
+                            console.log('📊 Loading dashboard');
+                            loadDashboard();
+                        }
+                        
+                        // Start real-time sync
+                        if (typeof startRealTimeSync === 'function') {
+                            console.log('🔄 Starting real-time sync');
+                            startRealTimeSync();
+                        }
+                        
+                        // Show dashboard section
+                        if (typeof showSection === 'function') {
+                            console.log('📑 Showing dashboard section');
+                            showSection('dashboard');
+                        }
+                    } catch (err) {
+                        console.error('Error loading dashboard:', err);
                     }
                     
-                    // Start real-time sync
-                    if (typeof startRealTimeSync === 'function') {
-                        startRealTimeSync();
-                    }
-                    
-                    // Show dashboard section
-                    if (typeof showSection === 'function') {
-                        showSection('dashboard');
-                    }
+                    return false;
                 } else {
-                    console.log('❌ Invalid password');
+                    console.log('❌ Invalid password - passwords do not match');
                     if (errorElement) {
                         errorElement.textContent = 'Invalid password. Please try again.';
                         errorElement.classList.remove('hidden');
@@ -1148,12 +1175,20 @@
                         passwordInput.value = '';
                         passwordInput.focus();
                     }
+                    return false;
                 }
             });
+            
+            console.log('✅ Login form handler attached successfully');
         }
         
-        // Setup login form
-        setupLoginForm();
+        // Setup login form when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setupLoginForm);
+        } else {
+            // DOM already loaded
+            setupLoginForm();
+        }
 
         // Check if already logged in
         function checkLoginStatus() {
@@ -1161,21 +1196,29 @@
             const loginScreen = document.getElementById('login-screen');
             const adminDashboard = document.getElementById('admin-dashboard');
             
+            console.log('🔍 Checking login status:', isLoggedIn);
+            console.log('🔍 Login screen element:', loginScreen ? 'found' : 'not found');
+            console.log('🔍 Dashboard element:', adminDashboard ? 'found' : 'not found');
+            
             if (isLoggedIn && loginScreen && adminDashboard) {
                 console.log('✅ User already logged in, showing dashboard');
                 loginScreen.classList.add('hidden');
                 adminDashboard.classList.remove('hidden');
                 
-                if (typeof loadDashboard === 'function') {
-                    loadDashboard();
-                }
-                
-                if (typeof startRealTimeSync === 'function') {
-                    startRealTimeSync();
-                }
-                
-                if (typeof showSection === 'function') {
-                    showSection('dashboard');
+                try {
+                    if (typeof loadDashboard === 'function') {
+                        loadDashboard();
+                    }
+                    
+                    if (typeof startRealTimeSync === 'function') {
+                        startRealTimeSync();
+                    }
+                    
+                    if (typeof showSection === 'function') {
+                        showSection('dashboard');
+                    }
+                } catch (err) {
+                    console.error('Error loading dashboard on login check:', err);
                 }
             } else {
                 console.log('🔐 User not logged in, showing login screen');
@@ -1188,8 +1231,13 @@
             }
         }
         
-        // Check login status on page load
-        checkLoginStatus();
+        // Check login status when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', checkLoginStatus);
+        } else {
+            // DOM already loaded
+            checkLoginStatus();
+        }
 
         function logout() {
             console.log('🚪 Logging out');
