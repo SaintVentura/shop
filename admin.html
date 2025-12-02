@@ -1802,8 +1802,8 @@
         try {
             console.log('🚀🚀🚀 BODY SCRIPT STARTING - This should appear immediately when page loads');
             console.log('🚀🚀🚀 BODY SCRIPT VERSION: v2024-01-15-fix-syntax-v4');
-            
-            // Initialize data arrays and variables at the top level to avoid initialization errors
+        
+        // Initialize data arrays and variables at the top level to avoid initialization errors
         let allInventoryData = [];
         let allOrdersData = [];
         let currentViewingEmail = null;
@@ -1926,13 +1926,13 @@
                     
                     // Set up the Add Fulfiller button when section is shown
                     if (section === 'fulfillers') {
-                        setTimeout(() => {
-                            if (typeof setupAddFulfillerButton === 'function') {
-                                setupAddFulfillerButton();
-                            }
-                        }, 100);
-                    }
-                } catch (error) {
+                    setTimeout(() => {
+                        if (typeof setupAddFulfillerButton === 'function') {
+                            setupAddFulfillerButton();
+                        }
+                    }, 100);
+                }
+            } catch (error) {
                     console.error('Error in showSection enhancements:', error);
                 }
             };
@@ -1966,9 +1966,9 @@
         // Setup login form when DOM is ready
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', setupLoginForm);
-        } else {
+            } else {
             setupLoginForm();
-        }
+            }
 
         // Check if already logged in
         function checkLoginStatus() {
@@ -1987,12 +1987,12 @@
                 
                 try {
                     if (typeof loadDashboard === 'function') {
-                        loadDashboard();
+            loadDashboard();
                     }
                     
                     if (typeof startRealTimeSync === 'function') {
-                        startRealTimeSync();
-                    }
+            startRealTimeSync();
+        }
                     
                     if (typeof showSection === 'function') {
                         showSection('dashboard');
@@ -2126,7 +2126,7 @@
                 setupSidebarNavigation();
             }
         }, 1000);
-        
+
         function logout() {
             console.log('🚪 Logging out');
             localStorage.removeItem('adminLoggedIn');
@@ -2143,7 +2143,7 @@
             
             // Stop real-time sync when logging out
             if (typeof stopRealTimeSync === 'function') {
-                stopRealTimeSync();
+            stopRealTimeSync();
             }
             
             // Clear password field
@@ -2255,7 +2255,7 @@
         }
         
         // loadDashboardData is now defined above, before try block
-        
+
         // Store previous badge counts to detect changes
         let previousBadgeCounts = {
             inbox: 0,
@@ -3318,19 +3318,22 @@
                                 <span class="text-xs text-gray-500 font-medium">Image Section</span>
                                 <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
                             </div>
-                            <input type="url" class="w-full mb-2 px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Image URL..." value="https://dl.dropboxusercontent.com/scl/fi/j0pgw2egryb9f0470f3p3/1-2.png?rlkey=xaw4k5w0yhwswfae3pi1n0g2r&st=vnlwftci&dl=1">
+                            <label for="email-image-url-promo" class="sr-only">Image URL</label>
+                            <input type="url" id="email-image-url-promo" name="email-image-url-promo" class="w-full mb-2 px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Image URL..." value="https://dl.dropboxusercontent.com/scl/fi/j0pgw2egryb9f0470f3p3/1-2.png?rlkey=xaw4k5w0yhwswfae3pi1n0g2r&st=vnlwftci&dl=1">
                         </div>
                         <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="heading">
                             <div class="flex justify-between items-center mb-2">
                                 <span class="text-xs text-gray-500 font-medium">Heading Section</span>
                                 <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
                             </div>
-                            <select class="w-full mb-2 px-2 py-1 border border-gray-200 rounded text-sm">
+                            <label for="email-heading-level-promo" class="sr-only">Heading Level</label>
+                            <select id="email-heading-level-promo" name="email-heading-level-promo" class="w-full mb-2 px-2 py-1 border border-gray-200 rounded text-sm">
                                 <option value="h1">H1 (Large)</option>
                                 <option value="h2" selected>H2 (Medium)</option>
                                 <option value="h3">H3 (Small)</option>
                             </select>
-                            <input type="text" class="w-full px-3 py-2 border border-gray-200 rounded text-sm font-bold" placeholder="Enter heading text..." value="🎉 Special Promotion - Limited Time Offer!">
+                            <label for="email-heading-text-promo" class="sr-only">Heading Text</label>
+                            <input type="text" id="email-heading-text-promo" name="email-heading-text-promo" class="w-full px-3 py-2 border border-gray-200 rounded text-sm font-bold" placeholder="Enter heading text..." value="🎉 Special Promotion - Limited Time Offer!">
                         </div>
                         <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="text">
                             <div class="flex justify-between items-center mb-2">
@@ -3344,8 +3347,10 @@
                                 <span class="text-xs text-gray-500 font-medium">Button Section</span>
                                 <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
                             </div>
-                            <input type="text" class="w-full mb-2 px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Button text..." value="Shop Now">
-                            <input type="url" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Button URL..." value="https://saintventura.co.za">
+                            <label for="email-button-text-promo" class="sr-only">Button Text</label>
+                            <input type="text" id="email-button-text-promo" name="email-button-text-promo" class="w-full mb-2 px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Button text..." value="Shop Now">
+                            <label for="email-button-url-promo" class="sr-only">Button URL</label>
+                            <input type="url" id="email-button-url-promo" name="email-button-url-promo" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Button URL..." value="https://saintventura.co.za">
                         </div>
                     `;
                     break;
@@ -3357,19 +3362,22 @@
                                 <span class="text-xs text-gray-500 font-medium">Image Section</span>
                                 <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
                             </div>
-                            <input type="url" class="w-full mb-2 px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Image URL..." value="https://dl.dropboxusercontent.com/scl/fi/6ribhwbytdqfqva6jgf3s/1-16.png?rlkey=s61uev3dxmsmo4coifrqtozge&st=z3y4nuri&dl=1">
+                            <label for="email-image-url-newproduct" class="sr-only">Image URL</label>
+                            <input type="url" id="email-image-url-newproduct" name="email-image-url-newproduct" class="w-full mb-2 px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Image URL..." value="https://dl.dropboxusercontent.com/scl/fi/6ribhwbytdqfqva6jgf3s/1-16.png?rlkey=s61uev3dxmsmo4coifrqtozge&st=z3y4nuri&dl=1">
                         </div>
                         <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="heading">
                             <div class="flex justify-between items-center mb-2">
                                 <span class="text-xs text-gray-500 font-medium">Heading Section</span>
                                 <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
                             </div>
-                            <select class="w-full mb-2 px-2 py-1 border border-gray-200 rounded text-sm">
+                            <label for="email-heading-level-newproduct" class="sr-only">Heading Level</label>
+                            <select id="email-heading-level-newproduct" name="email-heading-level-newproduct" class="w-full mb-2 px-2 py-1 border border-gray-200 rounded text-sm">
                                 <option value="h1" selected>H1 (Large)</option>
                                 <option value="h2">H2 (Medium)</option>
                                 <option value="h3">H3 (Small)</option>
                             </select>
-                            <input type="text" class="w-full px-3 py-2 border border-gray-200 rounded text-sm font-bold" placeholder="Enter heading text..." value="✨ New Product Launch!">
+                            <label for="email-heading-text-newproduct" class="sr-only">Heading Text</label>
+                            <input type="text" id="email-heading-text-newproduct" name="email-heading-text-newproduct" class="w-full px-3 py-2 border border-gray-200 rounded text-sm font-bold" placeholder="Enter heading text..." value="✨ New Product Launch!">
                         </div>
                         <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="text">
                             <div class="flex justify-between items-center mb-2">
@@ -3383,8 +3391,10 @@
                                 <span class="text-xs text-gray-500 font-medium">Button Section</span>
                                 <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
                             </div>
-                            <input type="text" class="w-full mb-2 px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Button text..." value="View New Products">
-                            <input type="url" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Button URL..." value="https://saintventura.co.za">
+                            <label for="email-button-text-newproduct" class="sr-only">Button Text</label>
+                            <input type="text" id="email-button-text-newproduct" name="email-button-text-newproduct" class="w-full mb-2 px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Button text..." value="View New Products">
+                            <label for="email-button-url-newproduct" class="sr-only">Button URL</label>
+                            <input type="url" id="email-button-url-newproduct" name="email-button-url-newproduct" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Button URL..." value="https://saintventura.co.za">
                         </div>
                     `;
                     break;
@@ -3396,19 +3406,22 @@
                                 <span class="text-xs text-gray-500 font-medium">Image Section</span>
                                 <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
                             </div>
-                            <input type="url" class="w-full mb-2 px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Image URL..." value="https://dl.dropboxusercontent.com/scl/fi/qs6id9xzrvfp8dctj2lqf/1-15.png?rlkey=shaa8t54va6ap95kulvvk1jee&st=tpwythhm&dl=1">
+                            <label for="email-image-url-news" class="sr-only">Image URL</label>
+                            <input type="url" id="email-image-url-news" name="email-image-url-news" class="w-full mb-2 px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Image URL..." value="https://dl.dropboxusercontent.com/scl/fi/qs6id9xzrvfp8dctj2lqf/1-15.png?rlkey=shaa8t54va6ap95kulvvk1jee&st=tpwythhm&dl=1">
                         </div>
                         <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="heading">
                             <div class="flex justify-between items-center mb-2">
                                 <span class="text-xs text-gray-500 font-medium">Heading Section</span>
                                 <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
                             </div>
-                            <select class="w-full mb-2 px-2 py-1 border border-gray-200 rounded text-sm">
+                            <label for="email-heading-level-news" class="sr-only">Heading Level</label>
+                            <select id="email-heading-level-news" name="email-heading-level-news" class="w-full mb-2 px-2 py-1 border border-gray-200 rounded text-sm">
                                 <option value="h1">H1 (Large)</option>
                                 <option value="h2" selected>H2 (Medium)</option>
                                 <option value="h3">H3 (Small)</option>
                             </select>
-                            <input type="text" class="w-full px-3 py-2 border border-gray-200 rounded text-sm font-bold" placeholder="Enter heading text..." value="📰 Latest News & Updates">
+                            <label for="email-heading-text-news" class="sr-only">Heading Text</label>
+                            <input type="text" id="email-heading-text-news" name="email-heading-text-news" class="w-full px-3 py-2 border border-gray-200 rounded text-sm font-bold" placeholder="Enter heading text..." value="📰 Latest News & Updates">
                         </div>
                         <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="text">
                             <div class="flex justify-between items-center mb-2">
@@ -3445,7 +3458,8 @@ Thank you!</textarea>
                                     <span class="text-xs text-gray-500 font-medium">Text Section</span>
                                     <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
                                 </div>
-                                <textarea class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="8" placeholder="Enter order details...">Hi there,
+                                <label for="email-text-fulfiller" class="sr-only">Order Details Text</label>
+                            <textarea id="email-text-fulfiller" name="email-text-fulfiller" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="8" placeholder="Enter order details...">Hi there,
 
 You have a new order to fulfill. Please check the order details and process it as soon as possible.
 
@@ -3510,7 +3524,8 @@ Thank you!</textarea>
                                 <span class="text-xs text-gray-500 font-medium">Text Section</span>
                                 <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
                             </div>
-                            <textarea class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="4" placeholder="Enter text content..."></textarea>
+                            <label for="email-text-new" class="sr-only">Text Content</label>
+                            <textarea id="email-text-new" name="email-text-new" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="4" placeholder="Enter text content..."></textarea>
                         </div>
                     `;
                     break;
@@ -3521,12 +3536,14 @@ Thank you!</textarea>
                                 <span class="text-xs text-gray-500 font-medium">Heading Section</span>
                                 <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
                             </div>
-                            <select class="w-full mb-2 px-2 py-1 border border-gray-200 rounded text-sm">
+                            <label for="email-heading-level-custom" class="sr-only">Heading Level</label>
+                            <select id="email-heading-level-custom" name="email-heading-level-custom" class="w-full mb-2 px-2 py-1 border border-gray-200 rounded text-sm">
                                 <option value="h1">H1 (Large)</option>
                                 <option value="h2">H2 (Medium)</option>
                                 <option value="h3">H3 (Small)</option>
                             </select>
-                            <input type="text" class="w-full px-3 py-2 border border-gray-200 rounded text-sm font-bold" placeholder="Enter heading text...">
+                            <label for="email-heading-text-custom" class="sr-only">Heading Text</label>
+                            <input type="text" id="email-heading-text-custom" name="email-heading-text-custom" class="w-full px-3 py-2 border border-gray-200 rounded text-sm font-bold" placeholder="Enter heading text...">
                         </div>
                     `;
                     break;
@@ -3537,8 +3554,10 @@ Thank you!</textarea>
                                 <span class="text-xs text-gray-500 font-medium">Image Section</span>
                                 <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
                             </div>
-                            <input type="url" class="w-full mb-2 px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Image URL...">
-                            <input type="text" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Alt text (optional)">
+                            <label for="email-image-url-custom" class="sr-only">Image URL</label>
+                            <input type="url" id="email-image-url-custom" name="email-image-url-custom" class="w-full mb-2 px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Image URL...">
+                            <label for="email-image-alt-custom" class="sr-only">Image Alt Text</label>
+                            <input type="text" id="email-image-alt-custom" name="email-image-alt-custom" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Alt text (optional)">
                         </div>
                     `;
                     break;
@@ -3549,8 +3568,10 @@ Thank you!</textarea>
                                 <span class="text-xs text-gray-500 font-medium">Button Section</span>
                                 <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
                             </div>
-                            <input type="text" class="w-full mb-2 px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Button text...">
-                            <input type="url" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Button URL...">
+                            <label for="email-button-text-custom" class="sr-only">Button Text</label>
+                            <input type="text" id="email-button-text-custom" name="email-button-text-custom" class="w-full mb-2 px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Button text...">
+                            <label for="email-button-url-custom" class="sr-only">Button URL</label>
+                            <input type="url" id="email-button-url-custom" name="email-button-url-custom" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Button URL...">
                         </div>
                     `;
                     break;
@@ -3572,7 +3593,8 @@ Thank you!</textarea>
                                 <span class="text-xs text-gray-500 font-medium">Spacer Section</span>
                                 <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
                             </div>
-                            <input type="number" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Height in pixels (e.g., 20)" value="20" min="10" max="100">
+                            <label for="email-spacer-height-custom" class="sr-only">Spacer Height</label>
+                            <input type="number" id="email-spacer-height-custom" name="email-spacer-height-custom" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Height in pixels (e.g., 20)" value="20" min="10" max="100">
                         </div>
                     `;
                     break;
@@ -3672,19 +3694,26 @@ Thank you!</textarea>
                                 sectionHtml = `<div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="text"><div class="flex justify-between items-center mb-2"><label for="${textareaId}" class="text-xs text-gray-500 font-medium">Text Section</label><button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button></div><textarea id="${textareaId}" name="${textareaId}" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="4" placeholder="Enter text content...">${(sectionData.value || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea></div>`;
                                 break;
                             case 'heading':
-                                sectionHtml = `<div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="heading"><div class="flex justify-between items-center mb-2"><span class="text-xs text-gray-500 font-medium">Heading Section</span><button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button></div><select class="w-full mb-2 px-2 py-1 border border-gray-200 rounded text-sm"><option value="h1" ${sectionData.selectValue === 'h1' ? 'selected' : ''}>H1 (Large)</option><option value="h2" ${sectionData.selectValue === 'h2' ? 'selected' : ''}>H2 (Medium)</option><option value="h3" ${sectionData.selectValue === 'h3' ? 'selected' : ''}>H3 (Small)</option></select><input type="text" class="w-full px-3 py-2 border border-gray-200 rounded text-sm font-bold" placeholder="Enter heading text..." value="${(sectionData.inputValue || '').replace(/"/g, '&quot;')}"></div>`;
+                                const headingId = 'email-heading-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+                                const headingLevelId = 'email-heading-level-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+                                sectionHtml = `<div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="heading"><div class="flex justify-between items-center mb-2"><span class="text-xs text-gray-500 font-medium">Heading Section</span><button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button></div><label for="${headingLevelId}" class="sr-only">Heading Level</label><select id="${headingLevelId}" name="${headingLevelId}" class="w-full mb-2 px-2 py-1 border border-gray-200 rounded text-sm"><option value="h1" ${sectionData.selectValue === 'h1' ? 'selected' : ''}>H1 (Large)</option><option value="h2" ${sectionData.selectValue === 'h2' ? 'selected' : ''}>H2 (Medium)</option><option value="h3" ${sectionData.selectValue === 'h3' ? 'selected' : ''}>H3 (Small)</option></select><label for="${headingId}" class="sr-only">Heading Text</label><input type="text" id="${headingId}" name="${headingId}" class="w-full px-3 py-2 border border-gray-200 rounded text-sm font-bold" placeholder="Enter heading text..." value="${(sectionData.inputValue || '').replace(/"/g, '&quot;')}"></div>`;
                                 break;
                             case 'image':
-                                sectionHtml = `<div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="image"><div class="flex justify-between items-center mb-2"><span class="text-xs text-gray-500 font-medium">Image Section</span><button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button></div><input type="url" class="w-full mb-2 px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Image URL..." value="${(sectionData.inputs?.[0] || '').replace(/"/g, '&quot;')}"><input type="text" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Alt text (optional)" value="${(sectionData.inputs?.[1] || '').replace(/"/g, '&quot;')}"></div>`;
+                                const imageUrlId = 'email-image-url-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+                                const imageAltId = 'email-image-alt-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+                                sectionHtml = `<div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="image"><div class="flex justify-between items-center mb-2"><span class="text-xs text-gray-500 font-medium">Image Section</span><button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button></div><label for="${imageUrlId}" class="sr-only">Image URL</label><input type="url" id="${imageUrlId}" name="${imageUrlId}" class="w-full mb-2 px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Image URL..." value="${(sectionData.inputs?.[0] || '').replace(/"/g, '&quot;')}"><label for="${imageAltId}" class="sr-only">Image Alt Text</label><input type="text" id="${imageAltId}" name="${imageAltId}" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Alt text (optional)" value="${(sectionData.inputs?.[1] || '').replace(/"/g, '&quot;')}"></div>`;
                                 break;
                             case 'button':
-                                sectionHtml = `<div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="button"><div class="flex justify-between items-center mb-2"><span class="text-xs text-gray-500 font-medium">Button Section</span><button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button></div><input type="text" class="w-full mb-2 px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Button text..." value="${(sectionData.inputs?.[0] || '').replace(/"/g, '&quot;')}"><input type="url" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Button URL..." value="${(sectionData.inputs?.[1] || '').replace(/"/g, '&quot;')}"></div>`;
+                                const buttonTextId = 'email-button-text-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+                                const buttonUrlId = 'email-button-url-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+                                sectionHtml = `<div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="button"><div class="flex justify-between items-center mb-2"><span class="text-xs text-gray-500 font-medium">Button Section</span><button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button></div><label for="${buttonTextId}" class="sr-only">Button Text</label><input type="text" id="${buttonTextId}" name="${buttonTextId}" class="w-full mb-2 px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Button text..." value="${(sectionData.inputs?.[0] || '').replace(/"/g, '&quot;')}"><label for="${buttonUrlId}" class="sr-only">Button URL</label><input type="url" id="${buttonUrlId}" name="${buttonUrlId}" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Button URL..." value="${(sectionData.inputs?.[1] || '').replace(/"/g, '&quot;')}"></div>`;
                                 break;
                             case 'divider':
                                 sectionHtml = `<div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="divider"><div class="flex justify-between items-center mb-2"><span class="text-xs text-gray-500 font-medium">Divider Section</span><button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button></div><div class="border-t-2 border-gray-300"></div></div>`;
                                 break;
                             case 'spacer':
-                                sectionHtml = `<div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="spacer"><div class="flex justify-between items-center mb-2"><span class="text-xs text-gray-500 font-medium">Spacer Section</span><button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button></div><input type="number" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Height in pixels (e.g., 20)" value="${sectionData.value || 20}" min="10" max="100"></div>`;
+                                const spacerId = 'email-spacer-height-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+                                sectionHtml = `<div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="spacer"><div class="flex justify-between items-center mb-2"><span class="text-xs text-gray-500 font-medium">Spacer Section</span><button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button></div><label for="${spacerId}" class="sr-only">Spacer Height</label><input type="number" id="${spacerId}" name="${spacerId}" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Height in pixels (e.g., 20)" value="${sectionData.value || 20}" min="10" max="100"></div>`;
                                 break;
                         }
                         if (sectionHtml) {
@@ -5058,7 +5087,7 @@ Thank you!</textarea>
                 console.error('❌ pos-products element not found');
                 return;
             }
-            container.innerHTML = '<div class="col-span-2 md:col-span-3 lg:col-span-4 text-center py-8 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading products...</span></div></div>';
+                    container.innerHTML = '<div class="col-span-2 md:col-span-3 lg:col-span-4 text-center py-8 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading products...</span></div></div>';
             
             const backendUrl = window.BACKEND_URL || BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
             console.log('💰 Using backend URL:', backendUrl);
@@ -5240,15 +5269,15 @@ Thank you!</textarea>
             posForm.parentNode.replaceChild(newForm, posForm);
             
             newForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
+            e.preventDefault();
                 e.stopPropagation();
                 
                 console.log('📝 POS form submitted');
                 
-                if (posCart.length === 0) {
-                    alert('Please add items to cart');
-                    return;
-                }
+            if (posCart.length === 0) {
+                alert('Please add items to cart');
+                return;
+            }
             
             const customerName = document.getElementById('pos-customer-name').value.trim();
             const customerEmail = document.getElementById('pos-customer-email').value.trim();
@@ -5256,7 +5285,7 @@ Thank you!</textarea>
             const paymentMethod = document.getElementById('pos-payment-method').value;
             const subscribe = document.getElementById('pos-subscribe').checked;
             const total = posCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            
+
             // Validate form fields
             if (!customerName || !customerEmail || !customerPhone) {
                 alert('Please fill in all customer details (Name, Email, Phone)');
