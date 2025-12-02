@@ -1186,6 +1186,155 @@
         
         console.log('✅ All load function stubs defined');
         
+        // Define BACKEND_URL and adminFetch BEFORE defining real functions
+        // Auto-detect backend URL based on environment (same as index.html)
+        function getBackendUrl() {
+            const hostname = window.location.hostname;
+            const origin = window.location.origin;
+            
+            console.log('Admin Dashboard - Detecting backend URL for hostname:', hostname, 'origin:', origin);
+            
+            // Local development
+            if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '' || hostname === '0.0.0.0') {
+                console.log('Using localhost backend');
+                return 'http://localhost:3000';
+            }
+            
+            // GitHub Pages (production)
+            // Backend deployed on Render
+            const PRODUCTION_BACKEND_URL = 'https://saint-ventura-backend.onrender.com';
+            
+            // If you're on GitHub Pages, use production backend
+            if (hostname.includes('github.io') || hostname.includes('github.com') || origin.includes('github.io') || origin.includes('github.com')) {
+                console.log('Detected GitHub Pages, using production backend:', PRODUCTION_BACKEND_URL);
+                return PRODUCTION_BACKEND_URL;
+            }
+            
+            // Default to production for any other domain
+            console.log('Using production backend:', PRODUCTION_BACKEND_URL);
+            return PRODUCTION_BACKEND_URL;
+        }
+        
+        const BACKEND_URL = getBackendUrl();
+        // Make globally available
+        window.BACKEND_URL = BACKEND_URL;
+        
+        console.log('Admin Dashboard - Backend URL:', BACKEND_URL);
+        console.log('✅ BACKEND_URL made globally available:', window.BACKEND_URL);
+        
+        // Helper function to add admin auth header - MUST be defined before load functions
+        function adminFetch(url, options = {}) {
+            // Ensure options object exists
+            if (!options) options = {};
+            if (!options.headers) options.headers = {};
+            
+            // Get ADMIN_PASSWORD from global scope
+            const adminPassword = window.ADMIN_PASSWORD || ADMIN_PASSWORD || 'WEAR3+H3$@!N+$*';
+            if (!adminPassword) {
+                console.error('❌ ADMIN_PASSWORD not found!');
+                return Promise.reject(new Error('Admin password not configured'));
+            }
+            
+            options.headers['X-Admin-Password'] = adminPassword;
+            options.headers['Content-Type'] = 'application/json'; // Default to JSON
+            
+            return fetch(url, options)
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(errorData => {
+                            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                        });
+                    }
+                    return response.json();
+                });
+        }
+        
+        // Make adminFetch globally available
+        window.adminFetch = adminFetch;
+        
+        console.log('✅ adminFetch function defined and made globally available');
+        
+        // NOW define all real load functions - OUTSIDE try block so they're always available
+        console.log('🔧 Defining all real load functions...');
+        
+        // Replace stub with real loadDashboardData function
+        window.loadDashboardData = function loadDashboardData() {
+            console.log('📊 Loading dashboard data (real function)...');
+            const backendUrl = window.BACKEND_URL || BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
+            console.log('📊 Using backend URL:', backendUrl);
+            adminFetch(`${backendUrl}/api/admin/dashboard`)
+                .then(data => {
+                    console.log('✅ Dashboard data received:', data);
+                    if (data.success) {
+                        // Update stats
+                        const statElements = {
+                            'stat-total-revenue': `R${data.stats.totalRevenue.toFixed(2)}`,
+                            'stat-total-profit': `R${(data.stats.totalProfit || 0).toFixed(2)}`,
+                            'stat-total-orders': data.stats.completedOrders,
+                            'stat-pending-orders': data.stats.pendingOrders,
+                            'stat-subscribers': data.stats.totalSubscribers,
+                            'stat-low-stock': data.stats.lowStockItems,
+                            'stat-notifications': data.stats.unreadNotifications,
+                            'stat-emails': data.stats.unreadEmails,
+                            'stat-carts': data.stats.abandonedCarts
+                        };
+                        
+                        for (const [id, value] of Object.entries(statElements)) {
+                            const element = document.getElementById(id);
+                            if (element) {
+                                element.textContent = value;
+                            } else {
+                                console.warn(`⚠️ Element not found: ${id}`);
+                            }
+                        }
+                        
+                        // Update recent orders
+                        const recentList = document.getElementById('recent-orders-list');
+                        if (recentList) {
+                            if (data.recentOrders && data.recentOrders.length > 0) {
+                                recentList.innerHTML = data.recentOrders.map(order => `
+                                    <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition">
+                                        <div class="flex justify-between items-start">
+                                            <div>
+                                                <p class="font-semibold">${order.customerName || 'Unknown'}</p>
+                                                <p class="text-sm text-gray-600">${order.id || 'N/A'}</p>
+                                            </div>
+                                            <div class="text-right">
+                                                <p class="font-semibold">R${(order.total || 0).toFixed(2)}</p>
+                                                <span class="px-2 py-1 rounded-full text-xs font-semibold ${order.status === 'fulfilled' ? 'bg-green-100 text-green-800' : order.status === 'pending fulfillment' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}">${order.status || 'pending checkout'}</span>
+                                            </div>
+                                        </div>
+                                        <p class="text-xs text-gray-500 mt-2">${order.date ? new Date(order.date).toLocaleString() : 'N/A'}</p>
+                                    </div>
+                                `).join('');
+                            } else {
+                                recentList.innerHTML = '<div class="text-center py-8 text-gray-500">No recent orders</div>';
+                            }
+                        } else {
+                            console.warn('⚠️ recent-orders-list element not found');
+                        }
+                    } else {
+                        console.error('❌ Dashboard data not successful:', data);
+                        const recentList = document.getElementById('recent-orders-list');
+                        if (recentList) {
+                            recentList.innerHTML = `<div class="text-center py-8 text-red-500">Error: ${data.error || 'Failed to load dashboard data'}</div>`;
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.error('❌ Error loading dashboard data:', err);
+                    const recentList = document.getElementById('recent-orders-list');
+                    if (recentList) {
+                        recentList.innerHTML = `<div class="text-center py-8 text-red-500">Error loading dashboard: ${err.message || 'Unknown error'}<br><small>Backend: ${BACKEND_URL}</small></div>`;
+                    }
+                });
+        };
+        console.log('✅ loadDashboardData defined');
+        
+        // Define other load functions as stubs for now - they'll be replaced in try block
+        // But at least they exist and won't cause "function not available" errors
+        console.log('✅ All load functions are now available (some as stubs, will be replaced)');
+        
         try {
             console.log('🚀🚀🚀 BODY SCRIPT STARTING - This should appear immediately when page loads');
             console.log('🚀🚀🚀 BODY SCRIPT VERSION: v2024-01-15-fix-syntax-v4');
@@ -1240,41 +1389,7 @@
         // Also assign to window for explicit global access
         window.closeAddFulfillerModal = closeAddFulfillerModal;
         
-        // Auto-detect backend URL based on environment (same as index.html)
-        function getBackendUrl() {
-            const hostname = window.location.hostname;
-            const origin = window.location.origin;
-            
-            console.log('Admin Dashboard - Detecting backend URL for hostname:', hostname, 'origin:', origin);
-            
-            // Local development
-            if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '' || hostname === '0.0.0.0') {
-                console.log('Using localhost backend');
-                return 'http://localhost:3000';
-            }
-            
-            // GitHub Pages (production)
-            // Backend deployed on Render
-            const PRODUCTION_BACKEND_URL = 'https://saint-ventura-backend.onrender.com';
-            
-            // If you're on GitHub Pages, use production backend
-            if (hostname.includes('github.io') || hostname.includes('github.com') || origin.includes('github.io') || origin.includes('github.com')) {
-                console.log('Detected GitHub Pages, using production backend:', PRODUCTION_BACKEND_URL);
-                return PRODUCTION_BACKEND_URL;
-            }
-            
-            // Default to production for any other domain
-            console.log('Using production backend:', PRODUCTION_BACKEND_URL);
-            return PRODUCTION_BACKEND_URL;
-        }
-        
-        const BACKEND_URL = getBackendUrl();
-        // Make globally available
-        window.BACKEND_URL = BACKEND_URL;
-        
-        console.log('Admin Dashboard - Backend URL:', BACKEND_URL);
-        console.log('✅ BACKEND_URL made globally available:', window.BACKEND_URL);
-        console.log('✅ Body script is executing - functions will be assigned soon');
+        // BACKEND_URL and adminFetch are now defined above, before try block
         
         let currentSection = 'dashboard';
         let posCart = [];
@@ -1675,87 +1790,7 @@
             }
         }
         
-        // Define and assign loadDashboardData immediately
-        window.loadDashboardData = function loadDashboardData() {
-            console.log('📊 Loading dashboard data (real function)...');
-            const backendUrl = window.BACKEND_URL || BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
-            console.log('📊 Using backend URL:', backendUrl);
-            adminFetch(`${backendUrl}/api/admin/dashboard`)
-                .then(data => {
-                    console.log('✅ Dashboard data received:', data);
-                    if (data.success) {
-                        // Update stats
-                        const statElements = {
-                            'stat-total-revenue': `R${data.stats.totalRevenue.toFixed(2)}`,
-                            'stat-total-profit': `R${(data.stats.totalProfit || 0).toFixed(2)}`,
-                            'stat-total-orders': data.stats.completedOrders,
-                            'stat-pending-orders': data.stats.pendingOrders,
-                            'stat-subscribers': data.stats.totalSubscribers,
-                            'stat-low-stock': data.stats.lowStockItems,
-                            'stat-notifications': data.stats.unreadNotifications,
-                            'stat-emails': data.stats.unreadEmails,
-                            'stat-carts': data.stats.abandonedCarts
-                        };
-                        
-                        for (const [id, value] of Object.entries(statElements)) {
-                            const element = document.getElementById(id);
-                            if (element) {
-                                element.textContent = value;
-                            } else {
-                                console.warn(`⚠️ Element not found: ${id}`);
-                            }
-                        }
-                        
-                        // Update recent orders
-                        const recentList = document.getElementById('recent-orders-list');
-                        if (recentList) {
-                            if (data.recentOrders && data.recentOrders.length > 0) {
-                                recentList.innerHTML = data.recentOrders.map(order => `
-                                    <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition">
-                                        <div class="flex justify-between items-start">
-                                            <div>
-                                                <p class="font-semibold">${order.customerName || 'Unknown'}</p>
-                                                <p class="text-sm text-gray-600">${order.id || 'N/A'}</p>
-                                            </div>
-                                            <div class="text-right">
-                                                <p class="font-semibold">R${(order.total || 0).toFixed(2)}</p>
-                                                <span class="px-2 py-1 rounded-full text-xs font-semibold ${order.status === 'fulfilled' ? 'bg-green-100 text-green-800' : order.status === 'pending fulfillment' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}">${order.status || 'pending checkout'}</span>
-                                            </div>
-                                        </div>
-                                        <p class="text-xs text-gray-500 mt-2">${order.date ? new Date(order.date).toLocaleString() : 'N/A'}</p>
-                                    </div>
-                                `).join('');
-                            } else {
-                                recentList.innerHTML = '<div class="text-center py-8 text-gray-500">No recent orders</div>';
-                            }
-                        } else {
-                            console.warn('⚠️ recent-orders-list element not found');
-                        }
-                    } else {
-                        console.error('❌ Dashboard data not successful:', data);
-                        const recentList = document.getElementById('recent-orders-list');
-                        if (recentList) {
-                            recentList.innerHTML = `<div class="text-center py-8 text-red-500">Error: ${data.error || 'Failed to load dashboard data'}</div>`;
-                        }
-                    }
-                })
-                .catch(err => {
-                    console.error('❌ Error loading dashboard data:', err);
-                    const recentList = document.getElementById('recent-orders-list');
-                    if (recentList) {
-                        recentList.innerHTML = `<div class="text-center py-8 text-red-500">Error loading dashboard: ${err.message || 'Unknown error'}<br><small>Backend: ${BACKEND_URL}</small></div>`;
-                    }
-                });
-        };
-        // Verify the function was assigned correctly
-        if (window.loadDashboardData && window.loadDashboardData.name === 'loadDashboardData') {
-            console.log('✅✅✅ VERIFIED: window.loadDashboardData is the real function (name:', window.loadDashboardData.name + ')');
-        } else {
-            console.error('❌❌❌ ERROR: window.loadDashboardData assignment failed!');
-            console.error('   Current value:', window.loadDashboardData);
-            console.error('   Type:', typeof window.loadDashboardData);
-            console.error('   Name:', window.loadDashboardData?.name);
-        }
+        // loadDashboardData is now defined above, before try block
         
         // Store previous badge counts to detect changes
         let previousBadgeCounts = {
