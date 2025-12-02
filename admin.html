@@ -1955,7 +1955,7 @@
         // Inventory functions
         // allInventoryData is declared at the top of the script
         
-        function loadInventory() {
+        window.loadInventory = function loadInventory() {
             const tbody = document.getElementById('inventory-table');
             const mobileContainer = document.getElementById('inventory-table-mobile');
             
@@ -1986,12 +1986,8 @@
                         mobileContainer.innerHTML = `<div class="error-message">${errorMsg}<br><small>Backend URL: ${BACKEND_URL}</small></div>`;
                     }
                 });
-        }
-        // Make globally available - this replaces the placeholder
-        const oldInventory = window.loadInventory;
-        window.loadInventory = loadInventory;
-        console.log('✅ Real loadInventory function assigned to window');
-        console.log('   Old was placeholder:', oldInventory === window.placeholderFunctions?.loadInventory);
+        };
+        console.log('✅✅✅ Real loadInventory function defined and assigned to window');
         
         function renderInventory(data) {
             const desktopContainer = document.getElementById('inventory-table');
@@ -2376,7 +2372,7 @@
         }
 
         // Inbox functions
-        function loadInbox() {
+        window.loadInbox = function loadInbox() {
             console.log('📧 Loading inbox (real function)...');
             const list = document.getElementById('inbox-list');
             if (!list) {
@@ -3618,7 +3614,7 @@ Thank you!</textarea>
         }
 
         // Broadcast functions
-        function loadBroadcast() {
+        window.loadBroadcast = function loadBroadcast() {
             console.log('📢 Loading broadcast (real function)...');
             const backendUrl = window.BACKEND_URL || BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
             console.log('📢 Using backend URL:', backendUrl);
@@ -3754,7 +3750,7 @@ Thank you!</textarea>
         });
 
         // Abandoned carts functions
-        function loadAbandonedCarts() {
+        window.loadAbandonedCarts = function loadAbandonedCarts() {
             console.log('🛒 Loading abandoned carts (real function)...');
             const list = document.getElementById('abandoned-carts-list');
             if (!list) {
@@ -3875,7 +3871,7 @@ Thank you!</textarea>
         }
 
         // Fulfillers functions
-        function loadFulfillers() {
+        window.loadFulfillers = function loadFulfillers() {
             console.log('🚚 Loading fulfillers (real function)...');
             const list = document.getElementById('fulfillers-list');
             const select = document.getElementById('fulfiller-select');
@@ -4167,7 +4163,7 @@ Thank you!</textarea>
         });
 
         // Notifications functions
-        function loadNotifications() {
+        window.loadNotifications = function loadNotifications() {
             console.log('🔔 Loading notifications (real function)...');
             const list = document.getElementById('notifications-list');
             if (!list) {
@@ -4282,7 +4278,7 @@ Thank you!</textarea>
         // Orders Management functions
         // allOrdersData is declared at the top of the script
         
-        function loadOrders() {
+        window.loadOrders = function loadOrders() {
             const tbody = document.getElementById('orders-table');
             if (tbody) {
                 tbody.innerHTML = '<tr><td colspan="8" class="text-center py-12 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading orders...</span></div></td></tr>';
@@ -4513,7 +4509,7 @@ Thank you!</textarea>
         }
 
         // Analytics functions
-        function loadAnalytics() {
+        window.loadAnalytics = function loadAnalytics() {
             console.log('📊 Loading analytics (real function)...');
             const backendUrl = window.BACKEND_URL || BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
             console.log('📊 Using backend URL:', backendUrl);
@@ -4625,7 +4621,7 @@ Thank you!</textarea>
         }
 
         // Sales/POS functions
-        function loadSales() {
+        window.loadSales = function loadSales() {
             console.log('💰 Loading sales/POS (real function)...');
             const container = document.getElementById('pos-products');
             if (!container) {
