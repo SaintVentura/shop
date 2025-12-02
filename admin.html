@@ -1305,39 +1305,38 @@
             
             return fetch(url, options)
                 .then(async response => {
-                    console.log('Response status:', response.status, response.statusText, 'for URL:', url);
-                    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+                    console.log('📡 Response received - Status:', response.status, response.statusText, 'for URL:', url);
+                    console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
+                    
+                    // Get response text first (we can only read it once)
+                    const responseText = await response.text();
+                    console.log('📡 Response text length:', responseText.length);
+                    console.log('📡 Response text preview:', responseText.substring(0, 200));
                     
                     // Check if response is ok
                     if (!response.ok) {
-                        // Try to parse error response
-                        const text = await response.text();
-                        console.error('Error response text:', text);
+                        console.error('❌ Response not OK:', response.status, response.statusText);
                         let errorData;
                         try {
-                            errorData = JSON.parse(text);
+                            errorData = JSON.parse(responseText);
                         } catch {
-                            errorData = { error: text || `HTTP ${response.status} ${response.statusText}` };
+                            errorData = { error: responseText || `HTTP ${response.status} ${response.statusText}` };
                         }
                         const errorMsg = errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`;
+                        console.error('❌ Error data:', errorData);
                         throw new Error(errorMsg);
                     }
                     
-                    // Check content type
-                    const contentType = response.headers.get('content-type');
-                    if (contentType && contentType.includes('application/json')) {
-                        const jsonData = await response.json();
-                        console.log('Successfully parsed JSON response');
+                    // Try to parse as JSON
+                    let jsonData;
+                    try {
+                        jsonData = JSON.parse(responseText);
+                        console.log('✅ Successfully parsed JSON response:', jsonData);
                         return jsonData;
-                    } else {
-                        // If not JSON, return text
-                        const text = await response.text();
-                        console.warn('Non-JSON response received:', text.substring(0, 100));
-                        try {
-                            return JSON.parse(text);
-                        } catch {
-                            throw new Error('Invalid JSON response from server');
-                        }
+                    } catch (parseError) {
+                        console.error('❌ Failed to parse JSON:', parseError);
+                        console.error('❌ Response text:', responseText);
+                        throw new Error('Invalid JSON response from server: ' + responseText.substring(0, 100));
                     }
                 })
                 .catch(err => {
@@ -4168,45 +4167,79 @@ Thank you!</textarea>
             }
             
             try {
-                console.log('Submitting POS order:', { customerName, paymentMethod, itemsCount: posCart.length, total });
+                const orderData = {
+                    customerName,
+                    customerEmail,
+                    customerPhone,
+                    paymentMethod,
+                    items: posCart,
+                    total,
+                    subscribe
+                };
                 
-                const data = await adminFetch(`${BACKEND_URL}/api/admin/pos/order`, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        customerName,
-                        customerEmail,
-                        customerPhone,
-                        paymentMethod,
-                        items: posCart,
-                        total,
-                        subscribe
-                    })
+                console.log('📤 Submitting POS order:', { 
+                    customerName, 
+                    paymentMethod, 
+                    itemsCount: posCart.length, 
+                    total,
+                    backendUrl: BACKEND_URL 
                 });
+                console.log('📦 Order data:', orderData);
                 
-                console.log('POS order response:', data);
+                const requestOptions = {
+                    method: 'POST',
+                    body: JSON.stringify(orderData)
+                };
                 
-                if (data && data.success) {
-                    alert(`Order created successfully! Order ID: ${data.orderId || 'N/A'}`);
+                console.log('🔗 Making request to:', `${BACKEND_URL}/api/admin/pos/order`);
+                
+                const data = await adminFetch(`${BACKEND_URL}/api/admin/pos/order`, requestOptions);
+                
+                console.log('📥 POS order response received:', data);
+                console.log('📥 Response type:', typeof data);
+                console.log('📥 Response success:', data?.success);
+                
+                if (data && data.success === true) {
+                    const orderId = data.orderId || 'N/A';
+                    console.log('✅ Order created successfully! Order ID:', orderId);
+                    alert(`Order created successfully! Order ID: ${orderId}`);
+                    
+                    // Clear cart and form
                     posCart = [];
                     updatePOSCart();
                     document.getElementById('pos-order-form').reset();
                     
                     if (paymentMethod === 'yoco' && data.paymentUrl) {
                         // Redirect to Yoco checkout
-                        console.log('Redirecting to Yoco checkout:', data.paymentUrl);
+                        console.log('🔄 Redirecting to Yoco checkout:', data.paymentUrl);
                         window.location.href = data.paymentUrl;
+                        return; // Don't re-enable button if redirecting
                     } else {
                         // For cash/EFT, just show success message
-                        console.log('Order processed successfully:', data);
+                        console.log('✅ Order processed successfully:', data);
                     }
                 } else {
                     const errorMsg = data?.error || data?.message || 'Failed to create order';
-                    console.error('Order creation failed:', errorMsg);
+                    console.error('❌ Order creation failed:', errorMsg);
+                    console.error('❌ Full response:', data);
                     alert('Error: ' + errorMsg);
                 }
             } catch (err) {
-                console.error('Error creating POS order:', err);
-                alert('Error creating order: ' + (err.message || 'Unknown error occurred. Please check console for details.'));
+                console.error('❌ Error creating POS order:', err);
+                console.error('❌ Error name:', err.name);
+                console.error('❌ Error message:', err.message);
+                console.error('❌ Error stack:', err.stack);
+                
+                let errorMessage = 'Unknown error occurred. ';
+                if (err.message) {
+                    errorMessage = err.message;
+                } else if (err.name === 'TypeError' && err.message.includes('fetch')) {
+                    errorMessage = 'Cannot connect to server. Please check your internet connection and ensure the backend is running.';
+                } else {
+                    errorMessage += 'Please check the browser console for details.';
+                }
+                
+                alert('Error creating order: ' + errorMessage);
             } finally {
                 // Re-enable submit button
                 if (submitButton) {

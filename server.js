@@ -4044,11 +4044,27 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
         
         console.log('Yoco checkout created:', { checkoutId, redirectUrl });
         
+        // Ensure we haven't already sent a response
+        if (res.headersSent) {
+          console.warn('⚠️ Response already sent for Yoco checkout, skipping duplicate response');
+          return;
+        }
+        
+        const responseData = { success: true, orderId, paymentUrl: redirectUrl };
+        console.log(`📤 Sending Yoco checkout response:`, responseData);
+        
         try {
-          res.json({ success: true, orderId, paymentUrl: redirectUrl });
-          console.log(`✅ Yoco checkout response sent for order ${orderId}`);
+          res.status(200).json(responseData);
+          console.log(`✅ Yoco checkout response sent successfully for order ${orderId}`);
         } catch (responseError) {
-          console.error('Error sending Yoco checkout response:', responseError);
+          console.error('❌ Error sending Yoco checkout response:', responseError);
+          if (!res.headersSent) {
+            try {
+              res.status(500).json({ success: false, error: 'Failed to send response' });
+            } catch (e) {
+              console.error('❌ Failed to send error response:', e);
+            }
+          }
         }
       } catch (error) {
         console.error('Yoco checkout error:', error.response?.data || error.message);
@@ -4067,18 +4083,37 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
     } else {
       // Cash or EFT payment - order is already fulfilled
       console.log(`✅ Processing ${paymentMethod} order ${orderId} as fulfilled`);
+      
+      // Ensure we haven't already sent a response
+      if (res.headersSent) {
+        console.warn('⚠️ Response already sent, skipping duplicate response');
+        return;
+      }
+      
+      const responseData = { 
+        success: true, 
+        orderId,
+        status: orderStatus,
+        paymentMethod,
+        message: `Order ${orderId} processed successfully as fulfilled`
+      };
+      
+      console.log(`📤 Sending response for ${paymentMethod} order:`, responseData);
+      
       try {
-        res.json({ 
-          success: true, 
-          orderId,
-          status: orderStatus,
-          paymentMethod,
-          message: `Order ${orderId} processed successfully as fulfilled`
-        });
-        console.log(`✅ Response sent for ${paymentMethod} order ${orderId}`);
+        res.status(200).json(responseData);
+        console.log(`✅ Response sent successfully for ${paymentMethod} order ${orderId}`);
       } catch (responseError) {
-        console.error('Error sending response:', responseError);
-        // Response already sent or connection closed
+        console.error('❌ Error sending response:', responseError);
+        console.error('❌ Response error stack:', responseError.stack);
+        // If response already sent, that's okay
+        if (!res.headersSent) {
+          try {
+            res.status(500).json({ success: false, error: 'Failed to send response' });
+          } catch (e) {
+            console.error('❌ Failed to send error response:', e);
+          }
+        }
       }
     }
   } catch (error) {
