@@ -200,35 +200,46 @@
                     let loadFunction = null;
                     let functionName = '';
                     
+                    // Check both window and local scope for functions
                     if (section === 'dashboard') {
-                        loadFunction = typeof loadDashboardData === 'function' ? loadDashboardData : null;
+                        loadFunction = (typeof window.loadDashboardData === 'function' ? window.loadDashboardData : null) || 
+                                      (typeof loadDashboardData === 'function' ? loadDashboardData : null);
                         functionName = 'loadDashboardData';
                     } else if (section === 'orders') {
-                        loadFunction = typeof loadOrders === 'function' ? loadOrders : null;
+                        loadFunction = (typeof window.loadOrders === 'function' ? window.loadOrders : null) || 
+                                      (typeof loadOrders === 'function' ? loadOrders : null);
                         functionName = 'loadOrders';
                     } else if (section === 'inventory') {
-                        loadFunction = typeof loadInventory === 'function' ? loadInventory : null;
+                        loadFunction = (typeof window.loadInventory === 'function' ? window.loadInventory : null) || 
+                                      (typeof loadInventory === 'function' ? loadInventory : null);
                         functionName = 'loadInventory';
                     } else if (section === 'inbox') {
-                        loadFunction = typeof loadInbox === 'function' ? loadInbox : null;
+                        loadFunction = (typeof window.loadInbox === 'function' ? window.loadInbox : null) || 
+                                      (typeof loadInbox === 'function' ? loadInbox : null);
                         functionName = 'loadInbox';
                     } else if (section === 'broadcast') {
-                        loadFunction = typeof loadBroadcast === 'function' ? loadBroadcast : null;
+                        loadFunction = (typeof window.loadBroadcast === 'function' ? window.loadBroadcast : null) || 
+                                      (typeof loadBroadcast === 'function' ? loadBroadcast : null);
                         functionName = 'loadBroadcast';
                     } else if (section === 'abandoned-carts') {
-                        loadFunction = typeof loadAbandonedCarts === 'function' ? loadAbandonedCarts : null;
+                        loadFunction = (typeof window.loadAbandonedCarts === 'function' ? window.loadAbandonedCarts : null) || 
+                                      (typeof loadAbandonedCarts === 'function' ? loadAbandonedCarts : null);
                         functionName = 'loadAbandonedCarts';
                     } else if (section === 'fulfillers') {
-                        loadFunction = typeof loadFulfillers === 'function' ? loadFulfillers : null;
+                        loadFunction = (typeof window.loadFulfillers === 'function' ? window.loadFulfillers : null) || 
+                                      (typeof loadFulfillers === 'function' ? loadFulfillers : null);
                         functionName = 'loadFulfillers';
                     } else if (section === 'notifications') {
-                        loadFunction = typeof loadNotifications === 'function' ? loadNotifications : null;
+                        loadFunction = (typeof window.loadNotifications === 'function' ? window.loadNotifications : null) || 
+                                      (typeof loadNotifications === 'function' ? loadNotifications : null);
                         functionName = 'loadNotifications';
                     } else if (section === 'sales') {
-                        loadFunction = typeof loadSales === 'function' ? loadSales : null;
+                        loadFunction = (typeof window.loadSales === 'function' ? window.loadSales : null) || 
+                                      (typeof loadSales === 'function' ? loadSales : null);
                         functionName = 'loadSales';
                     } else if (section === 'analytics') {
-                        loadFunction = typeof loadAnalytics === 'function' ? loadAnalytics : null;
+                        loadFunction = (typeof window.loadAnalytics === 'function' ? window.loadAnalytics : null) || 
+                                      (typeof loadAnalytics === 'function' ? loadAnalytics : null);
                         functionName = 'loadAnalytics';
                     }
                     
@@ -4736,6 +4747,31 @@ Thank you!</textarea>
                 setupPOSForm();
             }
         }, 500);
+        
+        // Make all load functions globally available so showSection can access them
+        // This ensures functions are available even if called before DOM is fully ready
+        window.loadDashboardData = loadDashboardData;
+        window.loadOrders = loadOrders;
+        window.loadInventory = loadInventory;
+        window.loadInbox = loadInbox;
+        window.loadBroadcast = loadBroadcast;
+        window.loadAbandonedCarts = loadAbandonedCarts;
+        window.loadFulfillers = loadFulfillers;
+        window.loadNotifications = loadNotifications;
+        window.loadSales = loadSales;
+        window.loadAnalytics = loadAnalytics;
+        
+        console.log('✅ All load functions made globally available');
+        console.log('✅ loadDashboardData available:', typeof window.loadDashboardData === 'function');
+        console.log('✅ loadOrders available:', typeof window.loadOrders === 'function');
+        console.log('✅ loadInventory available:', typeof window.loadInventory === 'function');
+        console.log('✅ loadInbox available:', typeof window.loadInbox === 'function');
+        console.log('✅ loadBroadcast available:', typeof window.loadBroadcast === 'function');
+        console.log('✅ loadAbandonedCarts available:', typeof window.loadAbandonedCarts === 'function');
+        console.log('✅ loadFulfillers available:', typeof window.loadFulfillers === 'function');
+        console.log('✅ loadNotifications available:', typeof window.loadNotifications === 'function');
+        console.log('✅ loadSales available:', typeof window.loadSales === 'function');
+        console.log('✅ loadAnalytics available:', typeof window.loadAnalytics === 'function');
     </script>
 </body>
 </html>
