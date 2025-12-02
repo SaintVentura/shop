@@ -1288,8 +1288,11 @@
         }
         
         const BACKEND_URL = getBackendUrl();
+        // Make globally available
+        window.BACKEND_URL = BACKEND_URL;
         
         console.log('Admin Dashboard - Backend URL:', BACKEND_URL);
+        console.log('✅ BACKEND_URL made globally available:', window.BACKEND_URL);
         
         let currentSection = 'dashboard';
         let posCart = [];
@@ -1692,7 +1695,9 @@
         
         function loadDashboardData() {
             console.log('📊 Loading dashboard data (real function)...');
-            adminFetch(`${BACKEND_URL}/api/admin/dashboard`)
+            const backendUrl = window.BACKEND_URL || BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
+            console.log('📊 Using backend URL:', backendUrl);
+            adminFetch(`${backendUrl}/api/admin/dashboard`)
                 .then(data => {
                     console.log('✅ Dashboard data received:', data);
                     if (data.success) {
@@ -3568,8 +3573,11 @@ Thank you!</textarea>
 
         // Broadcast functions
         function loadBroadcast() {
+            console.log('📢 Loading broadcast (real function)...');
+            const backendUrl = window.BACKEND_URL || BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
+            console.log('📢 Using backend URL:', backendUrl);
             // Load subscribers
-            adminFetch(`${BACKEND_URL}/api/admin/subscribers`)
+            adminFetch(`${backendUrl}/api/admin/subscribers`)
                 .then(data => {
                     if (!Array.isArray(data)) {
                         throw new Error('Invalid subscribers data format');
@@ -3811,11 +3819,18 @@ Thank you!</textarea>
 
         // Fulfillers functions
         function loadFulfillers() {
+            console.log('🚚 Loading fulfillers (real function)...');
             const list = document.getElementById('fulfillers-list');
             const select = document.getElementById('fulfiller-select');
+            if (!list) {
+                console.error('❌ fulfillers-list element not found');
+                return;
+            }
             list.innerHTML = '<div class="text-center py-4 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading fulfillers...</span></div></div>';
             
-            adminFetch(`${BACKEND_URL}/api/admin/fulfillers`)
+            const backendUrl = window.BACKEND_URL || BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
+            console.log('🚚 Using backend URL:', backendUrl);
+            adminFetch(`${backendUrl}/api/admin/fulfillers`)
                 .then(data => {
                     console.log('Fulfillers data received:', data);
                     if (!Array.isArray(data)) {
@@ -4430,7 +4445,10 @@ Thank you!</textarea>
 
         // Analytics functions
         function loadAnalytics() {
-            adminFetch(`${BACKEND_URL}/api/admin/dashboard`)
+            console.log('📊 Loading analytics (real function)...');
+            const backendUrl = window.BACKEND_URL || BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
+            console.log('📊 Using backend URL:', backendUrl);
+            adminFetch(`${backendUrl}/api/admin/dashboard`)
                 .then(data => {
                     if (data.success) {
                         // Render revenue chart
