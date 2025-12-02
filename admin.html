@@ -1752,7 +1752,7 @@
         
         try {
             console.log('🚀🚀🚀 BODY SCRIPT STARTING - This should appear immediately when page loads');
-            console.log('🚀🚀🚀 BODY SCRIPT VERSION: v2024-01-15-fix-syntax-v4');
+            console.log('🚀🚀🚀 BODY SCRIPT VERSION: v2024-01-16-remove-all-stubs-v1');
         
         // Initialize data arrays and variables at the top level to avoid initialization errors
         let allInventoryData = [];
@@ -2416,7 +2416,8 @@
                                     <span class="font-semibold text-sm">R${(variant.price || product.price || 0).toFixed(2)}</span>
                                 </div>
                                 <div>
-                                    <input type="number" value="${variant.stock}" data-id="${variantId}" data-product-id="${productIdEscaped}" data-variant="${variantIdEscaped}" 
+                                    <label for="stock-input-${variantId}" class="sr-only">Stock quantity for ${variant.variant || 'variant'}</label>
+                                    <input type="number" id="stock-input-${variantId}" name="stock-input-${variantId}" value="${variant.stock}" data-id="${variantId}" data-product-id="${productIdEscaped}" data-variant="${variantIdEscaped}" 
                                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black font-semibold text-sm ${stockClass}" 
                                         min="0" onchange="updateStockInput(this)">
                                 </div>
@@ -2503,7 +2504,8 @@
                                     </div>
                                     <div class="flex justify-between items-center">
                                         <span class="text-sm text-gray-600">Stock:</span>
-                                        <input type="number" value="${variant.stock}" data-id="${variantId}" data-product-id="${productIdEscaped}" data-variant="${variantIdEscaped}" 
+                                        <label for="mobile-stock-input-${variantId}" class="sr-only">Stock quantity for ${variant.variant || 'variant'}</label>
+                                        <input type="number" id="mobile-stock-input-${variantId}" name="mobile-stock-input-${variantId}" value="${variant.stock}" data-id="${variantId}" data-product-id="${productIdEscaped}" data-variant="${variantIdEscaped}" 
                                             class="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black font-semibold text-sm ${stockClass}" 
                                             min="0" onchange="updateStockInput(this)">
                                     </div>
