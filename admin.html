@@ -287,6 +287,51 @@
         // Ensure it's always available
         console.log('✅ showSection function defined in head script');
         console.log('✅ window.showSection available:', typeof window.showSection === 'function');
+        
+        // Define placeholder load functions that will be replaced when real functions are defined
+        // These queue calls until the real functions are available
+        const loadFunctionQueue = {};
+        
+        function createPlaceholderLoader(functionName) {
+            return function(...args) {
+                console.log(`⏳ ${functionName} called but not yet available, queuing...`);
+                if (!loadFunctionQueue[functionName]) {
+                    loadFunctionQueue[functionName] = [];
+                }
+                loadFunctionQueue[functionName].push(args);
+                
+                // Try to find the real function after a delay
+                setTimeout(() => {
+                    const realFunction = window[functionName];
+                    if (typeof realFunction === 'function') {
+                        console.log(`✅ ${functionName} now available, executing queued calls`);
+                        // Execute all queued calls
+                        loadFunctionQueue[functionName].forEach(queueArgs => {
+                            try {
+                                realFunction.apply(null, queueArgs);
+                            } catch (err) {
+                                console.error(`Error executing queued ${functionName}:`, err);
+                            }
+                        });
+                        loadFunctionQueue[functionName] = [];
+                    }
+                }, 100);
+            };
+        }
+        
+        // Create placeholders for all load functions
+        window.loadDashboardData = createPlaceholderLoader('loadDashboardData');
+        window.loadOrders = createPlaceholderLoader('loadOrders');
+        window.loadInventory = createPlaceholderLoader('loadInventory');
+        window.loadInbox = createPlaceholderLoader('loadInbox');
+        window.loadBroadcast = createPlaceholderLoader('loadBroadcast');
+        window.loadAbandonedCarts = createPlaceholderLoader('loadAbandonedCarts');
+        window.loadFulfillers = createPlaceholderLoader('loadFulfillers');
+        window.loadNotifications = createPlaceholderLoader('loadNotifications');
+        window.loadSales = createPlaceholderLoader('loadSales');
+        window.loadAnalytics = createPlaceholderLoader('loadAnalytics');
+        
+        console.log('✅ Placeholder load functions created in head script');
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
@@ -1628,7 +1673,7 @@
         }
         
         function loadDashboardData() {
-            console.log('📊 Loading dashboard data...');
+            console.log('📊 Loading dashboard data (real function)...');
             adminFetch(`${BACKEND_URL}/api/admin/dashboard`)
                 .then(data => {
                     console.log('✅ Dashboard data received:', data);
@@ -1696,8 +1741,9 @@
                     }
                 });
         }
-        // Make globally available
+        // Make globally available - this replaces the placeholder
         window.loadDashboardData = loadDashboardData;
+        console.log('✅ Real loadDashboardData function assigned to window');
         
         // Store previous badge counts to detect changes
         let previousBadgeCounts = {
@@ -1883,8 +1929,9 @@
                     }
                 });
         }
-        // Make globally available
+        // Make globally available - this replaces the placeholder
         window.loadInventory = loadInventory;
+        console.log('✅ Real loadInventory function assigned to window');
         
         function renderInventory(data) {
             const desktopContainer = document.getElementById('inventory-table');
@@ -2310,8 +2357,9 @@
                     list.innerHTML = `<div class="error-message">Error loading emails: ${err.message}<br><small>Backend URL: ${BACKEND_URL}</small></div>`;
                 });
         }
-        // Make globally available
+        // Make globally available - this replaces the placeholder
         window.loadInbox = loadInbox;
+        console.log('✅ Real loadInbox function assigned to window');
 
         // currentViewingEmail is declared at the top of the script
         
@@ -3585,8 +3633,9 @@ Thank you!</textarea>
                     }
                 });
         }
-        // Make globally available
+        // Make globally available - this replaces the placeholder
         window.loadBroadcast = loadBroadcast;
+        console.log('✅ Real loadBroadcast function assigned to window');
 
         document.getElementById('broadcast-form').addEventListener('submit', (e) => {
             e.preventDefault();
@@ -3696,8 +3745,9 @@ Thank you!</textarea>
                     list.innerHTML = `<div class="error-message">Error loading abandoned carts: ${err.message}<br><small>Backend URL: ${BACKEND_URL}</small></div>`;
                 });
         }
-        // Make globally available
+        // Make globally available - this replaces the placeholder
         window.loadAbandonedCarts = loadAbandonedCarts;
+        console.log('✅ Real loadAbandonedCarts function assigned to window');
 
         function sendCartReminder(cartId) {
             adminFetch(`${BACKEND_URL}/api/admin/abandoned-carts/remind`, {
@@ -3804,8 +3854,9 @@ Thank you!</textarea>
                     }
                 });
         }
-        // Make globally available
+        // Make globally available - this replaces the placeholder
         window.loadFulfillers = loadFulfillers;
+        console.log('✅ Real loadFulfillers function assigned to window');
         
         // Auto-fill order details when order is selected
         document.getElementById('fulfiller-order-select')?.addEventListener('change', async function(e) {
@@ -4073,8 +4124,9 @@ Thank you!</textarea>
                     list.innerHTML = `<div class="error-message">Error loading notifications: ${errorMsg}<br><small>Backend URL: ${BACKEND_URL}</small><br><small>Please check your connection and ensure the backend is running.</small></div>`;
                 });
         }
-        // Make globally available
+        // Make globally available - this replaces the placeholder
         window.loadNotifications = loadNotifications;
+        console.log('✅ Real loadNotifications function assigned to window');
 
         function markNotificationRead(notifId) {
             adminFetch(`${BACKEND_URL}/api/admin/notifications/read`, {
@@ -4152,8 +4204,9 @@ Thank you!</textarea>
                     }
                 });
         }
-        // Make globally available
+        // Make globally available - this replaces the placeholder
         window.loadOrders = loadOrders;
+        console.log('✅ Real loadOrders function assigned to window');
         
         function renderOrders(orders) {
             const tbody = document.getElementById('orders-table');
@@ -4375,8 +4428,9 @@ Thank you!</textarea>
                     document.getElementById('revenue-chart').innerHTML = `<div class="error-message">Error loading analytics: ${err.message}</div>`;
                 });
         }
-        // Make globally available
+        // Make globally available - this replaces the placeholder
         window.loadAnalytics = loadAnalytics;
+        console.log('✅ Real loadAnalytics function assigned to window');
         
         function renderRevenueChart(monthlyRevenue) {
             const container = document.getElementById('revenue-chart');
@@ -4502,8 +4556,9 @@ Thank you!</textarea>
                     container.innerHTML = `<div class="col-span-2 md:col-span-3 lg:col-span-4 error-message">Error loading products: ${err.message}<br><small>Backend URL: ${BACKEND_URL}</small></div>`;
                 });
         }
-        // Make globally available
+        // Make globally available - this replaces the placeholder
         window.loadSales = loadSales;
+        console.log('✅ Real loadSales function assigned to window');
 
         function showVariantModal(productId) {
             adminFetch(`${BACKEND_URL}/api/admin/products`)
