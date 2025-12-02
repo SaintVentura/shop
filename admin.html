@@ -4140,50 +4140,80 @@ Thank you!</textarea>
             updatePOSCart();
         }
 
-        document.getElementById('pos-order-form').addEventListener('submit', (e) => {
+        document.getElementById('pos-order-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             if (posCart.length === 0) {
                 alert('Please add items to cart');
                 return;
             }
-            const customerName = document.getElementById('pos-customer-name').value;
-            const customerEmail = document.getElementById('pos-customer-email').value;
-            const customerPhone = document.getElementById('pos-customer-phone').value;
+            
+            const customerName = document.getElementById('pos-customer-name').value.trim();
+            const customerEmail = document.getElementById('pos-customer-email').value.trim();
+            const customerPhone = document.getElementById('pos-customer-phone').value.trim();
             const paymentMethod = document.getElementById('pos-payment-method').value;
             const subscribe = document.getElementById('pos-subscribe').checked;
             const total = posCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
-            adminFetch(`${BACKEND_URL}/api/admin/pos/order`, {
-                method: 'POST',
-                body: JSON.stringify({
-                    customerName,
-                    customerEmail,
-                    customerPhone,
-                    paymentMethod,
-                    items: posCart,
-                    total,
-                    subscribe
-                })
-            })
-            .then(data => {
+            
+            // Validate form fields
+            if (!customerName || !customerEmail || !customerPhone) {
+                alert('Please fill in all customer details (Name, Email, Phone)');
+                return;
+            }
+            
+            // Disable submit button to prevent double submission
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.textContent = 'Processing...';
+            }
+            
+            try {
+                console.log('Submitting POS order:', { customerName, paymentMethod, itemsCount: posCart.length, total });
+                
+                const data = await adminFetch(`${BACKEND_URL}/api/admin/pos/order`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        customerName,
+                        customerEmail,
+                        customerPhone,
+                        paymentMethod,
+                        items: posCart,
+                        total,
+                        subscribe
+                    })
+                });
+                
                 console.log('POS order response:', data);
-                if (data.success) {
-                    alert('Order created successfully');
+                
+                if (data && data.success) {
+                    alert(`Order created successfully! Order ID: ${data.orderId || 'N/A'}`);
                     posCart = [];
                     updatePOSCart();
                     document.getElementById('pos-order-form').reset();
+                    
                     if (paymentMethod === 'yoco' && data.paymentUrl) {
                         // Redirect to Yoco checkout
+                        console.log('Redirecting to Yoco checkout:', data.paymentUrl);
                         window.location.href = data.paymentUrl;
+                    } else {
+                        // For cash/EFT, just show success message
+                        console.log('Order processed successfully:', data);
                     }
                 } else {
-                    alert('Error: ' + (data.error || 'Failed to create order'));
+                    const errorMsg = data?.error || data?.message || 'Failed to create order';
+                    console.error('Order creation failed:', errorMsg);
+                    alert('Error: ' + errorMsg);
                 }
-            })
-            .catch(err => {
+            } catch (err) {
                 console.error('Error creating POS order:', err);
-                alert('Error creating order: ' + err.message);
-            });
+                alert('Error creating order: ' + (err.message || 'Unknown error occurred. Please check console for details.'));
+            } finally {
+                // Re-enable submit button
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Process Order';
+                }
+            }
         });
     </script>
 </body>

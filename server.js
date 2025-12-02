@@ -4044,30 +4044,56 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
         
         console.log('Yoco checkout created:', { checkoutId, redirectUrl });
         
-        res.json({ success: true, orderId, paymentUrl: redirectUrl });
+        try {
+          res.json({ success: true, orderId, paymentUrl: redirectUrl });
+          console.log(`✅ Yoco checkout response sent for order ${orderId}`);
+        } catch (responseError) {
+          console.error('Error sending Yoco checkout response:', responseError);
+        }
       } catch (error) {
         console.error('Yoco checkout error:', error.response?.data || error.message);
-        res.status(500).json({ 
-          success: false, 
-          error: 'Failed to create Yoco checkout: ' + (error.response?.data?.message || error.message) 
-        });
+        console.error('Yoco error stack:', error.stack);
+        try {
+          if (!res.headersSent) {
+            res.status(500).json({ 
+              success: false, 
+              error: 'Failed to create Yoco checkout: ' + (error.response?.data?.message || error.message) 
+            });
+          }
+        } catch (responseError) {
+          console.error('Error sending Yoco error response:', responseError);
+        }
       }
     } else {
       // Cash or EFT payment - order is already fulfilled
       console.log(`✅ Processing ${paymentMethod} order ${orderId} as fulfilled`);
-      res.json({ 
-        success: true, 
-        orderId,
-        status: orderStatus,
-        message: `Order ${orderId} processed successfully as fulfilled`
-      });
+      try {
+        res.json({ 
+          success: true, 
+          orderId,
+          status: orderStatus,
+          paymentMethod,
+          message: `Order ${orderId} processed successfully as fulfilled`
+        });
+        console.log(`✅ Response sent for ${paymentMethod} order ${orderId}`);
+      } catch (responseError) {
+        console.error('Error sending response:', responseError);
+        // Response already sent or connection closed
+      }
     }
   } catch (error) {
     console.error('Error processing POS order:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: error.message || 'Failed to process order'
-    });
+    console.error('Error stack:', error.stack);
+    try {
+      if (!res.headersSent) {
+        res.status(500).json({ 
+          success: false, 
+          error: error.message || 'Failed to process order'
+        });
+      }
+    } catch (responseError) {
+      console.error('Error sending error response:', responseError);
+    }
   }
 });
 
