@@ -6,6 +6,98 @@
     <title>Admin Dashboard - Saint Ventura</title>
     <link rel="icon" type="image/png" href="https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Define login handler function immediately so it's available for inline onsubmit
+        const ADMIN_PASSWORD = 'WEAR3+H3$@!N+$*';
+        
+        function handleLogin(e) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            console.log('📝 Login form submitted');
+            
+            const passwordInput = document.getElementById('admin-password');
+            const password = passwordInput ? passwordInput.value.trim() : '';
+            const errorElement = document.getElementById('login-error');
+            
+            console.log('🔑 Password entered length:', password.length);
+            console.log('🔑 Expected password:', ADMIN_PASSWORD ? '***' : '(not set)');
+            console.log('🔑 Password match:', password === ADMIN_PASSWORD);
+            
+            if (!password) {
+                console.log('❌ No password entered');
+                if (errorElement) {
+                    errorElement.textContent = 'Please enter a password';
+                    errorElement.classList.remove('hidden');
+                }
+                return false;
+            }
+            
+            // Trim and compare passwords
+            if (password === ADMIN_PASSWORD) {
+                console.log('✅ Login successful - password matches');
+                
+                const loginScreen = document.getElementById('login-screen');
+                const adminDashboard = document.getElementById('admin-dashboard');
+                
+                if (!loginScreen || !adminDashboard) {
+                    console.error('❌ Login screen or dashboard element not found');
+                    alert('Error: Page elements not found. Please refresh the page.');
+                    return false;
+                }
+                
+                console.log('✅ Hiding login screen and showing dashboard');
+                loginScreen.classList.add('hidden');
+                adminDashboard.classList.remove('hidden');
+                
+                localStorage.setItem('adminLoggedIn', 'true');
+                console.log('✅ Login status saved to localStorage');
+                
+                // Hide error message
+                if (errorElement) {
+                    errorElement.classList.add('hidden');
+                }
+                
+                // Load dashboard - wait for main script to load
+                setTimeout(function() {
+                    try {
+                        if (typeof loadDashboard === 'function') {
+                            console.log('📊 Loading dashboard');
+                            loadDashboard();
+                        }
+                        
+                        if (typeof startRealTimeSync === 'function') {
+                            console.log('🔄 Starting real-time sync');
+                            startRealTimeSync();
+                        }
+                        
+                        if (typeof showSection === 'function') {
+                            console.log('📑 Showing dashboard section');
+                            showSection('dashboard');
+                        }
+                    } catch (err) {
+                        console.error('Error loading dashboard:', err);
+                    }
+                }, 100);
+                
+                return false;
+            } else {
+                console.log('❌ Invalid password - passwords do not match');
+                if (errorElement) {
+                    errorElement.textContent = 'Invalid password. Please try again.';
+                    errorElement.classList.remove('hidden');
+                }
+                // Clear password field
+                if (passwordInput) {
+                    passwordInput.value = '';
+                    passwordInput.focus();
+                }
+                return false;
+            }
+        }
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         body {
@@ -243,7 +335,7 @@
                 <h1 class="text-3xl font-bold mb-2">Saint Ventura</h1>
                 <p class="text-gray-600">Admin Dashboard</p>
             </div>
-            <form id="login-form" class="space-y-4">
+            <form id="login-form" class="space-y-4" onsubmit="return handleLogin(event);">
                 <div>
                     <label class="block text-sm font-medium mb-2">Password</label>
                     <input type="password" id="admin-password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black" placeholder="Enter admin password" required>
@@ -1074,12 +1166,12 @@
             }
         }
 
-        // Login - setup with error handling
+        // handleLogin is already defined in head script
+        // Also attach event listener as backup
         function setupLoginForm() {
             const loginForm = document.getElementById('login-form');
             if (!loginForm) {
                 console.error('❌ Login form not found - will retry');
-                // Retry after a short delay
                 setTimeout(setupLoginForm, 100);
                 return;
             }
@@ -1090,95 +1182,10 @@
                 return;
             }
             
-            console.log('🔧 Setting up login form handler');
+            console.log('🔧 Setting up login form handler (backup)');
             loginForm.setAttribute('data-handler-attached', 'true');
             
-            loginForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                console.log('📝 Login form submitted');
-                
-                const passwordInput = document.getElementById('admin-password');
-                const password = passwordInput ? passwordInput.value.trim() : '';
-                const errorElement = document.getElementById('login-error');
-                
-                console.log('🔑 Password entered length:', password.length);
-                console.log('🔑 Expected password length:', ADMIN_PASSWORD ? ADMIN_PASSWORD.length : 0);
-                console.log('🔑 Password match:', password === ADMIN_PASSWORD);
-                
-                if (!password) {
-                    console.log('❌ No password entered');
-                    if (errorElement) {
-                        errorElement.textContent = 'Please enter a password';
-                        errorElement.classList.remove('hidden');
-                    }
-                    return false;
-                }
-                
-                // Trim and compare passwords
-                if (password === ADMIN_PASSWORD) {
-                    console.log('✅ Login successful - password matches');
-                    
-                    const loginScreen = document.getElementById('login-screen');
-                    const adminDashboard = document.getElementById('admin-dashboard');
-                    
-                    if (!loginScreen || !adminDashboard) {
-                        console.error('❌ Login screen or dashboard element not found');
-                        alert('Error: Page elements not found. Please refresh the page.');
-                        return false;
-                    }
-                    
-                    console.log('✅ Hiding login screen and showing dashboard');
-                    loginScreen.classList.add('hidden');
-                    adminDashboard.classList.remove('hidden');
-                    
-                    localStorage.setItem('adminLoggedIn', 'true');
-                    console.log('✅ Login status saved to localStorage');
-                    
-                    // Hide error message
-                    if (errorElement) {
-                        errorElement.classList.add('hidden');
-                    }
-                    
-                    // Load dashboard
-                    try {
-                        if (typeof loadDashboard === 'function') {
-                            console.log('📊 Loading dashboard');
-                            loadDashboard();
-                        }
-                        
-                        // Start real-time sync
-                        if (typeof startRealTimeSync === 'function') {
-                            console.log('🔄 Starting real-time sync');
-                            startRealTimeSync();
-                        }
-                        
-                        // Show dashboard section
-                        if (typeof showSection === 'function') {
-                            console.log('📑 Showing dashboard section');
-                            showSection('dashboard');
-                        }
-                    } catch (err) {
-                        console.error('Error loading dashboard:', err);
-                    }
-                    
-                    return false;
-                } else {
-                    console.log('❌ Invalid password - passwords do not match');
-                    if (errorElement) {
-                        errorElement.textContent = 'Invalid password. Please try again.';
-                        errorElement.classList.remove('hidden');
-                    }
-                    // Clear password field
-                    if (passwordInput) {
-                        passwordInput.value = '';
-                        passwordInput.focus();
-                    }
-                    return false;
-                }
-            });
-            
+            loginForm.addEventListener('submit', handleLogin);
             console.log('✅ Login form handler attached successfully');
         }
         
@@ -1186,7 +1193,6 @@
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', setupLoginForm);
         } else {
-            // DOM already loaded
             setupLoginForm();
         }
 
