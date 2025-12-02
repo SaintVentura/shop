@@ -1238,8 +1238,9 @@
     </div>
 
     <script>
-        console.log('🚀🚀🚀 BODY SCRIPT STARTING - This should appear immediately when page loads');
-        const ADMIN_PASSWORD = 'WEAR3+H3$@!N+$*';
+        try {
+            console.log('🚀🚀🚀 BODY SCRIPT STARTING - This should appear immediately when page loads');
+            const ADMIN_PASSWORD = 'WEAR3+H3$@!N+$*';
         
         // Initialize data arrays and variables at the top level to avoid initialization errors
         let allInventoryData = [];
@@ -4988,6 +4989,13 @@ Thank you!</textarea>
         console.log('✅ loadNotifications available:', typeof window.loadNotifications === 'function');
         console.log('✅ loadSales available:', typeof window.loadSales === 'function');
         console.log('✅ loadAnalytics available:', typeof window.loadAnalytics === 'function');
+        } catch (error) {
+            console.error('❌❌❌ CRITICAL ERROR IN BODY SCRIPT:', error);
+            console.error('Error name:', error.name);
+            console.error('Error message:', error.message);
+            console.error('Error stack:', error.stack);
+            alert('Critical error in admin dashboard script. Please check console for details.');
+        }
     </script>
 </body>
 </html>
