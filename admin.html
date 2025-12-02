@@ -4058,9 +4058,7 @@ Thank you!</textarea>
         }
 
         // Fulfillers helper functions (loadFulfillers is already defined above, outside try block)
-        // Removed duplicate definition
-        if (false) { // This block is intentionally disabled - function already defined above
-        window.loadFulfillers = function loadFulfillers() {
+        // NOTE: loadFulfillers is already defined above - do not redefine here
             console.log('🚚 Loading fulfillers (real function)...');
             const list = document.getElementById('fulfillers-list');
             const select = document.getElementById('fulfiller-select');
@@ -4460,31 +4458,7 @@ Thank you!</textarea>
 
         // Orders Management helper functions (loadOrders is already defined above, outside try block)
         // allOrdersData is declared at the top of the script
-        // Removed duplicate definition
-        if (false) { // This block is intentionally disabled - function already defined above
-        window.loadOrders = function loadOrders() {
-            const tbody = document.getElementById('orders-table');
-            if (tbody) {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-12 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading orders...</span></div></td></tr>';
-            }
-            
-            adminFetch(`${BACKEND_URL}/api/admin/orders`)
-                .then(data => {
-                    console.log('Orders data received:', data);
-                    if (!Array.isArray(data)) {
-                        throw new Error('Invalid data format');
-                    }
-                    allOrdersData = data;
-                    renderOrders(data);
-                })
-                .catch(err => {
-                    console.error('Error loading orders:', err);
-                    if (tbody) {
-                        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-12"><div class="error-message">Error loading orders: ${err.message}</div></td></tr>`;
-                    }
-                });
-        };
-        console.log('✅✅✅ Real loadOrders function defined and assigned to window');
+        // NOTE: loadOrders is already defined above - do not redefine here
         
         function renderOrders(orders) {
             const tbody = document.getElementById('orders-table');
@@ -4689,9 +4663,7 @@ Thank you!</textarea>
         }
 
         // Analytics helper functions (loadAnalytics is already defined above, outside try block)
-        // Removed duplicate definition
-        if (false) { // This block is intentionally disabled - function already defined above
-        window.loadAnalytics = function loadAnalytics() {
+        // NOTE: loadAnalytics is already defined above - do not redefine here
             console.log('📊 Loading analytics (real function)...');
             const backendUrl = window.BACKEND_URL || BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
             console.log('📊 Using backend URL:', backendUrl);
