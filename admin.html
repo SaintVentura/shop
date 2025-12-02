@@ -380,47 +380,47 @@
                         </svg>
                     </button>
                 </div>
-                <nav class="px-4 pb-4 space-y-0 -mt-1">
-                    <a href="#" onclick="event.preventDefault(); if(typeof showSection === 'function') { showSection('dashboard'); } else { console.error('showSection not defined'); } return false;" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition" data-section="dashboard">
+                <nav class="px-4 pb-4 space-y-0 -mt-1" id="sidebar-nav">
+                    <a href="javascript:void(0)" data-section="dashboard" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
                         <span>📊</span>
                         <span class="sidebar-text">Dashboard</span>
                     </a>
-                    <a href="#" onclick="event.preventDefault(); if(typeof showSection === 'function') { showSection('orders'); } else { console.error('showSection not defined'); } return false;" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition" data-section="orders">
+                    <a href="javascript:void(0)" data-section="orders" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
                         <span>📋</span>
                         <span class="sidebar-text">Orders</span>
                     </a>
-                    <a href="#" onclick="event.preventDefault(); if(typeof showSection === 'function') { showSection('inventory'); } else { console.error('showSection not defined'); } return false;" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition" data-section="inventory">
+                    <a href="javascript:void(0)" data-section="inventory" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
                         <span>📦</span>
                         <span class="sidebar-text">Stock Inventory</span>
                     </a>
-                    <a href="#" onclick="event.preventDefault(); if(typeof showSection === 'function') { showSection('inbox'); } else { console.error('showSection not defined'); } return false;" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition relative" data-section="inbox">
+                    <a href="javascript:void(0)" data-section="inbox" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition relative cursor-pointer">
                         <span>📧</span>
                         <span class="sidebar-text">Email Inbox</span>
                         <span id="inbox-badge" class="notification-badge hidden">0</span>
                     </a>
-                    <a href="#" onclick="event.preventDefault(); if(typeof showSection === 'function') { showSection('broadcast'); } else { console.error('showSection not defined'); } return false;" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition" data-section="broadcast">
+                    <a href="javascript:void(0)" data-section="broadcast" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
                         <span>📢</span>
                         <span class="sidebar-text">Broadcast</span>
                     </a>
-                    <a href="#" onclick="event.preventDefault(); if(typeof showSection === 'function') { showSection('abandoned-carts'); } else { console.error('showSection not defined'); } return false;" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition relative" data-section="abandoned-carts">
+                    <a href="javascript:void(0)" data-section="abandoned-carts" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition relative cursor-pointer">
                         <span>🛒</span>
                         <span class="sidebar-text">Abandoned Carts</span>
                         <span id="carts-badge" class="notification-badge hidden">0</span>
                     </a>
-                    <a href="#" onclick="event.preventDefault(); if(typeof showSection === 'function') { showSection('fulfillers'); } else { console.error('showSection not defined'); } return false;" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition" data-section="fulfillers">
+                    <a href="javascript:void(0)" data-section="fulfillers" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
                         <span>👥</span>
                         <span class="sidebar-text">Order Fulfillers</span>
                     </a>
-                    <a href="#" onclick="event.preventDefault(); if(typeof showSection === 'function') { showSection('notifications'); } else { console.error('showSection not defined'); } return false;" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition relative" data-section="notifications">
+                    <a href="javascript:void(0)" data-section="notifications" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition relative cursor-pointer">
                         <span>🔔</span>
                         <span class="sidebar-text">Notifications</span>
                         <span id="notifications-badge" class="notification-badge hidden">0</span>
                     </a>
-                    <a href="#" onclick="event.preventDefault(); if(typeof showSection === 'function') { showSection('sales'); } else { console.error('showSection not defined'); } return false;" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition" data-section="sales">
+                    <a href="javascript:void(0)" data-section="sales" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
                         <span>💰</span>
                         <span class="sidebar-text">Sale Dashboard</span>
                     </a>
-                    <a href="#" onclick="event.preventDefault(); if(typeof showSection === 'function') { showSection('analytics'); } else { console.error('showSection not defined'); } return false;" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition" data-section="analytics">
+                    <a href="javascript:void(0)" data-section="analytics" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition cursor-pointer">
                         <span>📈</span>
                         <span class="sidebar-text">Analytics</span>
                     </a>
@@ -1088,6 +1088,11 @@
         window.showSection = function(section) {
             console.log('📑 showSection called with:', section);
             
+            // Close mobile sidebar if open
+            if (window.innerWidth <= 768) {
+                closeMobileSidebar();
+            }
+            
             if (!section) {
                 console.error('❌ No section specified');
                 return;
@@ -1267,6 +1272,48 @@
             checkLoginStatus();
         }
 
+        // Setup sidebar navigation click handlers
+        function setupSidebarNavigation() {
+            const sidebarNav = document.getElementById('sidebar-nav');
+            if (!sidebarNav) {
+                console.warn('⚠️ Sidebar nav not found, will retry');
+                setTimeout(setupSidebarNavigation, 100);
+                return;
+            }
+            
+            console.log('🔧 Setting up sidebar navigation handlers');
+            
+            // Add click handlers to all sidebar items
+            const sidebarItems = sidebarNav.querySelectorAll('.sidebar-item');
+            console.log('📋 Found', sidebarItems.length, 'sidebar items');
+            
+            sidebarItems.forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const section = this.getAttribute('data-section');
+                    console.log('🖱️ Sidebar item clicked:', section);
+                    
+                    if (section && typeof showSection === 'function') {
+                        showSection(section);
+                    } else {
+                        console.error('❌ Section not found or showSection not defined:', section);
+                        alert('Navigation error: ' + (section || 'No section specified'));
+                    }
+                });
+            });
+            
+            console.log('✅ Sidebar navigation handlers attached');
+        }
+        
+        // Setup sidebar navigation when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setupSidebarNavigation);
+        } else {
+            setupSidebarNavigation();
+        }
+        
         function logout() {
             console.log('🚪 Logging out');
             localStorage.removeItem('adminLoggedIn');
