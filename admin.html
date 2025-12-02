@@ -292,102 +292,48 @@
         // Store placeholder references by function name
         const placeholderFunctions = {};
         
-        function createPlaceholderLoader(functionName) {
-            const placeholder = function() {
-                console.log(`⏳ ${functionName} called, checking for real function...`);
-                const currentFunction = window[functionName];
-                
-                // Check if this is still the placeholder by checking the function name
-                // Real functions have their actual name (e.g., "loadDashboardData"), placeholders are named "placeholder"
-                const isPlaceholder = !currentFunction || !currentFunction.name || currentFunction.name === 'placeholder';
-                const hasRealName = currentFunction && currentFunction.name && currentFunction.name !== 'placeholder' && currentFunction.name === functionName;
-                
-                if (hasRealName && typeof currentFunction === 'function') {
-                    console.log(`✅ ${functionName} found (real function with name: ${currentFunction.name}), calling it`);
-                    try {
-                        return currentFunction.apply(null, arguments);
-                    } catch (err) {
-                        console.error(`Error calling ${functionName}:`, err);
+        // Create simple placeholder functions that will be replaced by real functions
+        // These just log and wait for the real functions to be available
+        function createSimplePlaceholder(functionName) {
+            return function() {
+                console.log(`⏳ ${functionName} called, waiting for real function...`);
+                // Wait a bit for the body script to load, then check
+                setTimeout(() => {
+                    const realFn = window[functionName];
+                    if (realFn && typeof realFn === 'function' && realFn.name === functionName) {
+                        console.log(`✅ ${functionName} found, calling it`);
+                        try {
+                            realFn.apply(null, arguments);
+                        } catch (err) {
+                            console.error(`Error calling ${functionName}:`, err);
+                        }
+                    } else {
+                        console.error(`❌ ${functionName} not available. Real function name:`, realFn?.name);
+                        // Show error in the section
+                        const sectionId = functionName.replace('load', '').toLowerCase() + '-section';
+                        const section = document.getElementById(sectionId);
+                        if (section) {
+                            const content = section.querySelector('.section-content') || section;
+                            content.innerHTML = `<div class="text-center py-8 text-red-500">Error: Function ${functionName} is not available. Please refresh the page.</div>`;
+                        }
                     }
-                } else {
-                    // Real function not available yet, retry after a delay
-                    console.log(`⏳ ${functionName} not available yet (isPlaceholder: ${isPlaceholder}, hasRealName: ${hasRealName}), retrying in 200ms...`);
-                    let retryCount = 0;
-                    const maxRetries = 50; // Try for up to 10 seconds
-                    
-                    const tryCall = () => {
-                        retryCount++;
-                        const realFn = window[functionName];
-                        const placeholderRef = placeholderFunctions[functionName];
-                        
-                        // Check if it's still the placeholder by reference AND name
-                        const isStillPlaceholder = realFn === placeholderRef || (realFn && realFn.name === 'placeholder');
-                        const hasRealName = realFn && realFn.name && realFn.name !== 'placeholder' && realFn.name === functionName;
-                        
-                        if (retryCount % 5 === 0) { // Log every 5th attempt
-                            console.log(`   Attempt ${retryCount}: checking ${functionName}...`);
-                            console.log(`      realFn type:`, typeof realFn);
-                            console.log(`      realFn name:`, realFn?.name);
-                            console.log(`      is placeholder (by ref):`, realFn === placeholderRef);
-                            console.log(`      is placeholder (by name):`, realFn?.name === 'placeholder');
-                            console.log(`      has real name:`, hasRealName);
-                            console.log(`      window.${functionName} exists:`, typeof window[functionName]);
-                        }
-                        
-                        if (hasRealName && typeof realFn === 'function' && !isStillPlaceholder) {
-                            console.log(`✅✅✅ ${functionName} now available (attempt ${retryCount}, name: ${realFn.name}), calling it`);
-                            try {
-                                realFn.apply(null, arguments);
-                            } catch (err) {
-                                console.error(`Error calling ${functionName}:`, err);
-                            }
-                        } else if (retryCount < maxRetries) {
-                            setTimeout(tryCall, 200);
-                        } else {
-                            console.error(`❌ ${functionName} still not available after ${maxRetries} attempts`);
-                            console.error(`   Current function type:`, typeof realFn);
-                            console.error(`   Is placeholder (by ref):`, realFn === placeholderRef);
-                            console.error(`   Is placeholder (by name):`, realFn?.name === 'placeholder');
-                            console.error(`   Function name:`, realFn?.name);
-                            console.error(`   Has real name:`, hasRealName);
-                            console.error(`   window.${functionName} === placeholder:`, window[functionName] === placeholderRef);
-                            // Try to call it anyway if it's a function with a real name
-                            if (realFn && typeof realFn === 'function' && hasRealName && !isStillPlaceholder) {
-                                console.log(`   ⚠️ Attempting to call anyway (function name: ${realFn.name})`);
-                                try {
-                                    realFn.apply(null, arguments);
-                                } catch (err) {
-                                    console.error(`   ❌ Failed to call:`, err);
-                                }
-                            }
-                        }
-                    };
-                    
-                    setTimeout(tryCall, 200);
-                }
+                }, 100);
             };
-            
-            // Give the placeholder a name so we can identify it
-            placeholder.name = 'placeholder';
-            
-            // Store placeholder reference
-            placeholderFunctions[functionName] = placeholder;
-            return placeholder;
         }
         
-        // Create placeholders for all load functions
-        window.loadDashboardData = createPlaceholderLoader('loadDashboardData');
-        window.loadOrders = createPlaceholderLoader('loadOrders');
-        window.loadInventory = createPlaceholderLoader('loadInventory');
-        window.loadInbox = createPlaceholderLoader('loadInbox');
-        window.loadBroadcast = createPlaceholderLoader('loadBroadcast');
-        window.loadAbandonedCarts = createPlaceholderLoader('loadAbandonedCarts');
-        window.loadFulfillers = createPlaceholderLoader('loadFulfillers');
-        window.loadNotifications = createPlaceholderLoader('loadNotifications');
-        window.loadSales = createPlaceholderLoader('loadSales');
-        window.loadAnalytics = createPlaceholderLoader('loadAnalytics');
+        // Create simple placeholders - these will be replaced when body script runs
+        window.loadDashboardData = createSimplePlaceholder('loadDashboardData');
+        window.loadOrders = createSimplePlaceholder('loadOrders');
+        window.loadInventory = createSimplePlaceholder('loadInventory');
+        window.loadInbox = createSimplePlaceholder('loadInbox');
+        window.loadBroadcast = createSimplePlaceholder('loadBroadcast');
+        window.loadAbandonedCarts = createSimplePlaceholder('loadAbandonedCarts');
+        window.loadFulfillers = createSimplePlaceholder('loadFulfillers');
+        window.loadNotifications = createSimplePlaceholder('loadNotifications');
+        window.loadSales = createSimplePlaceholder('loadSales');
+        window.loadAnalytics = createSimplePlaceholder('loadAnalytics');
         
-        console.log('✅ Placeholder load functions created in head script');
+        console.log('✅ Simple placeholder functions created in head script');
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
