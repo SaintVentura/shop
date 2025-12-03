@@ -1499,15 +1499,15 @@
                                     <img src="${productImage}" alt="${product.productName}" class="w-16 h-16 object-cover rounded-lg border border-gray-200" onerror="this.src='https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1'">
                                     <div class="flex-1">
                                         <p class="font-semibold text-lg">${product.productName}</p>
-                                        <div class="flex items-center space-x-2 md:space-x-4 mt-1 flex-wrap">
-                                            <p class="text-xs md:text-sm text-gray-500">${product.category || 'N/A'}</p>
-                                            <p class="text-xs md:text-sm font-semibold">R${(product.price || 0).toFixed(2)}</p>
-                                            <span class="text-xs md:text-sm text-gray-600">${product.variants.length} variant${product.variants.length !== 1 ? 's' : ''}</span>
-                                            <span class="text-xs md:text-sm font-semibold">Total Stock: ${totalStock}</span>
-                                            <span class="text-xs md:text-sm font-semibold text-blue-600">Stock Cost: R${totalStockCost.toFixed(2)}</span>
-                                            <span class="text-xs md:text-sm font-semibold text-purple-600">Cost/Unit: R${totalCostPerUnit.toFixed(2)}</span>
-                                            ${lowStockCount > 0 ? `<span class="text-xs md:text-sm text-yellow-600">⚠️ ${lowStockCount} low stock</span>` : ''}
-                                            ${outOfStockCount > 0 ? `<span class="text-xs md:text-sm text-red-600">❌ ${outOfStockCount} out of stock</span>` : ''}
+                                        <div class="flex items-center space-x-1 md:space-x-2 mt-1 flex-wrap text-[10px] md:text-xs">
+                                            <p class="text-gray-500">${product.category || 'N/A'}</p>
+                                            <p class="font-semibold">R${(product.price || 0).toFixed(2)}</p>
+                                            <span class="text-gray-600">${product.variants.length} variant${product.variants.length !== 1 ? 's' : ''}</span>
+                                            <span class="font-semibold">Total Stock: ${totalStock}</span>
+                                            <span class="font-semibold text-blue-600">Stock Cost: R${totalStockCost.toFixed(2)}</span>
+                                            <span class="font-semibold text-purple-600">Cost/Unit: R${totalCostPerUnit.toFixed(2)}</span>
+                                            ${lowStockCount > 0 ? `<span class="text-yellow-600">⚠️ ${lowStockCount} low stock</span>` : ''}
+                                            ${outOfStockCount > 0 ? `<span class="text-red-600">❌ ${outOfStockCount} out of stock</span>` : ''}
                                         </div>
                                     </div>
                                 </div>

@@ -3677,11 +3677,23 @@ app.put('/api/admin/orders/:orderId/status', adminAuth, async (req, res) => {
         const orderItems = orders[orderIndex].items || [];
         
         for (const item of orderItems) {
-          const inventoryItem = inventory.find(inv => 
-            inv.productId === item.id || 
-            inv.productId === parseInt(item.id) ||
-            inv.productName === item.name
-          );
+          // Find inventory item matching product and variant (size/color)
+          const inventoryItem = inventory.find(inv => {
+            const productMatch = inv.productId === item.id || 
+                                inv.productId === parseInt(item.id) ||
+                                inv.productName === item.name;
+            
+            if (!productMatch) return false;
+            
+            // Match by variant if size/color provided
+            if (item.size || item.color) {
+              const variantMatch = (!item.size || inv.variant?.includes(item.size)) &&
+                                  (!item.color || inv.variant?.includes(item.color));
+              return variantMatch;
+            }
+            
+            return true; // If no size/color specified, match any variant of the product
+          });
           
           if (inventoryItem) {
             const quantityToReduce = item.quantity || 1;
@@ -3689,7 +3701,9 @@ app.put('/api/admin/orders/:orderId/status', adminAuth, async (req, res) => {
             const newStock = Math.max(0, currentStock - quantityToReduce);
             inventoryItem.stock = newStock;
             inventoryItem.updatedAt = new Date().toISOString();
-            console.log(`✅ Reduced stock for ${inventoryItem.productName}: ${currentStock} -> ${newStock}`);
+            console.log(`✅ Reduced stock for ${inventoryItem.productName} (${inventoryItem.variant || 'default'}): ${currentStock} -> ${newStock}`);
+          } else {
+            console.warn(`⚠️ Inventory item not found for ${item.name} (Size: ${item.size || 'N/A'}, Color: ${item.color || 'N/A'})`);
           }
         }
         
@@ -3735,11 +3749,23 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
       try {
         const inventory = await readDataFile('inventory');
         for (const item of items) {
-          const inventoryItem = inventory.find(inv => 
-            inv.productId === item.id || 
-            inv.productId === parseInt(item.id) ||
-            inv.productName === item.name
-          );
+          // Find inventory item matching product and variant (size/color)
+          const inventoryItem = inventory.find(inv => {
+            const productMatch = inv.productId === item.id || 
+                                inv.productId === parseInt(item.id) ||
+                                inv.productName === item.name;
+            
+            if (!productMatch) return false;
+            
+            // Match by variant if size/color provided
+            if (item.size || item.color) {
+              const variantMatch = (!item.size || inv.variant?.includes(item.size)) &&
+                                  (!item.color || inv.variant?.includes(item.color));
+              return variantMatch;
+            }
+            
+            return true; // If no size/color specified, match any variant of the product
+          });
           
           if (inventoryItem) {
             const quantityToReduce = item.quantity || 1;
@@ -3747,7 +3773,9 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
             const newStock = Math.max(0, currentStock - quantityToReduce);
             inventoryItem.stock = newStock;
             inventoryItem.updatedAt = new Date().toISOString();
-            console.log(`✅ Reduced stock for ${inventoryItem.productName}: ${currentStock} -> ${newStock}`);
+            console.log(`✅ Reduced stock for ${inventoryItem.productName} (${inventoryItem.variant || 'default'}): ${currentStock} -> ${newStock}`);
+          } else {
+            console.warn(`⚠️ Inventory item not found for ${item.name} (Size: ${item.size || 'N/A'}, Color: ${item.color || 'N/A'})`);
           }
         }
         await writeDataFile('inventory', inventory);
