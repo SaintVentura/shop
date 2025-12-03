@@ -3661,15 +3661,14 @@ app.get('/api/admin/dashboard', adminAuth, async (req, res) => {
       monthlyRevenue[monthKey] = 0;
     }
     
-    // Only count revenue from fulfilled orders in monthly revenue (deduct delivery costs)
+    // Only count revenue from fulfilled orders in monthly revenue (total sale price)
     orders.forEach(order => {
       if (order.date && order.status === 'fulfilled') {
         const orderDate = new Date(order.date);
         const monthKey = `${orderDate.getFullYear()}-${String(orderDate.getMonth() + 1).padStart(2, '0')}`;
         if (monthlyRevenue.hasOwnProperty(monthKey)) {
           const orderTotal = parseFloat(order.total) || 0;
-          const deliveryCost = parseFloat(order.deliveryCost) || 0;
-          monthlyRevenue[monthKey] += (orderTotal - deliveryCost);
+          monthlyRevenue[monthKey] += orderTotal;
         }
       }
     });
