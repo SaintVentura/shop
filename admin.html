@@ -808,13 +808,11 @@
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium mb-2">To <span class="text-gray-500 text-xs">(comma-separated for multiple)</span></label>
-                        <label for="compose-to" class="block text-sm font-medium mb-2">To</label>
+                        <label for="compose-to" class="block text-sm font-medium mb-2">To <span class="text-gray-500 text-xs">(comma-separated for multiple)</span></label>
                         <textarea id="compose-to" name="compose-to" class="w-full px-4 py-2 border border-gray-300 rounded-lg min-h-[60px] resize-y" required placeholder="recipient@example.com or recipient1@example.com, recipient2@example.com" aria-label="Email recipients"></textarea>
                         <button type="button" onclick="addAllSubscribers()" id="add-subscribers-btn" class="hidden mt-2 text-xs text-blue-600 hover:text-blue-800 underline">Add All Subscribers</button>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium mb-2">Subject</label>
                         <label for="compose-subject" class="block text-sm font-medium mb-2">Subject</label>
                         <input type="text" id="compose-subject" name="compose-subject" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required placeholder="Email subject" aria-label="Email subject">
                     </div>

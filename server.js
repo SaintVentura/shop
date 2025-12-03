@@ -3582,9 +3582,10 @@ app.get('/api/admin/dashboard', adminAuth, async (req, res) => {
     
     // Calculate stats
     const totalOrders = orders.length;
-    // Only count revenue from fulfilled orders (total sale price)
-    const fulfilledOrdersList = orders.filter(o => o.status === 'fulfilled');
-    const totalRevenue = fulfilledOrdersList.reduce((sum, o) => {
+    // Only count revenue and profit from orders that are pending fulfillment or fulfilled
+    // (not pending checkout)
+    const ordersForProfit = orders.filter(o => o.status === 'pending fulfillment' || o.status === 'fulfilled');
+    const totalRevenue = ordersForProfit.reduce((sum, o) => {
       const orderTotal = parseFloat(o.total) || 0;
       return sum + orderTotal;
     }, 0);
@@ -3594,8 +3595,8 @@ app.get('/api/admin/dashboard', adminAuth, async (req, res) => {
     let totalStockCost = 0;
     let totalDeliveryCost = 0;
     
-    // Calculate profit for each fulfilled order
-    fulfilledOrdersList.forEach(order => {
+    // Calculate profit for each order (pending fulfillment or fulfilled)
+    ordersForProfit.forEach(order => {
       const orderTotal = parseFloat(order.total) || 0; // Total sale price
       const deliveryCost = parseFloat(order.deliveryCost) || 0;
       totalDeliveryCost += deliveryCost;
@@ -3661,9 +3662,9 @@ app.get('/api/admin/dashboard', adminAuth, async (req, res) => {
       monthlyRevenue[monthKey] = 0;
     }
     
-    // Only count revenue from fulfilled orders in monthly revenue (total sale price)
+    // Only count revenue from orders that are pending fulfillment or fulfilled in monthly revenue (total sale price)
     orders.forEach(order => {
-      if (order.date && order.status === 'fulfilled') {
+      if (order.date && (order.status === 'pending fulfillment' || order.status === 'fulfilled')) {
         const orderDate = new Date(order.date);
         const monthKey = `${orderDate.getFullYear()}-${String(orderDate.getMonth() + 1).padStart(2, '0')}`;
         if (monthlyRevenue.hasOwnProperty(monthKey)) {
