@@ -1207,19 +1207,26 @@ app.post('/api/send-order-confirmation', async (req, res) => {
 // Webhook endpoint for Yoco payment notifications
 app.post('/api/yoco-webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   try {
-    const webhookData = req.body;
+    const webhookData = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     
     console.log('Yoco webhook received:', webhookData);
 
     // Verify webhook signature if Yoco provides one
     // TODO: Add webhook signature verification for production
     
-    // Process the webhook data
-    // This is where you would:
-    // 1. Verify the payment status
-    // 2. Update your database
-    // 3. Send confirmation emails
-    // 4. Update inventory
+    // Check if payment was successful
+    const paymentStatus = webhookData.status || webhookData.event || webhookData.type;
+    const checkoutId = webhookData.checkoutId || webhookData.id || webhookData.checkout?.id;
+    const metadata = webhookData.metadata || webhookData.checkout?.metadata || {};
+    const orderId = metadata.orderId;
+
+    if (paymentStatus === 'succeeded' || paymentStatus === 'checkout.succeeded' || webhookData.type === 'checkout.succeeded') {
+      console.log('✅ Payment succeeded, processing order:', orderId);
+      
+      if (orderId) {
+        await fulfillPOSOrderIfNeeded(orderId);
+      }
+    }
     
     res.json({ received: true });
   } catch (error) {
@@ -1243,9 +1250,17 @@ app.get('/api/payment-status/:checkoutId', async (req, res) => {
       }
     );
 
+    const paymentData = response.data;
+    const orderId = paymentData.metadata?.orderId;
+
+    // If payment is successful and order is POS, fulfill it
+    if (paymentData.status === 'succeeded' && orderId && orderId.startsWith('POS-')) {
+      await fulfillPOSOrderIfNeeded(orderId);
+    }
+
     res.json({
       success: true,
-      payment: response.data
+      payment: paymentData
     });
   } catch (error) {
     console.error('Error fetching payment status:', error.response?.data || error.message);
@@ -1255,6 +1270,119 @@ app.get('/api/payment-status/:checkoutId', async (req, res) => {
     });
   }
 });
+
+// Verify and fulfill POS order after Yoco payment
+app.post('/api/verify-pos-payment', async (req, res) => {
+  try {
+    const { orderId, checkoutId } = req.body;
+
+    if (!orderId) {
+      return res.status(400).json({ success: false, error: 'Order ID is required' });
+    }
+
+    // Check if it's a POS order
+    if (!orderId.startsWith('POS-')) {
+      return res.json({ success: false, error: 'Not a POS order' });
+    }
+
+    // If checkoutId provided, verify payment status
+    if (checkoutId) {
+      try {
+        const response = await axios.get(
+          `${YOCO_API_URL}/api/checkouts/${checkoutId}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${YOCO_SECRET_KEY}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        const paymentData = response.data;
+        if (paymentData.status !== 'succeeded') {
+          return res.json({ success: false, error: 'Payment not completed' });
+        }
+      } catch (error) {
+        console.error('Error verifying payment:', error);
+        // Continue anyway - might be a webhook that already confirmed
+      }
+    }
+
+    // Fulfill the order
+    await fulfillPOSOrderIfNeeded(orderId);
+
+    res.json({ success: true, message: 'Order fulfilled successfully' });
+  } catch (error) {
+    console.error('Error verifying POS payment:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Helper function to fulfill POS order
+async function fulfillPOSOrderIfNeeded(orderId) {
+  try {
+    const orders = await readDataFile('orders');
+    const order = orders.find(o => o.id === orderId);
+
+    if (!order) {
+      console.log(`Order ${orderId} not found`);
+      return;
+    }
+
+    // Only update if it's still pending checkout
+    if (order.status === 'pending checkout') {
+      order.status = 'fulfilled';
+      order.updatedAt = new Date().toISOString();
+      await writeDataFile('orders', orders);
+
+      console.log(`✅ POS order ${orderId} marked as fulfilled`);
+
+      // Reduce stock for fulfilled POS order
+      try {
+        const inventory = await readDataFile('inventory');
+        const items = order.items || [];
+
+        for (const item of items) {
+          // Find inventory item matching product and variant (size/color)
+          const inventoryItem = inventory.find(inv => {
+            const productMatch = inv.productId === item.id || 
+                                inv.productId === parseInt(item.id) ||
+                                inv.productName === item.name;
+            
+            if (!productMatch) return false;
+            
+            // Match by variant if size/color provided
+            if (item.size || item.color) {
+              const variantMatch = (!item.size || inv.variant?.includes(item.size)) &&
+                                  (!item.color || inv.variant?.includes(item.color));
+              return variantMatch;
+            }
+            
+            return true; // If no size/color specified, match any variant of the product
+          });
+          
+          if (inventoryItem) {
+            const quantityToReduce = item.quantity || 1;
+            const currentStock = inventoryItem.stock || 0;
+            const newStock = Math.max(0, currentStock - quantityToReduce);
+            inventoryItem.stock = newStock;
+            inventoryItem.updatedAt = new Date().toISOString();
+            console.log(`✅ Reduced stock for ${inventoryItem.productName} (${inventoryItem.variant || 'default'}): ${currentStock} -> ${newStock}`);
+          } else {
+            console.warn(`⚠️ Inventory item not found for ${item.name} (Size: ${item.size || 'N/A'}, Color: ${item.color || 'N/A'})`);
+          }
+        }
+        
+        await writeDataFile('inventory', inventory);
+      } catch (stockError) {
+        console.error('Error reducing stock for POS order:', stockError);
+      }
+    }
+  } catch (error) {
+    console.error('Error fulfilling POS order:', error);
+    throw error;
+  }
+}
 
 // ============================================
 // ADMIN DASHBOARD CONFIGURATION

@@ -59,10 +59,58 @@ document.addEventListener('DOMContentLoaded', async function() {
   // Try to get order info from URL parameters (Yoco redirects with these)
   const amount = urlParams.get('amount') || localStorage.getItem('lastOrderAmount');
   const orderId = urlParams.get('orderId') || urlParams.get('id') || urlParams.get('checkoutId') || 'Pending';
+  const checkoutId = urlParams.get('checkoutId') || urlParams.get('id');
+  
+  // Check if this is a POS order (starts with POS-)
+  const isPOSOrder = orderId && orderId.startsWith('POS-');
   
   // Get order details from localStorage (saved before payment redirect)
   const pendingOrderData = localStorage.getItem('pendingOrderDetails');
   const orderData = pendingOrderData ? JSON.parse(pendingOrderData) : null;
+  
+  // If POS order, verify payment and fulfill order
+  if (isPOSOrder && orderId) {
+    try {
+      function getBackendBaseUrl() {
+        const hostname = window.location.hostname;
+        const PRODUCTION_BACKEND_URL = 'https://saint-ventura-backend.onrender.com';
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+          return 'http://localhost:3000';
+        }
+        return PRODUCTION_BACKEND_URL;
+      }
+      
+      const backendBaseUrl = getBackendBaseUrl();
+      const verifyUrl = `${backendBaseUrl}/api/verify-pos-payment`;
+      
+      const verifyResponse = await fetch(verifyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          orderId: orderId,
+          checkoutId: checkoutId
+        })
+      });
+      
+      const verifyResult = await verifyResponse.json();
+      
+      if (verifyResult.success) {
+        console.log('✅ POS order verified and fulfilled');
+        // Redirect back to admin dashboard after a short delay
+        setTimeout(() => {
+          window.location.href = 'admin.html?posPaymentSuccess=true&orderId=' + orderId;
+        }, 2000);
+        return; // Exit early, don't show checkout success page
+      } else {
+        console.warn('⚠️ POS order verification failed:', verifyResult.error);
+      }
+    } catch (error) {
+      console.error('Error verifying POS payment:', error);
+      // Continue to show success page anyway
+    }
+  }
   
   // Get cart info from localStorage
   const cart = JSON.parse(localStorage.getItem('cart') || '[]');
