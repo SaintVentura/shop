@@ -5112,7 +5112,7 @@ Thank you!</textarea>
         }
 
         function addToPOSCartWithVariant(productId) {
-            adminFetch(`${BACKEND_URL}/api/admin/products`)
+            window.adminFetch(`${BACKEND_URL}/api/admin/products`)
                 .then(data => {
                     const product = data.find(p => p.id === productId);
                     if (!product) return;
@@ -5256,7 +5256,7 @@ Thank you!</textarea>
                 
                 console.log('🔗 Making request to:', `${BACKEND_URL}/api/admin/pos/order`);
                 
-                const data = await adminFetch(`${BACKEND_URL}/api/admin/pos/order`, requestOptions);
+                const data = await window.adminFetch(`${BACKEND_URL}/api/admin/pos/order`, requestOptions);
                 
                 console.log('📥 POS order response received:', data);
                 console.log('📥 Response type:', typeof data);
