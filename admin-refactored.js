@@ -8,10 +8,38 @@ const AdminApp = (function() {
     
     // Configuration - password will be set after login verification
     let ADMIN_PASSWORD = null;
+    
+    // Always use production backend URL from Render
+    const BACKEND_URL = 'https://saint-ventura-backend.onrender.com';
+    
     const CONFIG = {
-        BACKEND_URL: getBackendUrl(),
+        BACKEND_URL: BACKEND_URL,
         SECTIONS: ['dashboard', 'orders', 'inventory', 'inbox', 'broadcast', 'abandoned-carts', 'fulfillers', 'notifications', 'sales', 'analytics']
     };
+    
+    // Log backend URL on initialization
+    console.log('🚀 Admin Dashboard initialized');
+    console.log('🌐 Backend URL:', CONFIG.BACKEND_URL);
+    
+    // Test backend connectivity on load
+    fetch(`${CONFIG.BACKEND_URL}/health`, { 
+        method: 'GET',
+        mode: 'cors',
+        credentials: 'omit',
+        cache: 'no-cache'
+    })
+    .then(response => {
+        if (response.ok) {
+            console.log('✅ Backend server is reachable');
+        } else {
+            console.warn('⚠️ Backend server returned non-OK status:', response.status);
+        }
+    })
+    .catch(error => {
+        console.error('❌ Cannot reach backend server:', error);
+        console.error('   URL:', CONFIG.BACKEND_URL);
+        console.error('   Please ensure the server is running and accessible.');
+    });
     
     // State
     const state = {
@@ -22,15 +50,6 @@ const AdminApp = (function() {
         posCart: []
     };
     
-    // Utility Functions
-    function getBackendUrl() {
-        const hostname = window.location.hostname;
-        if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '' || hostname === '0.0.0.0') {
-            return 'http://localhost:3000';
-        }
-        return 'https://saint-ventura-backend.onrender.com';
-    }
-    
     async function apiCall(endpoint, options = {}) {
         if (!ADMIN_PASSWORD) {
             throw new Error('Not authenticated. Please log in first.');
@@ -40,39 +59,107 @@ const AdminApp = (function() {
         const headers = {
             'X-Admin-Password': ADMIN_PASSWORD,
             'Content-Type': 'application/json',
+            'Accept': 'application/json',
             ...options.headers
         };
         
+        // Add body if it's a string (needs to be converted)
+        const fetchOptions = {
+            ...options,
+            headers,
+            mode: 'cors',
+            credentials: 'omit',
+            cache: 'no-cache'
+        };
+        
+        // Handle body - if it's already a string, use it; otherwise stringify
+        if (options.body && typeof options.body !== 'string') {
+            fetchOptions.body = JSON.stringify(options.body);
+        }
+        
+        console.log(`📡 API Call: ${options.method || 'GET'} ${url}`);
+        console.log('📡 Headers:', Object.keys(headers));
+        
         try {
-            const response = await fetch(url, { ...options, headers });
+            const response = await fetch(url, fetchOptions);
+            
+            console.log(`📡 Response: ${response.status} ${response.statusText}`);
+            
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || `HTTP ${response.status}`);
+                let errorData;
+                try {
+                    const text = await response.text();
+                    errorData = text ? JSON.parse(text) : {};
+                } catch (e) {
+                    errorData = { error: `HTTP ${response.status}: ${response.statusText}` };
+                }
+                
+                const errorMessage = errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`;
+                console.error(`❌ API Error [${endpoint}]:`, errorMessage);
+                throw new Error(errorMessage);
             }
-            return await response.json();
+            
+            const data = await response.json();
+            console.log(`✅ API Success [${endpoint}]:`, data);
+            return data;
         } catch (error) {
-            console.error(`API Error [${endpoint}]:`, error);
+            console.error(`❌ API Error [${endpoint}]:`, error);
+            
+            // Provide more helpful error messages
+            if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                throw new Error(`Network error: Cannot reach server at ${CONFIG.BACKEND_URL}. Please check your internet connection and ensure the server is running.`);
+            }
+            
+            if (error.message.includes('CORS')) {
+                throw new Error(`CORS error: The server at ${CONFIG.BACKEND_URL} is not allowing requests from this origin.`);
+            }
+            
             throw error;
         }
     }
     
     // Login function - verifies password with backend
     async function login(password) {
+        const url = `${CONFIG.BACKEND_URL}/api/admin/verify-password`;
+        console.log('🔑 Attempting login to:', url);
+        
         try {
-            const response = await fetch(`${CONFIG.BACKEND_URL}/api/admin/verify-password`, {
+            const response = await fetch(url, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                mode: 'cors',
+                credentials: 'omit',
+                cache: 'no-cache',
                 body: JSON.stringify({ password })
             });
             
+            console.log('🔑 Login response status:', response.status, response.statusText);
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('❌ Login failed:', errorData);
+                return false;
+            }
+            
             const data = await response.json();
+            console.log('🔑 Login response:', data);
+            
             if (data.success) {
                 ADMIN_PASSWORD = password;
+                console.log('✅ Login successful');
                 return true;
             }
+            console.log('❌ Login failed: Invalid password');
             return false;
         } catch (error) {
-            console.error('Login error:', error);
+            console.error('❌ Login error:', error);
+            if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                console.error('❌ Network error: Cannot reach server at', CONFIG.BACKEND_URL);
+                alert(`Cannot connect to server at ${CONFIG.BACKEND_URL}. Please check your internet connection and ensure the server is running.`);
+            }
             return false;
         }
     }
