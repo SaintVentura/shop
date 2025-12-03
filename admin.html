@@ -274,8 +274,377 @@
         // Store placeholder references by function name
         const placeholderFunctions = {};
         
-        // Load functions will be defined in body script - no stubs needed
-        // They will be available immediately when body script executes
+        // NOW define ALL load functions in HEAD script so they're available IMMEDIATELY
+        // This ensures they work even if body script hasn't executed yet
+        console.log('🔧 Defining all load functions in HEAD script...');
+        
+        // Define getBackendUrl and adminFetch first (they're already defined above)
+        // Now define all load functions using window.adminFetch and window.BACKEND_URL
+        
+        window.loadDashboardData = function loadDashboardData() {
+            console.log('📊 Loading dashboard data...');
+            const backendUrl = window.BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
+            window.adminFetch(`${backendUrl}/api/admin/dashboard`)
+                .then(data => {
+                    if (data.success) {
+                        const statElements = {
+                            'stat-total-revenue': `R${data.stats.totalRevenue.toFixed(2)}`,
+                            'stat-total-profit': `R${(data.stats.totalProfit || 0).toFixed(2)}`,
+                            'stat-total-orders': data.stats.completedOrders,
+                            'stat-pending-orders': data.stats.pendingOrders,
+                            'stat-subscribers': data.stats.totalSubscribers,
+                            'stat-low-stock': data.stats.lowStockItems,
+                            'stat-notifications': data.stats.unreadNotifications,
+                            'stat-emails': data.stats.unreadEmails,
+                            'stat-carts': data.stats.abandonedCarts
+                        };
+                        for (const [id, value] of Object.entries(statElements)) {
+                            const el = document.getElementById(id);
+                            if (el) el.textContent = value;
+                        }
+                        const recentList = document.getElementById('recent-orders-list');
+                        if (recentList) {
+                            if (data.recentOrders && data.recentOrders.length > 0) {
+                                recentList.innerHTML = data.recentOrders.map(order => `
+                                    <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition">
+                                        <div class="flex justify-between items-start">
+                                            <div>
+                                                <p class="font-semibold">${order.customerName || 'Unknown'}</p>
+                                                <p class="text-sm text-gray-600">${order.id || 'N/A'}</p>
+                                            </div>
+                                            <div class="text-right">
+                                                <p class="font-semibold">R${(order.total || 0).toFixed(2)}</p>
+                                                <span class="px-2 py-1 rounded-full text-xs font-semibold ${order.status === 'fulfilled' ? 'bg-green-100 text-green-800' : order.status === 'pending fulfillment' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}">${order.status || 'pending checkout'}</span>
+                                            </div>
+                                        </div>
+                                        <p class="text-xs text-gray-500 mt-2">${order.date ? new Date(order.date).toLocaleString() : 'N/A'}</p>
+                                    </div>
+                                `).join('');
+                            } else {
+                                recentList.innerHTML = '<div class="text-center py-8 text-gray-500">No recent orders</div>';
+                            }
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.error('Error loading dashboard:', err);
+                    const recentList = document.getElementById('recent-orders-list');
+                    if (recentList) {
+                        recentList.innerHTML = `<div class="text-center py-8 text-red-500">Error: ${err.message}</div>`;
+                    }
+                });
+        };
+        
+        window.loadInventory = function loadInventory() {
+            const tbody = document.getElementById('inventory-table');
+            const mobileContainer = document.getElementById('inventory-table-mobile');
+            if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-center py-12 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading inventory...</span></div></td></tr>';
+            if (mobileContainer) mobileContainer.innerHTML = '<div class="text-center py-8 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading inventory...</span></div></div>';
+            const backendUrl = window.BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
+            window.adminFetch(`${backendUrl}/api/admin/inventory`)
+                .then(data => {
+                    if (!Array.isArray(data)) throw new Error('Invalid data format');
+                    if (typeof window.allInventoryData !== 'undefined') window.allInventoryData = data;
+                    if (typeof renderInventory === 'function') renderInventory(data);
+                })
+                .catch(err => {
+                    console.error('Error loading inventory:', err);
+                    if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="text-center py-12"><div class="error-message">Error: ${err.message}</div></td></tr>`;
+                    if (mobileContainer) mobileContainer.innerHTML = `<div class="error-message">Error: ${err.message}</div>`;
+                });
+        };
+        
+        window.loadInbox = function loadInbox() {
+            const list = document.getElementById('inbox-list');
+            if (!list) return;
+            list.innerHTML = '<div class="text-center py-8 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading emails...</span></div></div>';
+            const backendUrl = window.BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
+            window.adminFetch(`${backendUrl}/api/admin/inbox`)
+                .then(data => {
+                    if (!Array.isArray(data)) throw new Error('Invalid data format');
+                    const sortedData = data.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+                    if (sortedData.length === 0) {
+                        list.innerHTML = '<div class="text-center py-8 text-gray-500">No emails</div>';
+                        return;
+                    }
+                    list.innerHTML = sortedData.map(email => `
+                        <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition cursor-pointer ${email.read ? '' : 'bg-blue-50 border-blue-200'} ${email.sent ? 'bg-green-50 border-green-200' : ''}" onclick="if(typeof viewEmail==='function')viewEmail('${email.id}')">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <p class="font-semibold ${email.read ? 'text-gray-700' : 'text-black'}">${email.subject || '(No Subject)'}</p>
+                                    <p class="text-sm text-gray-600 mt-1">${email.sent ? 'To:' : 'From:'} ${email.name || email.from || email.to || 'Unknown'}</p>
+                                    <p class="text-xs text-gray-500 mt-1">${email.date ? new Date(email.date).toLocaleString() : 'Unknown date'}</p>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    ${email.sent ? '<span class="px-2 py-1 bg-green-500 text-white rounded-full text-xs">Sent</span>' : ''}
+                                    ${!email.read ? '<span class="px-2 py-1 bg-blue-500 text-white rounded-full text-xs">New</span>' : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                })
+                .catch(err => {
+                    console.error('Error loading inbox:', err);
+                    list.innerHTML = `<div class="error-message">Error: ${err.message}</div>`;
+                });
+        };
+        
+        window.loadBroadcast = function loadBroadcast() {
+            const backendUrl = window.BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
+            window.adminFetch(`${backendUrl}/api/admin/subscribers`)
+                .then(data => {
+                    if (!Array.isArray(data)) throw new Error('Invalid subscribers data format');
+                    const countEl = document.getElementById('subscriber-count');
+                    if (countEl) countEl.textContent = data.length;
+                    const list = document.getElementById('subscribers-list');
+                    if (list) {
+                        if (data.length === 0) {
+                            list.innerHTML = '<div class="text-center py-4 text-gray-500">No subscribers</div>';
+                        } else {
+                            list.innerHTML = data.map(sub => `
+                                <div class="flex justify-between items-center p-2 border border-gray-200 rounded">
+                                    <span class="text-sm">${sub.email}</span>
+                                    <span class="text-xs text-gray-500">${new Date(sub.date).toLocaleDateString()}</span>
+                                </div>
+                            `).join('');
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.error('Error loading subscribers:', err);
+                    const list = document.getElementById('subscribers-list');
+                    if (list) list.innerHTML = `<div class="error-message">Error: ${err.message}</div>`;
+                });
+            window.adminFetch(`${backendUrl}/api/admin/products`)
+                .then(data => {
+                    if (!Array.isArray(data)) throw new Error('Invalid products data format');
+                    const select = document.getElementById('broadcast-products');
+                    if (select) {
+                        select.innerHTML = '<option value="">Select products...</option>' +
+                            data.map(p => `<option value="${p.id}">${p.name} - R${(p.price || 0).toFixed(2)}</option>`).join('');
+                    }
+                })
+                .catch(err => {
+                    console.error('Error loading products:', err);
+                    const select = document.getElementById('broadcast-products');
+                    if (select) select.innerHTML = '<option value="">Error loading products</option>';
+                });
+        };
+        
+        window.loadAbandonedCarts = function loadAbandonedCarts() {
+            const list = document.getElementById('abandoned-carts-list');
+            if (!list) return;
+            list.innerHTML = '<div class="text-center py-8 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading abandoned carts...</span></div></div>';
+            const backendUrl = window.BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
+            window.adminFetch(`${backendUrl}/api/admin/abandoned-carts`)
+                .then(data => {
+                    if (!Array.isArray(data)) throw new Error('Invalid data format');
+                    if (data.length === 0) {
+                        list.innerHTML = '<div class="text-center py-8 text-gray-500">No abandoned carts</div>';
+                        return;
+                    }
+                    list.innerHTML = data.map(cart => {
+                        let timeAbandoned = 'Unknown';
+                        if (cart.date) {
+                            const diffMs = new Date() - new Date(cart.date);
+                            const diffMins = Math.floor(diffMs / 60000);
+                            const diffHours = Math.floor(diffMs / 3600000);
+                            const diffDays = Math.floor(diffMs / 86400000);
+                            if (diffMins < 1) timeAbandoned = 'Just now';
+                            else if (diffMins < 60) timeAbandoned = `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+                            else if (diffHours < 24) timeAbandoned = `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+                            else if (diffDays < 30) timeAbandoned = `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+                            else timeAbandoned = `${Math.floor(diffDays / 30)} month${Math.floor(diffDays / 30) !== 1 ? 's' : ''} ago`;
+                        }
+                        return `
+                        <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition">
+                            <div class="flex justify-between items-start mb-3">
+                                <div class="flex-1">
+                                    <p class="font-semibold text-lg">${cart.email || 'Guest'}</p>
+                                    <p class="text-sm text-gray-600 mt-1">${(cart.items || []).length} item${(cart.items || []).length !== 1 ? 's' : ''}</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-xs font-medium text-gray-500 mb-1">Abandoned</p>
+                                    <p class="text-sm font-semibold text-red-600">${timeAbandoned}</p>
+                                    <p class="text-xs text-gray-400 mt-1">${cart.date ? new Date(cart.date).toLocaleString() : 'N/A'}</p>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center mt-3 pt-3 border-t border-gray-200">
+                                <p class="text-lg font-bold">Total: R${(cart.total || 0).toFixed(2)}</p>
+                                ${cart.email ? `<button onclick="if(typeof sendCartReminder==='function')sendCartReminder('${cart.id}')" class="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 transition">Send Reminder</button>` : '<span class="text-xs text-gray-400">No email</span>'}
+                            </div>
+                        </div>
+                    `;
+                    }).join('');
+                })
+                .catch(err => {
+                    console.error('Error loading abandoned carts:', err);
+                    list.innerHTML = `<div class="error-message">Error: ${err.message}</div>`;
+                });
+        };
+        
+        window.loadFulfillers = function loadFulfillers() {
+            const list = document.getElementById('fulfillers-list');
+            const select = document.getElementById('fulfiller-select');
+            if (!list) return;
+            list.innerHTML = '<div class="text-center py-4 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading fulfillers...</span></div></div>';
+            const backendUrl = window.BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
+            window.adminFetch(`${backendUrl}/api/admin/fulfillers`)
+                .then(data => {
+                    if (!Array.isArray(data)) throw new Error('Invalid data format');
+                    if (data.length === 0) {
+                        list.innerHTML = '<div class="text-center py-4 text-gray-500">No fulfillers added</div>';
+                        if (select) select.innerHTML = '<option value="">No fulfillers available</option>';
+                    } else {
+                        list.innerHTML = data.map(f => `
+                            <div class="flex justify-between items-center p-3 border border-gray-200 rounded-lg">
+                                <div class="flex-1">
+                                    <p class="font-semibold text-base">${f.name || 'Unknown'}</p>
+                                    <p class="text-sm text-gray-600">${f.email || 'No email'}</p>
+                                    ${f.phone ? `<p class="text-xs text-gray-500">${f.phone}</p>` : ''}
+                                </div>
+                                <button onclick="if(typeof deleteFulfiller==='function')deleteFulfiller('${f.id}')" class="ml-4 px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition">Delete</button>
+                            </div>
+                        `).join('');
+                        if (select) {
+                            select.innerHTML = '<option value="">Select a fulfiller...</option>' +
+                                data.map(f => `<option value="${f.id}">${f.name || 'Unknown'} (${f.email || 'No email'})</option>`).join('');
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.error('Error loading fulfillers:', err);
+                    if (list) list.innerHTML = `<div class="error-message">Error: ${err.message}</div>`;
+                    if (select) select.innerHTML = '<option value="">Error loading fulfillers</option>';
+                });
+        };
+        
+        window.loadNotifications = function loadNotifications() {
+            const list = document.getElementById('notifications-list');
+            if (!list) return;
+            list.innerHTML = '<div class="text-center py-8 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading notifications...</span></div></div>';
+            const backendUrl = window.BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
+            window.adminFetch(`${backendUrl}/api/admin/notifications`)
+                .then(data => {
+                    if (!data) throw new Error('No data received');
+                    if (!Array.isArray(data)) {
+                        if (data.error) throw new Error(data.error);
+                        throw new Error('Invalid data format');
+                    }
+                    if (data.length === 0) {
+                        list.innerHTML = '<div class="text-center py-8 text-gray-500">No notifications</div>';
+                        return;
+                    }
+                    list.innerHTML = data.map(notif => {
+                        const notifId = notif.id || Date.now().toString();
+                        const notifTitle = (notif.title || 'Notification').replace(/'/g, "\\'");
+                        const notifMessage = (notif.message || 'No message').replace(/'/g, "\\'");
+                        return `
+                        <div class="border border-gray-200 rounded-lg p-4 ${notif.read ? 'bg-gray-50' : 'bg-white'}">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="font-semibold">${notifTitle}</p>
+                                    <p class="text-sm text-gray-600">${notifMessage}</p>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-xs text-gray-500">${notif.date ? new Date(notif.date).toLocaleString() : 'N/A'}</span>
+                                    ${!notif.read ? `<button onclick="if(typeof markNotificationRead==='function')markNotificationRead('${notifId}')" class="ml-2 text-sm text-blue-600 hover:underline">Mark Read</button>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    }).join('');
+                })
+                .catch(err => {
+                    console.error('Error loading notifications:', err);
+                    list.innerHTML = `<div class="error-message">Error: ${err.message}</div>`;
+                });
+        };
+        
+        window.loadOrders = function loadOrders() {
+            const tbody = document.getElementById('orders-table');
+            if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="text-center py-12 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading orders...</span></div></td></tr>';
+            const backendUrl = window.BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
+            window.adminFetch(`${backendUrl}/api/admin/orders`)
+                .then(data => {
+                    if (!Array.isArray(data)) throw new Error('Invalid data format');
+                    if (typeof window.allOrdersData !== 'undefined') window.allOrdersData = data;
+                    if (typeof renderOrders === 'function') renderOrders(data);
+                    else if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="text-center py-12 text-gray-500">Orders loaded but render function not ready</td></tr>';
+                })
+                .catch(err => {
+                    console.error('Error loading orders:', err);
+                    if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="text-center py-12"><div class="error-message">Error: ${err.message}</div></td></tr>`;
+                });
+        };
+        
+        window.loadAnalytics = function loadAnalytics() {
+            const backendUrl = window.BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
+            window.adminFetch(`${backendUrl}/api/admin/dashboard`)
+                .then(data => {
+                    if (data.success) {
+                        if (typeof renderRevenueChart === 'function') renderRevenueChart(data.monthlyRevenue);
+                        if (typeof renderStatusChart === 'function') renderStatusChart(data.stats);
+                        if (typeof renderSalesSummary === 'function') renderSalesSummary(data);
+                    }
+                })
+                .catch(err => {
+                    console.error('Error loading analytics:', err);
+                    const container = document.getElementById('revenue-chart');
+                    if (container) container.innerHTML = `<div class="error-message">Error: ${err.message}</div>`;
+                });
+        };
+        
+        window.loadSales = function loadSales() {
+            const container = document.getElementById('pos-products');
+            if (!container) return;
+            container.innerHTML = '<div class="col-span-2 md:col-span-3 lg:col-span-4 text-center py-8 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading products...</span></div></div>';
+            const backendUrl = window.BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
+            window.adminFetch(`${backendUrl}/api/admin/products`)
+                .then(data => {
+                    if (!Array.isArray(data)) throw new Error('Invalid products data format');
+                    if (data.length === 0) {
+                        container.innerHTML = '<div class="col-span-2 md:col-span-3 lg:col-span-4 text-center py-8 text-gray-500">No products available</div>';
+                        return;
+                    }
+                    container.innerHTML = data.map(p => {
+                        const firstImage = p.images && p.images.length > 0 ? p.images[0] : (p.availableColors && p.availableColors.length > 0 ? p.availableColors[0].image : 'https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1');
+                        const hasVariants = (p.sizes && p.sizes.length > 1) || (p.colors && p.colors.length > 1);
+                        return `
+                        <div class="border border-gray-200 rounded-xl p-4 hover:shadow-lg transition-all duration-200 bg-white">
+                            <div class="aspect-square mb-3 bg-gray-100 rounded-lg overflow-hidden">
+                                <img src="${firstImage}" alt="${p.name}" class="w-full h-full object-cover" onerror="this.src='https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1'">
+                            </div>
+                            <p class="font-semibold text-sm md:text-base mb-1">${p.name || 'Unknown Product'}</p>
+                            <p class="text-gray-600 text-sm md:text-base font-bold mb-2">R${(p.price || 0).toFixed(2)}</p>
+                            ${hasVariants ? `
+                                <button onclick="if(typeof showVariantModal==='function')showVariantModal(${p.id})" class="w-full px-3 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition">Select Variant</button>
+                            ` : `
+                                <button onclick="if(typeof addToPOSCart==='function')addToPOSCart(${p.id}, '${(p.name || '').replace(/'/g, "\\'")}', ${p.price || 0}, null, null)" class="w-full px-3 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition">Add to Cart</button>
+                            `}
+                        </div>
+                    `;
+                    }).join('');
+                })
+                .catch(err => {
+                    console.error('Error loading POS products:', err);
+                    container.innerHTML = `<div class="col-span-2 md:col-span-3 lg:col-span-4 error-message">Error: ${err.message}</div>`;
+                });
+        };
+        
+        console.log('✅✅✅ ALL 10 load functions defined in HEAD script and available immediately!');
+        console.log('Functions available:', {
+            loadDashboardData: typeof window.loadDashboardData === 'function',
+            loadInventory: typeof window.loadInventory === 'function',
+            loadInbox: typeof window.loadInbox === 'function',
+            loadBroadcast: typeof window.loadBroadcast === 'function',
+            loadAbandonedCarts: typeof window.loadAbandonedCarts === 'function',
+            loadFulfillers: typeof window.loadFulfillers === 'function',
+            loadNotifications: typeof window.loadNotifications === 'function',
+            loadOrders: typeof window.loadOrders === 'function',
+            loadAnalytics: typeof window.loadAnalytics === 'function',
+            loadSales: typeof window.loadSales === 'function'
+        });
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
@@ -1228,10 +1597,13 @@
         
         console.log('✅ adminFetch function defined and made globally available');
         
-        // NOW define all real load functions - OUTSIDE try block so they're always available
-        console.log('🔧 Defining all real load functions...');
+        // NOTE: All load functions are now defined in HEAD script above
+        // They are available immediately when page loads
+        // The definitions below are kept for backwards compatibility but will be overwritten
+        console.log('⚠️ Body script: Load functions already defined in HEAD script');
         
-        // Replace stub with real loadDashboardData function
+        // These are now redundant but kept to avoid breaking anything
+        if (!window.loadDashboardData) {
         window.loadDashboardData = function loadDashboardData() {
             console.log('📊 Loading dashboard data (real function)...');
             const backendUrl = window.BACKEND_URL || BACKEND_URL || 'https://saint-ventura-backend.onrender.com';
