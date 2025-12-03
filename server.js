@@ -1129,11 +1129,24 @@ app.post('/api/send-order-confirmation', async (req, res) => {
                 const quantityToReduce = item.quantity || 1;
                 const currentStock = inventoryItem.stock || 0;
                 const newStock = Math.max(0, currentStock - quantityToReduce);
+                
+                // Reduce stock cost by (cost per unit × quantity) but keep cost per unit consistent
+                if (inventoryItem.costPerUnit && inventoryItem.costPerUnit > 0) {
+                  const costToReduce = inventoryItem.costPerUnit * quantityToReduce;
+                  inventoryItem.stockCost = Math.max(0, (inventoryItem.stockCost || 0) - costToReduce);
+                  // Cost per unit stays the same - don't recalculate it
+                }
+                
                 inventoryItem.stock = newStock;
                 inventoryItem.updatedAt = new Date().toISOString();
-                console.log(`✅ Reduced stock for ${inventoryItem.productName} (${inventoryItem.variant || 'default'}): ${currentStock} -> ${newStock}`);
+                
+                if (currentStock === 0) {
+                  console.log(`⚠️ Item ${inventoryItem.productName} (${inventoryItem.variant || 'default'}) was out of stock - order still processed and marked as fulfilled`);
+                } else {
+                  console.log(`✅ Reduced stock for ${inventoryItem.productName} (${inventoryItem.variant || 'default'}): ${currentStock} -> ${newStock}`);
+                }
               } else {
-                console.warn(`⚠️ Inventory item not found for ${item.name} (Size: ${item.size || 'N/A'}, Color: ${item.color || 'N/A'})`);
+                console.warn(`⚠️ Inventory item not found for ${item.name} (Size: ${item.size || 'N/A'}, Color: ${item.color || 'N/A'}) - order will still be processed and marked as fulfilled`);
               }
             }
             await writeDataFile('inventory', inventory);
@@ -1394,11 +1407,24 @@ async function fulfillPOSOrderIfNeeded(orderId) {
             const quantityToReduce = item.quantity || 1;
             const currentStock = inventoryItem.stock || 0;
             const newStock = Math.max(0, currentStock - quantityToReduce);
+            
+            // Reduce stock cost by (cost per unit × quantity) but keep cost per unit consistent
+            if (inventoryItem.costPerUnit && inventoryItem.costPerUnit > 0) {
+              const costToReduce = inventoryItem.costPerUnit * quantityToReduce;
+              inventoryItem.stockCost = Math.max(0, (inventoryItem.stockCost || 0) - costToReduce);
+              // Cost per unit stays the same - don't recalculate it
+            }
+            
             inventoryItem.stock = newStock;
             inventoryItem.updatedAt = new Date().toISOString();
-            console.log(`✅ Reduced stock for ${inventoryItem.productName} (${inventoryItem.variant || 'default'}): ${currentStock} -> ${newStock}`);
+            
+            if (currentStock === 0) {
+              console.log(`⚠️ Item ${inventoryItem.productName} (${inventoryItem.variant || 'default'}) was out of stock - order still processed and marked as fulfilled`);
+            } else {
+              console.log(`✅ Reduced stock for ${inventoryItem.productName} (${inventoryItem.variant || 'default'}): ${currentStock} -> ${newStock}`);
+            }
           } else {
-            console.warn(`⚠️ Inventory item not found for ${item.name} (Size: ${item.size || 'N/A'}, Color: ${item.color || 'N/A'})`);
+            console.warn(`⚠️ Inventory item not found for ${item.name} (Size: ${item.size || 'N/A'}, Color: ${item.color || 'N/A'}) - order will still be processed and marked as fulfilled`);
           }
         }
         
@@ -3635,10 +3661,13 @@ app.get('/api/admin/dashboard', adminAuth, async (req, res) => {
       const orderItems = order.items || [];
       orderItems.forEach(item => {
         // Find inventory item matching product and variant (size/color)
-        const inventoryItem = inventory.find(inv => {
+        // Try multiple matching strategies for better product matching
+        let inventoryItem = inventory.find(inv => {
           const productMatch = inv.productId === item.id || 
                               inv.productId === parseInt(item.id) ||
-                              inv.productName === item.name;
+                              inv.productName === item.name ||
+                              inv.productName?.toLowerCase() === item.name?.toLowerCase() ||
+                              inv.productName?.toLowerCase()?.trim() === item.name?.toLowerCase()?.trim();
           
           if (!productMatch) return false;
           
@@ -3652,10 +3681,25 @@ app.get('/api/admin/dashboard', adminAuth, async (req, res) => {
           return true; // If no size/color specified, match any variant of the product
         });
         
-        if (inventoryItem && inventoryItem.costPerUnit) {
+        // If not found with variant matching, try to find any variant of the product
+        if (!inventoryItem) {
+          inventoryItem = inventory.find(inv => {
+            return inv.productId === item.id || 
+                   inv.productId === parseInt(item.id) ||
+                   inv.productName === item.name ||
+                   inv.productName?.toLowerCase() === item.name?.toLowerCase() ||
+                   inv.productName?.toLowerCase()?.trim() === item.name?.toLowerCase()?.trim();
+          });
+        }
+        
+        if (inventoryItem && inventoryItem.costPerUnit && inventoryItem.costPerUnit > 0) {
           const quantity = item.quantity || 1;
           const itemCost = inventoryItem.costPerUnit * quantity;
           orderStockCost += itemCost;
+        } else {
+          // If inventory item not found or has no cost, log warning but continue
+          // Profit will be calculated with 0 cost for this item
+          console.warn(`⚠️ No cost found for item: ${item.name} (ID: ${item.id}) - using 0 cost for profit calculation`);
         }
       });
       
@@ -3895,11 +3939,24 @@ app.put('/api/admin/orders/:orderId/status', adminAuth, async (req, res) => {
             const quantityToReduce = item.quantity || 1;
             const currentStock = inventoryItem.stock || 0;
             const newStock = Math.max(0, currentStock - quantityToReduce);
+            
+            // Reduce stock cost by (cost per unit × quantity) but keep cost per unit consistent
+            if (inventoryItem.costPerUnit && inventoryItem.costPerUnit > 0) {
+              const costToReduce = inventoryItem.costPerUnit * quantityToReduce;
+              inventoryItem.stockCost = Math.max(0, (inventoryItem.stockCost || 0) - costToReduce);
+              // Cost per unit stays the same - don't recalculate it
+            }
+            
             inventoryItem.stock = newStock;
             inventoryItem.updatedAt = new Date().toISOString();
-            console.log(`✅ Reduced stock for ${inventoryItem.productName} (${inventoryItem.variant || 'default'}): ${currentStock} -> ${newStock}`);
+            
+            if (currentStock === 0) {
+              console.log(`⚠️ Item ${inventoryItem.productName} (${inventoryItem.variant || 'default'}) was out of stock - order still processed and marked as fulfilled`);
+            } else {
+              console.log(`✅ Reduced stock for ${inventoryItem.productName} (${inventoryItem.variant || 'default'}): ${currentStock} -> ${newStock}`);
+            }
           } else {
-            console.warn(`⚠️ Inventory item not found for ${item.name} (Size: ${item.size || 'N/A'}, Color: ${item.color || 'N/A'})`);
+            console.warn(`⚠️ Inventory item not found for ${item.name} (Size: ${item.size || 'N/A'}, Color: ${item.color || 'N/A'}) - order will still be processed and marked as fulfilled`);
           }
         }
         
@@ -3995,11 +4052,24 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
             const quantityToReduce = item.quantity || 1;
             const currentStock = inventoryItem.stock || 0;
             const newStock = Math.max(0, currentStock - quantityToReduce);
+            
+            // Reduce stock cost by (cost per unit × quantity) but keep cost per unit consistent
+            if (inventoryItem.costPerUnit && inventoryItem.costPerUnit > 0) {
+              const costToReduce = inventoryItem.costPerUnit * quantityToReduce;
+              inventoryItem.stockCost = Math.max(0, (inventoryItem.stockCost || 0) - costToReduce);
+              // Cost per unit stays the same - don't recalculate it
+            }
+            
             inventoryItem.stock = newStock;
             inventoryItem.updatedAt = new Date().toISOString();
-            console.log(`✅ Reduced stock for ${inventoryItem.productName} (${inventoryItem.variant || 'default'}): ${currentStock} -> ${newStock}`);
+            
+            if (currentStock === 0) {
+              console.log(`⚠️ Item ${inventoryItem.productName} (${inventoryItem.variant || 'default'}) was out of stock - order still processed and marked as fulfilled`);
+            } else {
+              console.log(`✅ Reduced stock for ${inventoryItem.productName} (${inventoryItem.variant || 'default'}): ${currentStock} -> ${newStock}`);
+            }
           } else {
-            console.warn(`⚠️ Inventory item not found for ${item.name} (Size: ${item.size || 'N/A'}, Color: ${item.color || 'N/A'})`);
+            console.warn(`⚠️ Inventory item not found for ${item.name} (Size: ${item.size || 'N/A'}, Color: ${item.color || 'N/A'}) - order will still be processed and marked as fulfilled`);
           }
         }
         await writeDataFile('inventory', inventory);
