@@ -4763,7 +4763,7 @@ Thank you!</textarea>
         // allOrdersData is declared at the top of the script
         // NOTE: loadOrders is already defined above - do not redefine here
         
-        function renderOrders(orders) {
+        window.renderOrders = function renderOrders(orders) {
             const tbody = document.getElementById('orders-table');
             const mobileTable = document.getElementById('orders-table-mobile');
             
@@ -4970,7 +4970,7 @@ Thank you!</textarea>
         // Analytics helper functions (loadAnalytics is already defined above, outside try block)
         // NOTE: loadAnalytics is already defined above - do not redefine here
         
-        function renderRevenueChart(monthlyRevenue) {
+        window.renderRevenueChart = function renderRevenueChart(monthlyRevenue) {
             const container = document.getElementById('revenue-chart');
             if (!container) return;
             
