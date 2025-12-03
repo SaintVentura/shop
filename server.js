@@ -1025,6 +1025,8 @@ app.post('/api/send-order-confirmation', async (req, res) => {
     });
 
     // Send order confirmation email to customer
+    let emailSent = false;
+    let emailError = null;
     try {
       await sendEmailViaResendOrSMTP({
         from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
@@ -1033,9 +1035,12 @@ app.post('/api/send-order-confirmation', async (req, res) => {
         text: customerOrderEmailText,
         html: customerOrderEmailHtml
       });
+      emailSent = true;
       console.log(`✅ Order confirmation email sent to ${customerEmail} for order ${orderId || 'N/A'}`);
-    } catch (emailError) {
-      console.error(`⚠️ Failed to send order confirmation email to ${customerEmail}:`, emailError.message);
+    } catch (err) {
+      emailError = err;
+      console.error(`⚠️ Failed to send order confirmation email to ${customerEmail}:`, err.message);
+      console.error('Email error details:', err);
       // Don't fail the entire request if email fails - still send Telegram notification
     }
 
@@ -1182,19 +1187,15 @@ app.post('/api/send-order-confirmation', async (req, res) => {
       console.error('❌ FAILED to send order confirmation Telegram to support:', supportResult.error);
     }
 
-    // Return success if WhatsApp was sent
-    if (supportResult.success) {
-      res.json({ 
-        success: true, 
-        message: 'Order confirmation notification sent successfully',
-        whatsappSent: supportResult.success
-      });
-    } else {
-      res.status(500).json({ 
-        success: false,
-        error: 'Failed to send order confirmation notification' 
-      });
-    }
+    // Return success response
+    res.json({ 
+      success: true, 
+      message: 'Order confirmation processed successfully',
+      emailSent: emailSent,
+      emailError: emailError ? emailError.message : null,
+      whatsappSent: supportResult.success,
+      orderId: orderId || null
+    });
 
   } catch (error) {
     console.error('Error sending order confirmation email:', error);
