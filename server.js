@@ -1027,20 +1027,33 @@ app.post('/api/send-order-confirmation', async (req, res) => {
     // Send order confirmation email to customer
     let emailSent = false;
     let emailError = null;
+    let emailResult = null;
     try {
-      await sendEmailViaResendOrSMTP({
+      console.log(`📧 Attempting to send order confirmation email to: ${customerEmail}`);
+      emailResult = await sendEmailViaResendOrSMTP({
         from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
         to: customerEmail,
         subject: 'Order Confirmation - Saint Ventura',
         text: customerOrderEmailText,
         html: customerOrderEmailHtml
       });
-      emailSent = true;
-      console.log(`✅ Order confirmation email sent to ${customerEmail} for order ${orderId || 'N/A'}`);
+      emailSent = emailResult && emailResult.success !== false;
+      if (emailSent) {
+        console.log(`✅ Order confirmation email sent successfully to ${customerEmail} for order ${orderId || 'N/A'}`);
+        console.log(`   Email method: ${emailResult.method || 'unknown'}`);
+      } else {
+        console.warn(`⚠️ Email sending returned but success=false for ${customerEmail}`);
+      }
     } catch (err) {
       emailError = err;
-      console.error(`⚠️ Failed to send order confirmation email to ${customerEmail}:`, err.message);
-      console.error('Email error details:', err);
+      emailSent = false;
+      console.error(`❌ Failed to send order confirmation email to ${customerEmail}:`, err.message);
+      console.error('   Error name:', err.name);
+      console.error('   Error stack:', err.stack);
+      if (err.response) {
+        console.error('   Response status:', err.response.status);
+        console.error('   Response data:', JSON.stringify(err.response.data || {}, null, 2));
+      }
       // Don't fail the entire request if email fails - still send Telegram notification
     }
 
