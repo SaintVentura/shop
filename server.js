@@ -1081,8 +1081,86 @@ app.post('/api/send-order-confirmation', async (req, res) => {
       // Check if order already exists (avoid duplicates)
       const existingOrder = orders.find(o => o.id === finalOrderId);
       if (!existingOrder) {
-        // If order came from abandoned cart, mark as fulfilled; otherwise pending fulfillment
-        const orderStatus = isFromAbandonedCart ? 'fulfilled' : 'pending fulfillment';
+        // Enhance order items with product images and details
+        const enhancedOrderItems = orderItems.map(item => {
+          const product = PRODUCTS.find(p => 
+            p.id === item.id || 
+            p.id === parseInt(item.id) ||
+            p.name === item.name
+          );
+          
+          let imageUrl = null;
+          if (product) {
+            // Try to get color-specific image first
+            if (item.color && product.availableColors) {
+              const colorMatch = product.availableColors.find(c => 
+                c.name.toLowerCase() === item.color.toLowerCase()
+              );
+              if (colorMatch && colorMatch.image) {
+                imageUrl = colorMatch.image.trim();
+              }
+            }
+            // Fallback to first product image
+            if (!imageUrl && product.images && product.images.length > 0) {
+              imageUrl = product.images[0].trim();
+            }
+          }
+          
+          // Validate URL format
+          if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+            imageUrl = null;
+          }
+          
+          return {
+            ...item,
+            image: imageUrl || item.image || null,
+            imageUrl: imageUrl || item.imageUrl || null
+          };
+        });
+        
+        // Check stock availability for all items
+        let hasOutOfStockItems = false;
+        try {
+          const inventory = await readDataFile('inventory');
+          for (const item of enhancedOrderItems) {
+            const inventoryItem = inventory.find(inv => {
+              const productMatch = inv.productId === item.id || 
+                                  inv.productId === parseInt(item.id) ||
+                                  inv.productName === item.name;
+              
+              if (!productMatch) return false;
+              
+              // Match by variant if size/color provided
+              if (item.size || item.color) {
+                const variantMatch = (!item.size || inv.variant?.includes(item.size)) &&
+                                    (!item.color || inv.variant?.includes(item.color));
+                return variantMatch;
+              }
+              
+              return true; // If no size/color specified, match any variant of the product
+            });
+            
+            if (!inventoryItem || (inventoryItem.stock || 0) < (item.quantity || 1)) {
+              hasOutOfStockItems = true;
+              console.warn(`⚠️ Item ${item.name} (Size: ${item.size || 'N/A'}, Color: ${item.color || 'N/A'}) is out of stock or not found in inventory`);
+              break;
+            }
+          }
+        } catch (stockCheckError) {
+          console.error('Error checking stock:', stockCheckError);
+          // If stock check fails, assume items are available (don't block order)
+        }
+        
+        // Determine order status: if out of stock, set to "no stock", otherwise pending fulfillment or fulfilled
+        let orderStatus;
+        if (hasOutOfStockItems) {
+          orderStatus = 'no stock';
+        } else if (isFromAbandonedCart) {
+          orderStatus = 'fulfilled';
+        } else {
+          orderStatus = 'pending fulfillment';
+        }
+        
         orders.push({
           id: finalOrderId,
           customerName,
@@ -1091,12 +1169,12 @@ app.post('/api/send-order-confirmation', async (req, res) => {
           shippingMethod,
           deliveryAddress,
           deliveryDetails,
-          items: orderItems, // Store as array
+          items: enhancedOrderItems, // Store as array with images and details
           subtotal,
           shipping,
           total,
           date: new Date().toISOString(),
-          status: orderStatus, // Abandoned cart orders = fulfilled, website orders = pending fulfillment
+          status: orderStatus, // no stock, pending fulfillment, or fulfilled
           paymentMethod: 'yoco' // Assuming Yoco payment gateway
         });
         await writeDataFile('orders', orders);
@@ -3639,7 +3717,7 @@ app.get('/api/admin/dashboard', adminAuth, async (req, res) => {
     const totalOrders = orders.length;
     // Only count revenue and profit from orders that are pending fulfillment or fulfilled
     // (not pending checkout)
-    const ordersForProfit = orders.filter(o => o.status === 'pending fulfillment' || o.status === 'fulfilled');
+    const ordersForProfit = orders.filter(o => o.status === 'fulfilled'); // Only count fulfilled orders for profit/revenue
     const totalRevenue = ordersForProfit.reduce((sum, o) => {
       const orderTotal = parseFloat(o.total) || 0;
       return sum + orderTotal;
@@ -3899,8 +3977,8 @@ app.put('/api/admin/orders/:orderId/status', adminAuth, async (req, res) => {
     orders[orderIndex].status = status;
     orders[orderIndex].updatedAt = new Date().toISOString();
     
-    // If changing from pending fulfillment to fulfilled, require delivery cost
-    if (oldStatus === 'pending fulfillment' && status === 'fulfilled') {
+    // If changing from pending fulfillment or no stock to fulfilled, require delivery cost
+    if ((oldStatus === 'pending fulfillment' || oldStatus === 'no stock') && status === 'fulfilled') {
       if (deliveryCost === undefined || deliveryCost === null || deliveryCost === '') {
         return res.status(400).json({ 
           success: false, 
@@ -3981,6 +4059,86 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
   try {
     const { customerName, customerEmail, customerPhone, paymentMethod, items, total, newsletterSubscribe } = req.body;
     
+    // Enhance order items with product images and details
+    const enhancedItems = items.map(item => {
+      const product = PRODUCTS.find(p => 
+        p.id === item.id || 
+        p.id === parseInt(item.id) ||
+        p.name === item.name
+      );
+      
+      let imageUrl = null;
+      if (product) {
+        // Try to get color-specific image first
+        if (item.color && product.availableColors) {
+          const colorMatch = product.availableColors.find(c => 
+            c.name.toLowerCase() === item.color.toLowerCase()
+          );
+          if (colorMatch && colorMatch.image) {
+            imageUrl = colorMatch.image.trim();
+          }
+        }
+        // Fallback to first product image
+        if (!imageUrl && product.images && product.images.length > 0) {
+          imageUrl = product.images[0].trim();
+        }
+      }
+      
+      // Validate URL format
+      if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+        imageUrl = null;
+      }
+      
+      return {
+        ...item,
+        image: imageUrl || item.image || null,
+        imageUrl: imageUrl || item.imageUrl || null
+      };
+    });
+    
+    // Check stock availability for all items
+    let hasOutOfStockItems = false;
+    try {
+      const inventory = await readDataFile('inventory');
+      for (const item of enhancedItems) {
+        const inventoryItem = inventory.find(inv => {
+          const productMatch = inv.productId === item.id || 
+                              inv.productId === parseInt(item.id) ||
+                              inv.productName === item.name;
+          
+          if (!productMatch) return false;
+          
+          // Match by variant if size/color provided
+          if (item.size || item.color) {
+            const variantMatch = (!item.size || inv.variant?.includes(item.size)) &&
+                                (!item.color || inv.variant?.includes(item.color));
+            return variantMatch;
+          }
+          
+          return true; // If no size/color specified, match any variant of the product
+        });
+        
+        if (!inventoryItem || (inventoryItem.stock || 0) < (item.quantity || 1)) {
+          hasOutOfStockItems = true;
+          console.warn(`⚠️ Item ${item.name} (Size: ${item.size || 'N/A'}, Color: ${item.color || 'N/A'}) is out of stock or not found in inventory`);
+          break;
+        }
+      }
+    } catch (stockCheckError) {
+      console.error('Error checking stock:', stockCheckError);
+      // If stock check fails, assume items are available (don't block order)
+    }
+    
+    // Determine order status based on stock and payment method
+    let orderStatus;
+    if (hasOutOfStockItems) {
+      orderStatus = 'no stock';
+    } else if (paymentMethod === 'yoco') {
+      orderStatus = 'pending checkout';
+    } else {
+      orderStatus = 'fulfilled'; // Cash/EFT = fulfilled if in stock
+    }
+    
     // Store order
     const orders = await readDataFile('orders');
     const orderId = `POS-${Date.now()}`;
@@ -3990,10 +4148,10 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
       customerEmail,
       customerPhone,
       paymentMethod,
-      items,
+      items: enhancedItems, // Store with images and details
       total,
       date: new Date().toISOString(),
-      status: paymentMethod === 'yoco' ? 'pending checkout' : 'fulfilled' // Sale dashboard: cash/EFT = fulfilled, yoco = pending checkout
+      status: orderStatus // no stock, pending checkout, or fulfilled
     });
     await writeDataFile('orders', orders);
     
@@ -4025,8 +4183,8 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
       }
     }
     
-    // Reduce stock when order is fulfilled (POS with cash/EFT)
-    if (paymentMethod !== 'yoco') {
+    // Reduce stock when order is fulfilled (POS with cash/EFT and items are in stock)
+    if (paymentMethod !== 'yoco' && !hasOutOfStockItems) {
       try {
         const inventory = await readDataFile('inventory');
         for (const item of items) {
