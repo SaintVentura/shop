@@ -963,15 +963,45 @@ app.post('/api/send-order-confirmation', async (req, res) => {
       deliveryInfo = `Delivery Location: UJ ${deliveryDetails.campus || 'Campus'} Campus`;
     }
 
+    // Check order status to customize email content
+    let orderStatus = 'fulfilled'; // Default
+    if (orderId) {
+      try {
+        const orders = await readDataFile('orders');
+        const order = orders.find(o => o.id === orderId);
+        if (order) {
+          orderStatus = order.status || 'fulfilled';
+        }
+      } catch (error) {
+        console.error('Error checking order status:', error);
+      }
+    }
+    
     // Build order details content
     const orderDetailsText = `Order ${orderId ? `ID: ${orderId}` : 'Details'}: ${orderDate}\n\nOrder Items:\n${orderItems.map(item => {
       const size = item.size ? `, Size: ${item.size}` : '';
       const color = item.color ? `, Color: ${item.color}` : '';
       return `- ${item.name}${size}${color} (Qty: ${item.quantity}) - R${(item.price * item.quantity).toFixed(2)}`;
-    }).join('\n')}\n\nOrder Summary:\nSubtotal: R${subtotal.toFixed(2)}\nShipping: R${shipping.toFixed(2)}\nTotal: R${total.toFixed(2)}\n\nDelivery Method: ${shippingMethod === 'door' ? 'Door-to-Door Courier' : shippingMethod === 'uj' ? 'UJ Campus Delivery' : 'Testing Delivery'}\n${deliveryInfo ? deliveryInfo + '\n' : ''}\nWe will process your order and send you tracking information once it ships.`;
+    }).join('\n')}\n\nOrder Summary:\nSubtotal: R${subtotal.toFixed(2)}\nShipping: R${shipping.toFixed(2)}\nTotal: R${total.toFixed(2)}\n\nDelivery Method: ${shippingMethod === 'door' ? 'Door-to-Door Courier' : shippingMethod === 'uj' ? 'UJ Campus Delivery' : 'Testing Delivery'}\n${deliveryInfo ? deliveryInfo + '\n' : ''}`;
+
+    // Customize email content based on order status
+    let emailContent;
+    let emailTextContent;
+    
+    if (orderStatus === 'no stock') {
+      // Email for out of stock orders
+      emailContent = `Dear ${customerName},\n\nWe're absolutely thrilled to confirm that your order has been successfully processed and your payment has been received! Thank you for choosing Saint Ventura for your premium streetwear needs.\n\n${orderDetailsText}\n\nYour order is being fulfilled and will come soon! We're working diligently to source the items for your order and ensure that every piece meets our exacting quality standards. Our team is committed to getting your order to you as quickly as possible, and we'll keep you updated every step of the way.\n\nWe understand how exciting it is to receive your new pieces, and we appreciate your patience as we prepare your order with the utmost care and attention to detail. Once your items are ready, they'll be carefully packaged and shipped to you immediately.\n\nIf you have any questions about your order, shipping, or anything else, please don't hesitate to reach out to us. We're here to help and ensure you have an exceptional experience with Saint Ventura.\n\nThank you again for your purchase. We can't wait for you to experience the quality and style that defines Saint Ventura!`;
+      
+      emailTextContent = `Order Confirmation - Thank You!\n\nDear ${customerName},\n\nThank you for your order! Your payment has been successfully processed.\n\n${orderDetailsText}\n\nYour order is being fulfilled and will come soon! We're working diligently to source the items for your order and will keep you updated every step of the way.\n\nThank you for choosing Saint Ventura!`;
+    } else {
+      // Email for fulfilled orders (in stock)
+      emailContent = `Dear ${customerName},\n\nWe're absolutely thrilled to confirm that your order has been successfully processed and your payment has been received! Thank you for choosing Saint Ventura for your premium streetwear needs.\n\n${orderDetailsText}\n\nYour order is now being prepared with the utmost care and attention to detail. Our team is working diligently to ensure that every item meets our exacting quality standards before it's carefully packaged and shipped to you.\n\nWe understand how exciting it is to receive your new pieces, and we're committed to getting them to you as quickly as possible. Enjoy your package!\n\nIf you have any questions about your order, shipping, or anything else, please don't hesitate to reach out to us. We're here to help and ensure you have an exceptional experience with Saint Ventura.\n\nThank you again for your purchase. We can't wait for you to experience the quality and style that defines Saint Ventura!`;
+      
+      emailTextContent = `Order Confirmation - Thank You!\n\nDear ${customerName},\n\nThank you for your order! Your payment has been successfully processed.\n\n${orderDetailsText}\n\nThank you for choosing Saint Ventura!`;
+    }
 
     // Prepare customer email content using template
-    const customerOrderEmailText = `Order Confirmation - Thank You!\n\nDear ${customerName},\n\nThank you for your order! Your payment has been successfully processed.\n\n${orderDetailsText}\n\nThank you for choosing Saint Ventura!`;
+    const customerOrderEmailText = emailTextContent;
 
     // Map order items to products for email template
     const orderProducts = orderItems.map(item => {
@@ -1018,7 +1048,7 @@ app.post('/api/send-order-confirmation', async (req, res) => {
     // Generate email using template
         const customerOrderEmailHtml = generateEmailTemplate('order-confirmation', {
           heading: `Order Confirmation - Thank You, ${customerName}!`,
-          content: `Dear ${customerName},\n\nWe're absolutely thrilled to confirm that your order has been successfully processed and your payment has been received! Thank you for choosing Saint Ventura for your premium streetwear needs.\n\n${orderDetailsText}\n\nYour order is now being prepared with the utmost care and attention to detail. Our team is working diligently to ensure that every item meets our exacting quality standards before it's carefully packaged and shipped to you.\n\nWe understand how exciting it is to receive your new pieces, and we're committed to getting them to you as quickly as possible. Enjoy your package!\n\nIf you have any questions about your order, shipping, or anything else, please don't hesitate to reach out to us. We're here to help and ensure you have an exceptional experience with Saint Ventura.\n\nThank you again for your purchase. We can't wait for you to experience the quality and style that defines Saint Ventura!`,
+          content: emailContent,
           products: orderProducts,
           includeSocialMedia: true,
           isSubscribed: true
@@ -1151,14 +1181,12 @@ app.post('/api/send-order-confirmation', async (req, res) => {
           // If stock check fails, assume items are available (don't block order)
         }
         
-        // Determine order status: if out of stock, set to "no stock", otherwise pending fulfillment or fulfilled
+        // Determine order status: if out of stock, set to "no stock", otherwise fulfilled (items are in stock)
         let orderStatus;
         if (hasOutOfStockItems) {
           orderStatus = 'no stock';
-        } else if (isFromAbandonedCart) {
-          orderStatus = 'fulfilled';
         } else {
-          orderStatus = 'pending fulfillment';
+          orderStatus = 'fulfilled'; // If items are in stock, order is fulfilled
         }
         
         orders.push({
