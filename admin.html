@@ -625,9 +625,9 @@
             window.adminFetch(`${backendUrl}/api/admin/dashboard`)
                 .then(data => {
                     if (data.success) {
-                        if (typeof renderRevenueChart === 'function') renderRevenueChart(data.monthlyRevenue);
-                        if (typeof renderStatusChart === 'function') renderStatusChart(data.stats);
-                        if (typeof renderSalesSummary === 'function') renderSalesSummary(data);
+                        if (typeof window.renderRevenueChart === 'function') window.renderRevenueChart(data.monthlyRevenue);
+                        if (typeof window.renderStatusChart === 'function') window.renderStatusChart(data.stats);
+                        if (typeof window.renderSalesSummary === 'function') window.renderSalesSummary(data);
                     }
                 })
                 .catch(err => {
@@ -1744,11 +1744,11 @@
                     if (typeof window.allInventoryData !== 'undefined') {
                         window.allInventoryData = data;
                     }
-                    if (typeof renderInventory === 'function') {
-                        renderInventory(data);
-                    } else {
-                        console.warn('renderInventory function not available yet');
-                    }
+                       if (typeof window.renderInventory === 'function') {
+                           window.renderInventory(data);
+                       } else {
+                           console.warn('renderInventory function not available yet');
+                       }
                 })
                 .catch(err => {
                     console.error('Inventory loading error:', err);
@@ -2069,14 +2069,14 @@
                     if (typeof window.allOrdersData !== 'undefined') {
                         window.allOrdersData = data;
                     }
-                    if (typeof renderOrders === 'function') {
-                        renderOrders(data);
-                    } else {
-                        console.warn('renderOrders function not available yet');
-                        if (tbody) {
-                            tbody.innerHTML = '<tr><td colspan="8" class="text-center py-12 text-gray-500">Orders loaded but render function not ready</td></tr>';
-                        }
-                    }
+                       if (typeof window.renderOrders === 'function') {
+                           window.renderOrders(data);
+                       } else {
+                           console.warn('renderOrders function not available yet');
+                           if (tbody) {
+                               tbody.innerHTML = '<tr><td colspan="8" class="text-center py-12 text-gray-500">Orders loaded but render function not ready. Please refresh.</td></tr>';
+                           }
+                       }
                 })
                 .catch(err => {
                     console.error('Error loading orders:', err);
@@ -2094,17 +2094,23 @@
             console.log('📊 Using backend URL:', backendUrl);
             adminFetch(`${backendUrl}/api/admin/dashboard`)
                 .then(data => {
-                    if (data.success) {
-                        if (typeof renderRevenueChart === 'function') {
-                            renderRevenueChart(data.monthlyRevenue);
-                        }
-                        if (typeof renderStatusChart === 'function') {
-                            renderStatusChart(data.stats);
-                        }
-                        if (typeof renderSalesSummary === 'function') {
-                            renderSalesSummary(data);
-                        }
-                    }
+                       if (data.success) {
+                           if (typeof window.renderRevenueChart === 'function') {
+                               window.renderRevenueChart(data.monthlyRevenue);
+                           } else {
+                               console.warn('renderRevenueChart function not available yet');
+                           }
+                           if (typeof window.renderStatusChart === 'function') {
+                               window.renderStatusChart(data.stats);
+                           } else {
+                               console.warn('renderStatusChart function not available yet');
+                           }
+                           if (typeof window.renderSalesSummary === 'function') {
+                               window.renderSalesSummary(data);
+                           } else {
+                               console.warn('renderSalesSummary function not available yet');
+                           }
+                       }
                 })
                 .catch(err => {
                     console.error('Error loading analytics:', err);
