@@ -336,10 +336,6 @@
                         <span class="sidebar-text">Notifications</span>
                         <span id="notifications-badge" class="notification-badge hidden">0</span>
                     </a>
-                    <a href="#" onclick="showSection('sales')" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition" data-section="sales">
-                        <span>💰</span>
-                        <span class="sidebar-text">Sale Dashboard</span>
-                    </a>
                     <a href="#" onclick="showSection('analytics')" class="sidebar-item flex items-center space-x-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition" data-section="analytics">
                         <span>📈</span>
                         <span class="sidebar-text">Analytics</span>
@@ -691,58 +687,6 @@
                     </div>
                 </div>
 
-                <!-- Sale Dashboard Section -->
-                <div id="sales-section" class="section hidden">
-                    <h2 class="text-2xl md:text-3xl font-bold mb-8">Point of Sale</h2>
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        <div class="lg:col-span-2 bg-white rounded-lg shadow p-6 md:p-8">
-                            <h3 class="text-xl md:text-2xl font-semibold mb-6">Create Order</h3>
-                            <div class="mb-6">
-                                <label for="pos-search" class="sr-only">Search products</label>
-                                <input type="text" id="pos-search" name="pos-search" placeholder="Search products..." class="w-full px-4 py-2 border border-gray-300 rounded-lg" aria-label="Search products">
-                            </div>
-                            <div id="pos-products" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
-                                <!-- Products will be loaded here -->
-                            </div>
-                            <div class="border-t pt-6">
-                                <h4 class="font-semibold text-lg mb-4">Order Items</h4>
-                                <div id="pos-cart" class="space-y-4 mb-6">
-                                    <p class="text-gray-500 text-sm">No items added</p>
-                                </div>
-                                <div class="flex justify-between font-bold text-lg">
-                                    <span>Total:</span>
-                                    <span id="pos-total">R0.00</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="bg-white rounded-lg shadow p-6 md:p-8">
-                            <h3 class="text-xl md:text-2xl font-semibold mb-6">Customer Details</h3>
-                            <form id="pos-order-form" class="space-y-6">
-                                <div>
-                                    <label for="pos-customer-name" class="block text-sm font-medium mb-2">Customer Name</label>
-                                    <input type="text" id="pos-customer-name" name="pos-customer-name" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required aria-label="Customer name">
-                                </div>
-                                <div>
-                                    <label for="pos-customer-email" class="block text-sm font-medium mb-2">Email</label>
-                                    <input type="email" id="pos-customer-email" name="pos-customer-email" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required aria-label="Customer email">
-                                </div>
-                                <div>
-                                    <label for="pos-customer-phone" class="block text-sm font-medium mb-2">Phone</label>
-                                    <input type="tel" id="pos-customer-phone" name="pos-customer-phone" class="w-full px-4 py-2 border border-gray-300 rounded-lg" required aria-label="Customer phone">
-                                </div>
-                                <div>
-                                    <label for="pos-payment-method" class="block text-sm font-medium mb-2">Payment Method</label>
-                                    <select id="pos-payment-method" name="pos-payment-method" class="w-full px-4 py-2 border border-gray-300 rounded-lg" aria-label="Payment method">
-                                        <option value="yoco">Yoco Payment</option>
-                                        <option value="cash">Cash</option>
-                                        <option value="eft">EFT</option>
-                                    </select>
-                                </div>
-                                <button type="submit" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition">Process Order</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
             </main>
         </div>
     </div>
@@ -961,7 +905,6 @@
         console.log('Admin Dashboard - Backend URL:', BACKEND_URL);
         
         let currentSection = 'dashboard';
-        let posCart = [];
         let sidebarCollapsed = false;
         
         function toggleSidebar() {
@@ -1062,8 +1005,6 @@
                     }, 100);
                 } else if (section === 'notifications') {
                     loadNotifications();
-                } else if (section === 'sales') {
-                    loadSales();
                 } else if (section === 'analytics') {
                     loadAnalytics();
                 }
@@ -3989,218 +3930,6 @@ Thank you!</textarea>
             `;
         }
 
-        // Sales/POS functions
-        function loadSales() {
-            const container = document.getElementById('pos-products');
-                    container.innerHTML = '<div class="col-span-2 md:col-span-3 lg:col-span-4 text-center py-8 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading products...</span></div></div>';
-            
-            adminFetch(`${BACKEND_URL}/api/admin/products`)
-                .then(data => {
-                    console.log('POS products data received:', data);
-                    if (!Array.isArray(data)) {
-                        throw new Error('Invalid products data format');
-                    }
-                    if (data.length === 0) {
-                        container.innerHTML = '<div class="col-span-2 md:col-span-3 lg:col-span-4 text-center py-8 text-gray-500">No products available</div>';
-                        return;
-                    }
-                    container.innerHTML = data.map(p => {
-                        const firstImage = p.images && p.images.length > 0 ? p.images[0] : (p.availableColors && p.availableColors.length > 0 ? p.availableColors[0].image : 'https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1');
-                        const hasVariants = (p.sizes && p.sizes.length > 1) || (p.colors && p.colors.length > 1);
-                        return `
-                        <div class="border border-gray-200 rounded-xl p-4 hover:shadow-lg transition-all duration-200 bg-white">
-                            <div class="aspect-square mb-3 bg-gray-100 rounded-lg overflow-hidden">
-                                <img src="${firstImage}" alt="${p.name}" class="w-full h-full object-cover" onerror="this.src='https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1'">
-                            </div>
-                            <p class="font-semibold text-sm md:text-base mb-1">${p.name || 'Unknown Product'}</p>
-                            <p class="text-gray-600 text-sm md:text-base font-bold mb-2">R${(p.price || 0).toFixed(2)}</p>
-                            ${hasVariants ? `
-                                <button onclick="showVariantModal(${p.id})" class="w-full px-3 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition">Select Variant</button>
-                            ` : `
-                                <button onclick="addToPOSCart(${p.id}, '${p.name.replace(/'/g, "\\'")}', ${p.price || 0}, null, null)" class="w-full px-3 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition">Add to Cart</button>
-                            `}
-                        </div>
-                    `;
-                    }).join('');
-                })
-                .catch(err => {
-                    console.error('Error loading POS products:', err);
-                    container.innerHTML = `<div class="col-span-2 md:col-span-3 lg:col-span-4 error-message">Error loading products: ${err.message}<br><small>Backend URL: ${BACKEND_URL}</small></div>`;
-                });
-        }
-
-        function showVariantModal(productId) {
-            adminFetch(`${BACKEND_URL}/api/admin/products`)
-                .then(data => {
-                    const product = data.find(p => p.id === productId);
-                    if (!product) return;
-                    
-                    let modalHtml = `
-                        <div id="variant-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                            <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4">
-                                <h3 class="text-xl font-bold mb-4">${product.name}</h3>
-                                <div class="space-y-4">
-                    `;
-                    
-                    if (product.sizes && product.sizes.length > 1) {
-                        modalHtml += `
-                            <div>
-                                <label class="block text-sm font-medium mb-2">Size</label>
-                                <select id="variant-size" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
-                                    ${product.sizes.map(s => `<option value="${s}">${s}</option>`).join('')}
-                                </select>
-                            </div>
-                        `;
-                    }
-                    
-                    if (product.colors && product.colors.length > 1) {
-                        modalHtml += `
-                            <div>
-                                <label class="block text-sm font-medium mb-2">Color</label>
-                                <select id="variant-color" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
-                                    ${product.colors.map(c => `<option value="${c}">${c}</option>`).join('')}
-                                </select>
-                            </div>
-                        `;
-                    }
-                    
-                    modalHtml += `
-                                    <div class="flex space-x-2">
-                                        <button onclick="addToPOSCartWithVariant(${productId})" class="flex-1 px-4 py-2 bg-black text-white rounded-lg font-medium hover:bg-gray-800">Add to Cart</button>
-                                        <button onclick="closeVariantModal()" class="flex-1 px-4 py-2 bg-gray-300 text-black rounded-lg font-medium hover:bg-gray-400">Cancel</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    
-                    document.body.insertAdjacentHTML('beforeend', modalHtml);
-                });
-        }
-
-        function closeVariantModal() {
-            const modal = document.getElementById('variant-modal');
-            if (modal) modal.remove();
-        }
-
-        function addToPOSCartWithVariant(productId) {
-            adminFetch(`${BACKEND_URL}/api/admin/products`)
-                .then(data => {
-                    const product = data.find(p => p.id === productId);
-                    if (!product) return;
-                    
-                    const size = document.getElementById('variant-size')?.value || (product.sizes && product.sizes.length === 1 ? product.sizes[0] : null);
-                    const color = document.getElementById('variant-color')?.value || (product.colors && product.colors.length === 1 ? product.colors[0] : null);
-                    
-                    addToPOSCart(productId, product.name, product.price, size, color);
-                    closeVariantModal();
-                });
-        }
-
-        function addToPOSCart(id, name, price, size, color) {
-            const variantKey = `${id}-${size || 'default'}-${color || 'default'}`;
-            const existing = posCart.find(item => item.variantKey === variantKey);
-            if (existing) {
-                existing.quantity++;
-            } else {
-                posCart.push({ 
-                    id, 
-                    name, 
-                    price, 
-                    quantity: 1,
-                    size: size || null,
-                    color: color || null,
-                    variantKey: variantKey
-                });
-            }
-            updatePOSCart();
-        }
-
-        function updatePOSCart() {
-            const container = document.getElementById('pos-cart');
-            if (posCart.length === 0) {
-                container.innerHTML = '<p class="text-gray-500 text-sm">No items added</p>';
-                document.getElementById('pos-total').textContent = 'R0.00';
-                return;
-            }
-            container.innerHTML = posCart.map((item, index) => `
-                <div class="flex justify-between items-center p-3 border border-gray-200 rounded-lg bg-white hover:shadow-md transition">
-                    <div class="flex-1">
-                        <p class="font-semibold text-sm">${item.name}</p>
-                        ${item.size || item.color ? `<p class="text-xs text-gray-500">${[item.size, item.color].filter(Boolean).join(' / ')}</p>` : ''}
-                        <p class="text-sm text-gray-600 mt-1">R${item.price.toFixed(2)} × ${item.quantity} = R${(item.price * item.quantity).toFixed(2)}</p>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                        <button onclick="updatePOSQuantity(${index}, -1)" class="px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 font-semibold">-</button>
-                        <span class="font-semibold min-w-[2rem] text-center">${item.quantity}</span>
-                        <button onclick="updatePOSQuantity(${index}, 1)" class="px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 font-semibold">+</button>
-                        <button onclick="removeFromPOSCart(${index})" class="ml-2 px-3 py-1 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600">Remove</button>
-                    </div>
-                </div>
-            `).join('');
-            const total = posCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            document.getElementById('pos-total').textContent = 'R' + total.toFixed(2);
-        }
-
-        function updatePOSQuantity(index, change) {
-            const item = posCart[index];
-            if (item) {
-                item.quantity += change;
-                if (item.quantity <= 0) {
-                    posCart.splice(index, 1);
-                }
-                updatePOSCart();
-            }
-        }
-
-        function removeFromPOSCart(index) {
-            posCart.splice(index, 1);
-            updatePOSCart();
-        }
-
-        document.getElementById('pos-order-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            if (posCart.length === 0) {
-                alert('Please add items to cart');
-                return;
-            }
-            const customerName = document.getElementById('pos-customer-name').value;
-            const customerEmail = document.getElementById('pos-customer-email').value;
-            const customerPhone = document.getElementById('pos-customer-phone').value;
-            const paymentMethod = document.getElementById('pos-payment-method').value;
-            const total = posCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
-            adminFetch(`${BACKEND_URL}/api/admin/pos/order`, {
-                method: 'POST',
-                body: JSON.stringify({
-                    customerName,
-                    customerEmail,
-                    customerPhone,
-                    paymentMethod,
-                    items: posCart,
-                    total
-                })
-            })
-            .then(data => {
-                console.log('POS order response:', data);
-                if (data.success) {
-                    alert('Order created successfully');
-                    posCart = [];
-                    updatePOSCart();
-                    document.getElementById('pos-order-form').reset();
-                    if (paymentMethod === 'yoco' && data.paymentUrl) {
-                        // Redirect to Yoco checkout
-                        window.location.href = data.paymentUrl;
-                    }
-                } else {
-                    alert('Error: ' + (data.error || 'Failed to create order'));
-                }
-            })
-            .catch(err => {
-                console.error('Error creating POS order:', err);
-                alert('Error creating order: ' + err.message);
-            });
-        });
     </script>
 </body>
 </html>
