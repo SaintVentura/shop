@@ -1181,12 +1181,14 @@ app.post('/api/send-order-confirmation', async (req, res) => {
           // If stock check fails, assume items are available (don't block order)
         }
         
-        // Determine order status: if out of stock, set to "no stock", otherwise fulfilled (items are in stock)
+        // Determine order status for online orders:
+        // - If out of stock: set to "pending fulfillment" (admin can send to fulfiller to source items)
+        // - If in stock: set to "pending fulfillment" (admin will mark as fulfilled after shipping)
         let orderStatus;
         if (hasOutOfStockItems) {
-          orderStatus = 'no stock';
+          orderStatus = 'pending fulfillment'; // Changed from 'no stock' to 'pending fulfillment' for online orders
         } else {
-          orderStatus = 'fulfilled'; // If items are in stock, order is fulfilled
+          orderStatus = 'pending fulfillment'; // Changed from 'fulfilled' to 'pending fulfillment' - admin will mark as fulfilled
         }
         
         orders.push({
@@ -1202,14 +1204,18 @@ app.post('/api/send-order-confirmation', async (req, res) => {
           shipping,
           total,
           date: new Date().toISOString(),
-          status: orderStatus, // no stock, pending fulfillment, or fulfilled
-          paymentMethod: 'yoco' // Assuming Yoco payment gateway
+          status: orderStatus, // pending fulfillment (admin will mark as fulfilled)
+          paymentMethod: 'yoco', // Assuming Yoco payment gateway
+          orderType: 'online', // Mark as online order
+          hasOutOfStockItems: hasOutOfStockItems // Track if order has out of stock items
         });
         await writeDataFile('orders', orders);
         console.log(`✅ Saved completed order to orders.json: ${finalOrderId} with status: ${orderStatus}`);
         
         // Reduce stock when order is fulfilled (from abandoned cart or website orders)
-        if (orderStatus === 'fulfilled') {
+        // Note: Stock is only reduced when admin marks order as fulfilled, not here
+        // This section is kept for backward compatibility but stock reduction happens when status changes to fulfilled
+        if (false) { // Disabled - stock reduction happens when order status changes to fulfilled
           try {
             const inventory = await readDataFile('inventory');
             for (const item of orderItems) {
@@ -4188,8 +4194,8 @@ app.put('/api/admin/orders/:orderId/status', adminAuth, async (req, res) => {
     orders[orderIndex].status = status;
     orders[orderIndex].updatedAt = new Date().toISOString();
     
-    // If changing from pending fulfillment or no stock to fulfilled, require delivery cost
-    if ((oldStatus === 'pending fulfillment' || oldStatus === 'no stock') && status === 'fulfilled') {
+    // If changing from pending fulfillment to fulfilled, require delivery cost
+    if (oldStatus === 'pending fulfillment' && status === 'fulfilled') {
       if (deliveryCost === undefined || deliveryCost === null || deliveryCost === '') {
         return res.status(400).json({ 
           success: false, 
@@ -4307,8 +4313,9 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
       };
     });
     
-    // Check stock availability for all items
+    // Check stock availability for all items - POS orders should NOT be processed if out of stock
     let hasOutOfStockItems = false;
+    let outOfStockItems = [];
     try {
       const inventory = await readDataFile('inventory');
       for (const item of enhancedItems) {
@@ -4329,25 +4336,53 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
           return true; // If no size/color specified, match any variant of the product
         });
         
-        if (!inventoryItem || (inventoryItem.stock || 0) < (item.quantity || 1)) {
+        const requiredQuantity = item.quantity || 1;
+        const availableStock = inventoryItem ? (inventoryItem.stock || 0) : 0;
+        
+        if (!inventoryItem || availableStock < requiredQuantity) {
           hasOutOfStockItems = true;
-          console.warn(`⚠️ Item ${item.name} (Size: ${item.size || 'N/A'}, Color: ${item.color || 'N/A'}) is out of stock or not found in inventory`);
-          break;
+          outOfStockItems.push({
+            name: item.name,
+            size: item.size || 'N/A',
+            color: item.color || 'N/A',
+            required: requiredQuantity,
+            available: availableStock
+          });
+          console.warn(`⚠️ Item ${item.name} (Size: ${item.size || 'N/A'}, Color: ${item.color || 'N/A'}) is out of stock. Required: ${requiredQuantity}, Available: ${availableStock}`);
         }
       }
     } catch (stockCheckError) {
       console.error('Error checking stock:', stockCheckError);
-      // If stock check fails, assume items are available (don't block order)
+      // If stock check fails, return error for POS orders (don't assume items are available)
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Unable to verify stock availability. Please try again.' 
+      });
+    }
+    
+    // For POS orders: DO NOT process if items are out of stock
+    if (hasOutOfStockItems) {
+      const outOfStockMessage = outOfStockItems.map(item => 
+        `${item.name} (${item.size}, ${item.color}): Required ${item.required}, Available ${item.available}`
+      ).join('\n');
+      
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Cannot process order: Some items are out of stock',
+        outOfStockItems: outOfStockItems,
+        details: `The following items are not available in sufficient quantity:\n${outOfStockMessage}`
+      });
     }
     
     // Determine order status based on stock and payment method
+    // For POS orders with stock available:
+    // - Cash/EFT = fulfilled (immediate fulfillment)
+    // - Yoco = pending checkout (will be fulfilled after payment)
     let orderStatus;
-    if (hasOutOfStockItems) {
-      orderStatus = 'no stock';
-    } else if (paymentMethod === 'yoco') {
+    if (paymentMethod === 'yoco') {
       orderStatus = 'pending checkout';
     } else {
-      orderStatus = 'fulfilled'; // Cash/EFT = fulfilled if in stock
+      orderStatus = 'pending fulfillment'; // Changed from 'fulfilled' to 'pending fulfillment' - admin will mark as fulfilled
     }
     
     // Store order
@@ -4362,7 +4397,8 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
       items: enhancedItems, // Store with images and details
       total,
       date: new Date().toISOString(),
-      status: orderStatus // no stock, pending checkout, or fulfilled
+      status: orderStatus, // pending checkout or pending fulfillment
+      orderType: 'pos' // Mark as POS order
     });
     await writeDataFile('orders', orders);
     
@@ -4395,7 +4431,9 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
     }
     
     // Reduce stock when order is fulfilled (POS with cash/EFT and items are in stock)
-    if (paymentMethod !== 'yoco' && !hasOutOfStockItems) {
+    // Note: Stock is only reduced when admin marks order as fulfilled, not here
+    // This section is kept for backward compatibility but stock reduction happens when status changes to fulfilled
+    if (false) { // Disabled - stock reduction happens when order status changes to fulfilled
       try {
         const inventory = await readDataFile('inventory');
         for (const item of items) {
