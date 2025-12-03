@@ -1024,6 +1024,21 @@ app.post('/api/send-order-confirmation', async (req, res) => {
       isSubscribed: true
     });
 
+    // Send order confirmation email to customer
+    try {
+      await sendEmailViaResendOrSMTP({
+        from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
+        to: customerEmail,
+        subject: 'Order Confirmation - Saint Ventura',
+        text: customerOrderEmailText,
+        html: customerOrderEmailHtml
+      });
+      console.log(`✅ Order confirmation email sent to ${customerEmail} for order ${orderId || 'N/A'}`);
+    } catch (emailError) {
+      console.error(`⚠️ Failed to send order confirmation email to ${customerEmail}:`, emailError.message);
+      // Don't fail the entire request if email fails - still send Telegram notification
+    }
+
     // Create notification for completed order
     try {
       const notifications = await readDataFile('notifications');
