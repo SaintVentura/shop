@@ -2191,7 +2191,7 @@
         
         // Define showAddFulfillerModal IMMEDIATELY at the top to ensure it's available globally
         // Define it both on window and as a global function for maximum compatibility
-        function showAddFulfillerModal() {
+        window.showAddFulfillerModal = function showAddFulfillerModal() {
             console.log('showAddFulfillerModal called');
             const modal = document.getElementById('add-fulfiller-modal');
             if (modal) {
@@ -2790,7 +2790,7 @@
         // The following code is for helper functions and setup only
         
         // Helper function for inventory rendering (not a load function)
-        function renderInventory(data) {
+        window.renderInventory = function renderInventory(data) {
             const desktopContainer = document.getElementById('inventory-table');
             const mobileContainer = document.getElementById('inventory-table-mobile');
             
@@ -3170,7 +3170,7 @@
             alert('Please use the "Save All Changes" button at the bottom of the variants list.');
         }
 
-        function refreshInventory() {
+        window.refreshInventory = function refreshInventory() {
             loadInventory();
         }
 
@@ -3301,7 +3301,7 @@
             });
         }
         
-        function fetchEmails() {
+        window.fetchEmails = function fetchEmails() {
             const list = document.getElementById('inbox-list');
             const originalHtml = list.innerHTML;
             const btn = document.getElementById('fetch-emails-btn') || document.querySelector('button[onclick="fetchEmails()"]');
@@ -3338,7 +3338,7 @@
         }
         
         // Make showComposeEmail globally accessible
-        function showComposeEmail(replyTo = null, replySubject = null) {
+        window.showComposeEmail = function showComposeEmail(replyTo = null, replySubject = null) {
             console.log('showComposeEmail called with:', { replyTo, replySubject });
             
             try {
@@ -3453,7 +3453,7 @@
         window.closeComposeEmail = closeComposeEmail;
         
         // Context-specific email composer functions
-        function openFulfillerEmailComposer() {
+        window.openFulfillerEmailComposer = function openFulfillerEmailComposer() {
             const fulfillerId = document.getElementById('fulfiller-select').value;
             const orderId = document.getElementById('fulfiller-order-select').value;
             
@@ -3530,7 +3530,7 @@
                 });
         }
         
-        function openBroadcastEmailComposer() {
+        window.openBroadcastEmailComposer = function openBroadcastEmailComposer() {
             // Load subscribers and products for selection
             adminFetch(`${BACKEND_URL}/api/admin/subscribers`)
                 .then(subscribers => {
@@ -3779,7 +3779,7 @@ Thank you!</textarea>
             }
         }
         
-        function openAbandonedCartEmailComposer() {
+        window.openAbandonedCartEmailComposer = function openAbandonedCartEmailComposer() {
             // Load abandoned carts for selection
             adminFetch(`${BACKEND_URL}/api/admin/abandoned-carts`)
                 .then(carts => {
@@ -4363,7 +4363,7 @@ Thank you!</textarea>
                 });
         });
 
-        function refreshInbox() {
+        window.refreshInbox = function refreshInbox() {
             // First fetch new emails from IMAP, then load inbox
             const list = document.getElementById('inbox-list');
             list.innerHTML = '<div class="text-center py-8 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Fetching latest emails...</span></div></div>';
@@ -4482,7 +4482,7 @@ Thank you!</textarea>
             });
         }
 
-        function refreshAbandonedCarts() {
+        window.refreshAbandonedCarts = function refreshAbandonedCarts() {
             loadAbandonedCarts();
         }
 
@@ -4732,7 +4732,7 @@ Thank you!</textarea>
             });
         }
 
-        function markAllRead() {
+        window.markAllRead = function markAllRead() {
             adminFetch(`${BACKEND_URL}/api/admin/notifications/read-all`, {
                 method: 'POST'
             })
@@ -4755,7 +4755,7 @@ Thank you!</textarea>
             });
         }
 
-        function refreshNotifications() {
+        window.refreshNotifications = function refreshNotifications() {
             loadNotifications();
         }
 
@@ -4997,7 +4997,7 @@ Thank you!</textarea>
             `;
         }
         
-        function renderStatusChart(stats) {
+        window.renderStatusChart = function renderStatusChart(stats) {
             const container = document.getElementById('status-chart');
             if (!container) return;
             
@@ -5029,7 +5029,7 @@ Thank you!</textarea>
             `;
         }
         
-        function renderSalesSummary(data) {
+        window.renderSalesSummary = function renderSalesSummary(data) {
             const container = document.getElementById('sales-summary');
             if (!container) return;
             
