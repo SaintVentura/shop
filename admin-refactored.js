@@ -50,6 +50,191 @@ const AdminApp = (function() {
         posCart: []
     };
     
+    // Render functions (defined before loaders so they can be called)
+    function renderInventory(data) {
+        const tbody = document.getElementById('inventory-table');
+        const mobileContainer = document.getElementById('inventory-table-mobile');
+        
+        if (!tbody && !mobileContainer) return;
+        
+        // Group products by category
+        const grouped = {};
+        data.forEach(item => {
+            const category = item.category || 'uncategorized';
+            if (!grouped[category]) grouped[category] = [];
+            grouped[category].push(item);
+        });
+        
+        const renderProduct = (product) => {
+            const variants = product.variants || [];
+            const totalStock = variants.reduce((sum, v) => sum + (v.stock || 0), 0);
+            const totalCost = variants.reduce((sum, v) => sum + ((v.stock || 0) * (v.costPerUnit || 0)), 0);
+            const avgCost = totalStock > 0 ? totalCost / totalStock : 0;
+            
+            return `
+                <div class="product-group mb-4">
+                    <div class="product-header" onclick="this.nextElementSibling.classList.toggle('show'); this.classList.toggle('expanded');">
+                        <div class="flex items-center space-x-3 flex-wrap">
+                            <span class="text-xs font-semibold">${product.category || 'Uncategorized'} R${(product.price || 0).toFixed(2)} ${variants.length} variant${variants.length !== 1 ? 's' : ''}</span>
+                            <span class="text-xs text-gray-600">Stock: ${totalStock}</span>
+                            <span class="text-xs text-gray-600">Cost: R${totalCost.toFixed(2)}</span>
+                            <span class="text-xs text-gray-600">Avg: R${avgCost.toFixed(2)}</span>
+                        </div>
+                        <svg class="expand-icon w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </div>
+                    <div class="product-variants">
+                        ${variants.map(v => `
+                            <div class="variant-row">
+                                <div><span class="font-medium">${v.size || 'N/A'}</span> ${v.color ? `<span class="text-gray-600">- ${v.color}</span>` : ''}</div>
+                                <div>Stock: <span class="font-semibold">${v.stock || 0}</span></div>
+                                <div>Cost: R${(v.costPerUnit || 0).toFixed(2)}</div>
+                                <div>Total: R${((v.stock || 0) * (v.costPerUnit || 0)).toFixed(2)}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        };
+        
+        const html = Object.entries(grouped).map(([category, products]) => 
+            products.map(renderProduct).join('')
+        ).join('');
+        
+        if (tbody) tbody.innerHTML = html;
+        if (mobileContainer) mobileContainer.innerHTML = html;
+    }
+    
+    function renderOrders(data) {
+        const tbody = document.getElementById('orders-table');
+        const mobileContainer = document.getElementById('orders-table-mobile');
+        
+        if (!tbody && !mobileContainer) return;
+        
+        const renderOrder = (order) => {
+            const items = order.items || [];
+            const itemsText = items.map(i => `${i.quantity}x ${i.productName || i.name}`).join(', ');
+            const statusClass = order.status === 'fulfilled' ? 'bg-green-100 text-green-800' : 
+                               order.status === 'pending fulfillment' ? 'bg-blue-100 text-blue-800' : 
+                               'bg-yellow-100 text-yellow-800';
+            
+            return `
+                <tr class="orders-table-desktop">
+                    <td class="py-4 px-4 md:px-6">${order.id || 'N/A'}</td>
+                    <td class="py-4 px-4 md:px-6">${order.customerName || 'Unknown'}</td>
+                    <td class="py-4 px-4 md:px-6">${itemsText}</td>
+                    <td class="py-4 px-4 md:px-6">R${(order.total || 0).toFixed(2)}</td>
+                    <td class="py-4 px-4 md:px-6">R${(order.deliveryCost || 0).toFixed(2)}</td>
+                    <td class="py-4 px-4 md:px-6"><span class="px-2 py-1 rounded-full text-xs font-semibold ${statusClass}">${order.status || 'pending checkout'}</span></td>
+                    <td class="py-4 px-4 md:px-6">${order.date ? new Date(order.date).toLocaleDateString() : 'N/A'}</td>
+                    <td class="py-4 px-4 md:px-6">-</td>
+                </tr>
+            `;
+        };
+        
+        const desktopHtml = data.map(renderOrder).join('');
+        const mobileHtml = data.map(order => `
+            <div class="border border-gray-200 rounded-lg p-4 mb-4 orders-table-mobile">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <p class="font-semibold">${order.id || 'N/A'}</p>
+                        <p class="text-sm text-gray-600">${order.customerName || 'Unknown'}</p>
+                    </div>
+                    <span class="px-2 py-1 rounded-full text-xs font-semibold ${order.status === 'fulfilled' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">${order.status || 'pending checkout'}</span>
+                </div>
+                <p class="text-sm mb-2">Items: ${(order.items || []).map(i => `${i.quantity}x ${i.productName || i.name}`).join(', ')}</p>
+                <p class="text-sm mb-2">Total: R${(order.total || 0).toFixed(2)}</p>
+                <p class="text-xs text-gray-500">${order.date ? new Date(order.date).toLocaleDateString() : 'N/A'}</p>
+            </div>
+        `).join('');
+        
+        if (tbody) tbody.innerHTML = desktopHtml;
+        if (mobileContainer) mobileContainer.innerHTML = mobileHtml;
+    }
+    
+    function renderRevenueChart(monthlyRevenue) {
+        const container = document.getElementById('revenue-chart');
+        if (!container || !monthlyRevenue) return;
+        
+        const months = Object.keys(monthlyRevenue).sort();
+        const values = months.map(m => monthlyRevenue[m] || 0);
+        const max = Math.max(...values, 1);
+        
+        container.innerHTML = `
+            <div class="space-y-2">
+                ${months.map((month, i) => `
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs w-20">${month}</span>
+                        <div class="flex-1 bg-gray-200 rounded-full h-6 relative">
+                            <div class="bg-black h-6 rounded-full" style="width: ${(values[i] / max) * 100}%"></div>
+                            <span class="absolute inset-0 flex items-center justify-center text-xs font-semibold">R${values[i].toFixed(2)}</span>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+    
+    function renderStatusChart(stats) {
+        const container = document.getElementById('status-chart');
+        if (!container || !stats) return;
+        
+        const total = (stats.completedOrders || 0) + (stats.pendingOrders || 0);
+        if (total === 0) {
+            container.innerHTML = '<p class="text-center text-gray-500">No orders yet</p>';
+            return;
+        }
+        
+        const completedPct = ((stats.completedOrders || 0) / total) * 100;
+        const pendingPct = ((stats.pendingOrders || 0) / total) * 100;
+        
+        container.innerHTML = `
+            <div class="space-y-4">
+                <div>
+                    <div class="flex justify-between mb-1">
+                        <span>Fulfilled</span>
+                        <span>${stats.completedOrders || 0} (${completedPct.toFixed(1)}%)</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-4">
+                        <div class="bg-green-600 h-4 rounded-full" style="width: ${completedPct}%"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex justify-between mb-1">
+                        <span>Pending</span>
+                        <span>${stats.pendingOrders || 0} (${pendingPct.toFixed(1)}%)</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-4">
+                        <div class="bg-yellow-600 h-4 rounded-full" style="width: ${pendingPct}%"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    function renderSalesSummary(data) {
+        const container = document.getElementById('sales-summary');
+        if (!container || !data) return;
+        
+        container.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <p class="text-sm text-gray-600">Total Revenue</p>
+                    <p class="text-2xl font-bold">R${(data.stats?.totalRevenue || 0).toFixed(2)}</p>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <p class="text-sm text-gray-600">Total Profit</p>
+                    <p class="text-2xl font-bold text-green-600">R${(data.stats?.totalProfit || 0).toFixed(2)}</p>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <p class="text-sm text-gray-600">Total Orders</p>
+                    <p class="text-2xl font-bold">${(data.stats?.completedOrders || 0) + (data.stats?.pendingOrders || 0)}</p>
+                </div>
+            </div>
+        `;
+    }
+    
     async function apiCall(endpoint, options = {}) {
         if (!ADMIN_PASSWORD) {
             throw new Error('Not authenticated. Please log in first.');
@@ -308,7 +493,7 @@ const AdminApp = (function() {
                     window.renderInventory(data);
                 } else {
                     // Fallback: render inventory directly
-                    AdminApp.renderInventory(data);
+                    renderInventory(data);
                 }
             } catch (error) {
                 showError(tbody, error.message);
@@ -365,7 +550,7 @@ const AdminApp = (function() {
                     window.renderOrders(data);
                 } else {
                     // Fallback: render orders directly
-                    AdminApp.renderOrders(data);
+                    renderOrders(data);
                 }
             } catch (error) {
                 showError(tbody, error.message);
@@ -576,17 +761,17 @@ const AdminApp = (function() {
                     if (typeof window.renderRevenueChart === 'function') {
                         window.renderRevenueChart(data.monthlyRevenue);
                     } else {
-                        AdminApp.renderRevenueChart(data.monthlyRevenue);
+                        renderRevenueChart(data.monthlyRevenue);
                     }
                     if (typeof window.renderStatusChart === 'function') {
                         window.renderStatusChart(data.stats);
                     } else {
-                        AdminApp.renderStatusChart(data.stats);
+                        renderStatusChart(data.stats);
                     }
                     if (typeof window.renderSalesSummary === 'function') {
                         window.renderSalesSummary(data);
                     } else {
-                        AdminApp.renderSalesSummary(data);
+                        renderSalesSummary(data);
                     }
                 }
             } catch (error) {
@@ -1111,190 +1296,12 @@ const AdminApp = (function() {
             };
         },
         
-        // Render functions (fallback implementations)
-        renderInventory: (data) => {
-            const tbody = document.getElementById('inventory-table');
-            const mobileContainer = document.getElementById('inventory-table-mobile');
-            
-            if (!tbody && !mobileContainer) return;
-            
-            // Group products by category
-            const grouped = {};
-            data.forEach(item => {
-                const category = item.category || 'uncategorized';
-                if (!grouped[category]) grouped[category] = [];
-                grouped[category].push(item);
-            });
-            
-            const renderProduct = (product) => {
-                const variants = product.variants || [];
-                const totalStock = variants.reduce((sum, v) => sum + (v.stock || 0), 0);
-                const totalCost = variants.reduce((sum, v) => sum + ((v.stock || 0) * (v.costPerUnit || 0)), 0);
-                const avgCost = totalStock > 0 ? totalCost / totalStock : 0;
-                
-                return `
-                    <div class="product-group mb-4">
-                        <div class="product-header" onclick="this.nextElementSibling.classList.toggle('show'); this.classList.toggle('expanded');">
-                            <div class="flex items-center space-x-3 flex-wrap">
-                                <span class="text-xs font-semibold">${product.category || 'Uncategorized'} R${(product.price || 0).toFixed(2)} ${variants.length} variant${variants.length !== 1 ? 's' : ''}</span>
-                                <span class="text-xs text-gray-600">Stock: ${totalStock}</span>
-                                <span class="text-xs text-gray-600">Cost: R${totalCost.toFixed(2)}</span>
-                                <span class="text-xs text-gray-600">Avg: R${avgCost.toFixed(2)}</span>
-                            </div>
-                            <svg class="expand-icon w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                            </svg>
-                        </div>
-                        <div class="product-variants">
-                            ${variants.map(v => `
-                                <div class="variant-row">
-                                    <div><span class="font-medium">${v.size || 'N/A'}</span> ${v.color ? `<span class="text-gray-600">- ${v.color}</span>` : ''}</div>
-                                    <div>Stock: <span class="font-semibold">${v.stock || 0}</span></div>
-                                    <div>Cost: R${(v.costPerUnit || 0).toFixed(2)}</div>
-                                    <div>Total: R${((v.stock || 0) * (v.costPerUnit || 0)).toFixed(2)}</div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
-            };
-            
-            const html = Object.entries(grouped).map(([category, products]) => 
-                products.map(renderProduct).join('')
-            ).join('');
-            
-            if (tbody) tbody.innerHTML = html;
-            if (mobileContainer) mobileContainer.innerHTML = html;
-        },
-        
-        renderOrders: (data) => {
-            const tbody = document.getElementById('orders-table');
-            const mobileContainer = document.getElementById('orders-table-mobile');
-            
-            if (!tbody && !mobileContainer) return;
-            
-            const renderOrder = (order) => {
-                const items = order.items || [];
-                const itemsText = items.map(i => `${i.quantity}x ${i.productName || i.name}`).join(', ');
-                const statusClass = order.status === 'fulfilled' ? 'bg-green-100 text-green-800' : 
-                                   order.status === 'pending fulfillment' ? 'bg-blue-100 text-blue-800' : 
-                                   'bg-yellow-100 text-yellow-800';
-                
-                return `
-                    <tr class="orders-table-desktop">
-                        <td class="py-4 px-4 md:px-6">${order.id || 'N/A'}</td>
-                        <td class="py-4 px-4 md:px-6">${order.customerName || 'Unknown'}</td>
-                        <td class="py-4 px-4 md:px-6">${itemsText}</td>
-                        <td class="py-4 px-4 md:px-6">R${(order.total || 0).toFixed(2)}</td>
-                        <td class="py-4 px-4 md:px-6">R${(order.deliveryCost || 0).toFixed(2)}</td>
-                        <td class="py-4 px-4 md:px-6"><span class="px-2 py-1 rounded-full text-xs font-semibold ${statusClass}">${order.status || 'pending checkout'}</span></td>
-                        <td class="py-4 px-4 md:px-6">${order.date ? new Date(order.date).toLocaleDateString() : 'N/A'}</td>
-                        <td class="py-4 px-4 md:px-6">-</td>
-                    </tr>
-                `;
-            };
-            
-            const desktopHtml = data.map(renderOrder).join('');
-            const mobileHtml = data.map(order => `
-                <div class="border border-gray-200 rounded-lg p-4 mb-4 orders-table-mobile">
-                    <div class="flex justify-between items-start mb-2">
-                        <div>
-                            <p class="font-semibold">${order.id || 'N/A'}</p>
-                            <p class="text-sm text-gray-600">${order.customerName || 'Unknown'}</p>
-                        </div>
-                        <span class="px-2 py-1 rounded-full text-xs font-semibold ${order.status === 'fulfilled' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">${order.status || 'pending checkout'}</span>
-                    </div>
-                    <p class="text-sm mb-2">Items: ${(order.items || []).map(i => `${i.quantity}x ${i.productName || i.name}`).join(', ')}</p>
-                    <p class="text-sm mb-2">Total: R${(order.total || 0).toFixed(2)}</p>
-                    <p class="text-xs text-gray-500">${order.date ? new Date(order.date).toLocaleDateString() : 'N/A'}</p>
-                </div>
-            `).join('');
-            
-            if (tbody) tbody.innerHTML = desktopHtml;
-            if (mobileContainer) mobileContainer.innerHTML = mobileHtml;
-        },
-        
-        renderRevenueChart: (monthlyRevenue) => {
-            const container = document.getElementById('revenue-chart');
-            if (!container || !monthlyRevenue) return;
-            
-            const months = Object.keys(monthlyRevenue).sort();
-            const values = months.map(m => monthlyRevenue[m] || 0);
-            const max = Math.max(...values, 1);
-            
-            container.innerHTML = `
-                <div class="space-y-2">
-                    ${months.map((month, i) => `
-                        <div class="flex items-center space-x-2">
-                            <span class="text-xs w-20">${month}</span>
-                            <div class="flex-1 bg-gray-200 rounded-full h-6 relative">
-                                <div class="bg-black h-6 rounded-full" style="width: ${(values[i] / max) * 100}%"></div>
-                                <span class="absolute inset-0 flex items-center justify-center text-xs font-semibold">R${values[i].toFixed(2)}</span>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-        },
-        
-        renderStatusChart: (stats) => {
-            const container = document.getElementById('status-chart');
-            if (!container || !stats) return;
-            
-            const total = (stats.completedOrders || 0) + (stats.pendingOrders || 0);
-            if (total === 0) {
-                container.innerHTML = '<p class="text-center text-gray-500">No orders yet</p>';
-                return;
-            }
-            
-            const completedPct = ((stats.completedOrders || 0) / total) * 100;
-            const pendingPct = ((stats.pendingOrders || 0) / total) * 100;
-            
-            container.innerHTML = `
-                <div class="space-y-4">
-                    <div>
-                        <div class="flex justify-between mb-1">
-                            <span>Fulfilled</span>
-                            <span>${stats.completedOrders || 0} (${completedPct.toFixed(1)}%)</span>
-                        </div>
-                        <div class="w-full bg-gray-200 rounded-full h-4">
-                            <div class="bg-green-600 h-4 rounded-full" style="width: ${completedPct}%"></div>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="flex justify-between mb-1">
-                            <span>Pending</span>
-                            <span>${stats.pendingOrders || 0} (${pendingPct.toFixed(1)}%)</span>
-                        </div>
-                        <div class="w-full bg-gray-200 rounded-full h-4">
-                            <div class="bg-yellow-600 h-4 rounded-full" style="width: ${pendingPct}%"></div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        },
-        
-        renderSalesSummary: (data) => {
-            const container = document.getElementById('sales-summary');
-            if (!container || !data) return;
-            
-            container.innerHTML = `
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="bg-gray-50 p-4 rounded-lg">
-                        <p class="text-sm text-gray-600">Total Revenue</p>
-                        <p class="text-2xl font-bold">R${(data.stats?.totalRevenue || 0).toFixed(2)}</p>
-                    </div>
-                    <div class="bg-gray-50 p-4 rounded-lg">
-                        <p class="text-sm text-gray-600">Total Profit</p>
-                        <p class="text-2xl font-bold text-green-600">R${(data.stats?.totalProfit || 0).toFixed(2)}</p>
-                    </div>
-                    <div class="bg-gray-50 p-4 rounded-lg">
-                        <p class="text-sm text-gray-600">Total Orders</p>
-                        <p class="text-2xl font-bold">${(data.stats?.completedOrders || 0) + (data.stats?.pendingOrders || 0)}</p>
-                    </div>
-                </div>
-            `;
-        },
+        // Render functions (exposed for external use)
+        renderInventory,
+        renderOrders,
+        renderRevenueChart,
+        renderStatusChart,
+        renderSalesSummary,
         
         // State access
         getState: () => ({ ...state }),
