@@ -4037,7 +4037,7 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
           const size = item.size ? `, Size: ${item.size}` : '';
           const color = item.color ? `, Color: ${item.color}` : '';
           return `- ${item.name}${size}${color} (Qty: ${item.quantity || 1}) - R${((item.price || 0) * (item.quantity || 1)).toFixed(2)}`;
-        }).join('\n')}\n\nOrder Summary:\nTotal: R${total.toFixed(2)}\nPayment Method: ${paymentMethod === 'cash' ? 'Cash' : paymentMethod === 'eft' ? 'EFT' : paymentMethod}\n\nWe will process your order and send you tracking information once it ships.`;
+        }).join('\n')}\n\nOrder Summary:\nTotal: R${total.toFixed(2)}\nPayment Method: ${paymentMethod === 'cash' ? 'Cash' : paymentMethod === 'eft' ? 'EFT' : paymentMethod}\n\nEnjoy your package!`;
 
         // Map items to products for email template
         const orderProducts = items.map(item => {
@@ -4079,7 +4079,7 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
 
         const customerOrderEmailHtml = generateEmailTemplate('order-confirmation', {
           heading: `Order Confirmation - Thank You, ${customerName}!`,
-          content: `Dear ${customerName},\n\nWe're absolutely thrilled to confirm that your order has been successfully processed and your payment has been received! Thank you for choosing Saint Ventura for your premium streetwear needs.\n\n${orderDetailsText}\n\nYour order is now being prepared with the utmost care and attention to detail. Our team is working diligently to ensure that every item meets our exacting quality standards before it's carefully packaged and shipped to you.\n\nWe understand how exciting it is to receive your new pieces, and we're committed to getting them to you as quickly as possible. Once your order ships, you'll receive tracking information so you can follow your package every step of the way.\n\nIf you have any questions about your order, shipping, or anything else, please don't hesitate to reach out to us. We're here to help and ensure you have an exceptional experience with Saint Ventura.\n\nThank you again for your purchase. We can't wait for you to experience the quality and style that defines Saint Ventura!`,
+          content: `Dear ${customerName},\n\nWe're absolutely thrilled to confirm that your order has been successfully processed and your payment has been received! Thank you for choosing Saint Ventura for your premium streetwear needs.\n\n${orderDetailsText}\n\nYour order is now being prepared with the utmost care and attention to detail. Our team is working diligently to ensure that every item meets our exacting quality standards before it's carefully packaged and shipped to you.\n\nWe understand how exciting it is to receive your new pieces, and we're committed to getting them to you as quickly as possible. Enjoy your package!\n\nIf you have any questions about your order, shipping, or anything else, please don't hesitate to reach out to us. We're here to help and ensure you have an exceptional experience with Saint Ventura.\n\nThank you again for your purchase. We can't wait for you to experience the quality and style that defines Saint Ventura!`,
           products: orderProducts,
           includeSocialMedia: true,
           isSubscribed: true
