@@ -278,7 +278,49 @@
         // This ensures they work even if body script hasn't executed yet
         console.log('🔧 Defining all load functions in HEAD script...');
         
-        // Define getBackendUrl and adminFetch first (they're already defined above)
+        // Define getBackendUrl and adminFetch in HEAD script FIRST so they're available for load functions
+        (function() {
+            function getBackendUrl() {
+                const hostname = window.location.hostname;
+                const origin = window.location.origin;
+                if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '' || hostname === '0.0.0.0') {
+                    return 'http://localhost:3000';
+                }
+                const PRODUCTION_BACKEND_URL = 'https://saint-ventura-backend.onrender.com';
+                if (hostname.includes('github.io') || hostname.includes('github.com') || origin.includes('github.io') || origin.includes('github.com')) {
+                    return PRODUCTION_BACKEND_URL;
+                }
+                return PRODUCTION_BACKEND_URL;
+            }
+            
+            const BACKEND_URL = getBackendUrl();
+            window.BACKEND_URL = BACKEND_URL;
+            
+            function adminFetch(url, options = {}) {
+                if (!options) options = {};
+                if (!options.headers) options.headers = {};
+                const adminPassword = window.ADMIN_PASSWORD || 'WEAR3+H3$@!N+$*';
+                if (!adminPassword) {
+                    return Promise.reject(new Error('Admin password not configured'));
+                }
+                options.headers['X-Admin-Password'] = adminPassword;
+                options.headers['Content-Type'] = 'application/json';
+                return fetch(url, options)
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(errorData => {
+                                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                            });
+                        }
+                        return response.json();
+                    });
+            }
+            
+            window.adminFetch = adminFetch;
+            console.log('✅ adminFetch defined in HEAD script');
+            console.log('✅ BACKEND_URL defined in HEAD script:', window.BACKEND_URL);
+        })();
+        
         // Now define all load functions using window.adminFetch and window.BACKEND_URL
         
         window.loadDashboardData = function loadDashboardData() {
