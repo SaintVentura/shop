@@ -387,7 +387,7 @@
                 .then(data => {
                     if (!Array.isArray(data)) throw new Error('Invalid data format');
                     if (typeof window.allInventoryData !== 'undefined') window.allInventoryData = data;
-                    if (typeof renderInventory === 'function') renderInventory(data);
+                    if (typeof window.renderInventory === 'function') window.renderInventory(data);
                 })
                 .catch(err => {
                     console.error('Error loading inventory:', err);
@@ -611,7 +611,7 @@
                 .then(data => {
                     if (!Array.isArray(data)) throw new Error('Invalid data format');
                     if (typeof window.allOrdersData !== 'undefined') window.allOrdersData = data;
-                    if (typeof renderOrders === 'function') renderOrders(data);
+                    if (typeof window.renderOrders === 'function') window.renderOrders(data);
                     else if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="text-center py-12 text-gray-500">Orders loaded but render function not ready</td></tr>';
                 })
                 .catch(err => {
