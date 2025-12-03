@@ -219,6 +219,9 @@ const AdminApp = (function() {
                 state.allInventoryData = data;
                 if (typeof window.renderInventory === 'function') {
                     window.renderInventory(data);
+                } else {
+                    // Fallback: render inventory directly
+                    AdminApp.renderInventory(data);
                 }
             } catch (error) {
                 showError(tbody, error.message);
@@ -274,7 +277,8 @@ const AdminApp = (function() {
                 if (typeof window.renderOrders === 'function') {
                     window.renderOrders(data);
                 } else {
-                    showError(tbody, 'Render function not available');
+                    // Fallback: render orders directly
+                    AdminApp.renderOrders(data);
                 }
             } catch (error) {
                 showError(tbody, error.message);
@@ -482,9 +486,21 @@ const AdminApp = (function() {
             try {
                 const data = await apiCall('/api/admin/dashboard');
                 if (data.success) {
-                    if (typeof window.renderRevenueChart === 'function') window.renderRevenueChart(data.monthlyRevenue);
-                    if (typeof window.renderStatusChart === 'function') window.renderStatusChart(data.stats);
-                    if (typeof window.renderSalesSummary === 'function') window.renderSalesSummary(data);
+                    if (typeof window.renderRevenueChart === 'function') {
+                        window.renderRevenueChart(data.monthlyRevenue);
+                    } else {
+                        AdminApp.renderRevenueChart(data.monthlyRevenue);
+                    }
+                    if (typeof window.renderStatusChart === 'function') {
+                        window.renderStatusChart(data.stats);
+                    } else {
+                        AdminApp.renderStatusChart(data.stats);
+                    }
+                    if (typeof window.renderSalesSummary === 'function') {
+                        window.renderSalesSummary(data);
+                    } else {
+                        AdminApp.renderSalesSummary(data);
+                    }
                 }
             } catch (error) {
                 showError(document.getElementById('revenue-chart'), error.message);
@@ -735,13 +751,10 @@ const AdminApp = (function() {
         refreshNotifications: () => loaders.notifications(),
         
         fetchEmails: async () => {
-            try {
-                await apiCall('/api/admin/fetch-emails', { method: 'POST' });
-                alert('Emails fetched successfully');
-                loaders.inbox();
-            } catch (error) {
-                alert('Error fetching emails: ' + error.message);
-            }
+            // Note: Email fetching endpoint not yet implemented on server
+            // For now, just refresh the inbox
+            alert('Email fetching is not yet available. Refreshing inbox...');
+            loaders.inbox();
         },
         
         showAddFulfillerModal: () => {
@@ -1056,6 +1069,13 @@ window.closeViewEmail = () => AdminApp.closeViewEmail();
 window.replyToEmail = () => AdminApp.replyToEmail();
 window.deleteEmail = () => AdminApp.deleteEmail();
 window.removeFromPOSCart = (i) => AdminApp.removeFromPOSCart(i);
+
+// Expose render functions globally
+window.renderInventory = (data) => AdminApp.renderInventory(data);
+window.renderOrders = (data) => AdminApp.renderOrders(data);
+window.renderRevenueChart = (data) => AdminApp.renderRevenueChart(data);
+window.renderStatusChart = (data) => AdminApp.renderStatusChart(data);
+window.renderSalesSummary = (data) => AdminApp.renderSalesSummary(data);
 
 // Expose all load functions globally for backward compatibility
 window.loadDashboardData = () => AdminApp.loadDashboardData();
