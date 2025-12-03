@@ -2655,6 +2655,10 @@ app.post('/api/admin/inventory/update', adminAuth, async (req, res) => {
       item.stock = newStock;
       item.updatedAt = new Date().toISOString();
       await writeDataFile('inventory', inventory);
+      
+      // Check if any "no stock" orders can now be fulfilled
+      await checkAndFulfillNoStockOrders(inventory);
+      
       res.json({ success: true, item });
     } else {
       res.status(404).json({ success: false, error: 'Item not found' });
@@ -2663,6 +2667,185 @@ app.post('/api/admin/inventory/update', adminAuth, async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+// Function to check "no stock" orders and update to fulfilled if items are now in stock
+async function checkAndFulfillNoStockOrders(inventory) {
+  try {
+    const orders = await readDataFile('orders');
+    const noStockOrders = orders.filter(o => o.status === 'no stock');
+    
+    for (const order of noStockOrders) {
+      const orderItems = order.items || [];
+      let allItemsInStock = true;
+      
+      // Check if all items in the order are now in stock
+      for (const item of orderItems) {
+        const inventoryItem = inventory.find(inv => {
+          const productMatch = inv.productId === item.id || 
+                              inv.productId === parseInt(item.id) ||
+                              inv.productName === item.name;
+          
+          if (!productMatch) return false;
+          
+          // Match by variant if size/color provided
+          if (item.size || item.color) {
+            const variantMatch = (!item.size || inv.variant?.includes(item.size)) &&
+                                (!item.color || inv.variant?.includes(item.color));
+            return variantMatch;
+          }
+          
+          return true; // If no size/color specified, match any variant of the product
+        });
+        
+        if (!inventoryItem || (inventoryItem.stock || 0) < (item.quantity || 1)) {
+          allItemsInStock = false;
+          break;
+        }
+      }
+      
+      // If all items are in stock, update order to fulfilled
+      if (allItemsInStock) {
+        order.status = 'fulfilled';
+        order.updatedAt = new Date().toISOString();
+        
+        // Reduce stock for all items in the order
+        for (const item of orderItems) {
+          const inventoryItem = inventory.find(inv => {
+            const productMatch = inv.productId === item.id || 
+                                inv.productId === parseInt(item.id) ||
+                                inv.productName === item.name;
+            
+            if (!productMatch) return false;
+            
+            // Match by variant if size/color provided
+            if (item.size || item.color) {
+              const variantMatch = (!item.size || inv.variant?.includes(item.size)) &&
+                                  (!item.color || inv.variant?.includes(item.color));
+              return variantMatch;
+            }
+            
+            return true;
+          });
+          
+          if (inventoryItem) {
+            const quantityToReduce = item.quantity || 1;
+            const currentStock = inventoryItem.stock || 0;
+            const newStock = Math.max(0, currentStock - quantityToReduce);
+            
+            // Reduce stock cost by (cost per unit × quantity) but keep cost per unit consistent
+            if (inventoryItem.costPerUnit && inventoryItem.costPerUnit > 0) {
+              const costToReduce = inventoryItem.costPerUnit * quantityToReduce;
+              inventoryItem.stockCost = Math.max(0, (inventoryItem.stockCost || 0) - costToReduce);
+            }
+            
+            inventoryItem.stock = newStock;
+            inventoryItem.updatedAt = new Date().toISOString();
+            console.log(`✅ Reduced stock for ${inventoryItem.productName} (${inventoryItem.variant || 'default'}): ${currentStock} -> ${newStock}`);
+          }
+        }
+        
+        await writeDataFile('inventory', inventory);
+        await writeDataFile('orders', orders);
+        
+        console.log(`✅ Updated order ${order.id} from "no stock" to "fulfilled" - all items are now in stock`);
+        
+        // Send email to customer
+        if (order.customerEmail) {
+          try {
+            const orderDate = new Date(order.date).toLocaleDateString('en-ZA', { 
+              weekday: 'long', 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+            
+            // Format delivery information
+            let deliveryInfo = '';
+            if (order.shippingMethod === 'door' && order.deliveryDetails) {
+              const details = order.deliveryDetails;
+              deliveryInfo = `Delivery Address:\n${details.street || ''}\n${details.suburb ? details.suburb + '\n' : ''}${details.city || ''}, ${details.province || ''}\n${details.postalCode || ''}${details.extra ? '\n' + details.extra : ''}`;
+            } else if (order.shippingMethod === 'uj' && order.deliveryDetails) {
+              deliveryInfo = `Delivery Location: UJ ${order.deliveryDetails.campus || 'Campus'} Campus`;
+            }
+            
+            const orderDetailsText = `Order ${order.id ? `ID: ${order.id}` : 'Details'}: ${orderDate}\n\nOrder Items:\n${orderItems.map(item => {
+              const size = item.size ? `, Size: ${item.size}` : '';
+              const color = item.color ? `, Color: ${item.color}` : '';
+              return `- ${item.name}${size}${color} (Qty: ${item.quantity || 1}) - R${((item.price || 0) * (item.quantity || 1)).toFixed(2)}`;
+            }).join('\n')}\n\nOrder Summary:\nSubtotal: R${(order.subtotal || 0).toFixed(2)}\nShipping: R${(order.shipping || 0).toFixed(2)}\nTotal: R${(order.total || 0).toFixed(2)}\n\nDelivery Method: ${order.shippingMethod === 'door' ? 'Door-to-Door Courier' : order.shippingMethod === 'uj' ? 'UJ Campus Delivery' : 'Testing Delivery'}\n${deliveryInfo ? deliveryInfo + '\n' : ''}`;
+            
+            // Map order items to products for email template
+            const orderProducts = orderItems.map(item => {
+              const product = PRODUCTS.find(p => 
+                p.id === item.id || 
+                p.id === parseInt(item.id) ||
+                p.name === item.name
+              );
+              
+              let imageUrl = item.image || item.imageUrl || null;
+              if (!imageUrl && product) {
+                if (item.color && product.availableColors) {
+                  const colorMatch = product.availableColors.find(c => 
+                    c.name.toLowerCase() === item.color.toLowerCase()
+                  );
+                  if (colorMatch && colorMatch.image) {
+                    imageUrl = colorMatch.image.trim();
+                  }
+                }
+                if (!imageUrl && product.images && product.images.length > 0) {
+                  imageUrl = product.images[0].trim();
+                }
+              }
+              
+              if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+                imageUrl = null;
+              }
+              
+              const size = item.size ? `Size: ${item.size}` : '';
+              const color = item.color ? `${item.size ? ', ' : ''}Color: ${item.color}` : '';
+              const description = [size, color].filter(d => d).join(', ').trim();
+              
+              return {
+                name: item.name,
+                price: (item.price || 0) * (item.quantity || 1),
+                description: description || '',
+                image: imageUrl
+              };
+            });
+            
+            const emailContent = `Dear ${order.customerName},\n\nGreat news! Your order is now being fulfilled and will come soon! We've restocked the items you ordered and are working diligently to prepare your package with the utmost care and attention to detail.\n\n${orderDetailsText}\n\nYour order is now being prepared with the utmost care and attention to detail. Our team is working diligently to ensure that every item meets our exacting quality standards before it's carefully packaged and shipped to you.\n\nWe understand how exciting it is to receive your new pieces, and we're committed to getting them to you as quickly as possible. We'll keep you updated every step of the way!\n\nIf you have any questions about your order, shipping, or anything else, please don't hesitate to reach out to us. We're here to help and ensure you have an exceptional experience with Saint Ventura.\n\nThank you again for your purchase. We can't wait for you to experience the quality and style that defines Saint Ventura!`;
+            
+            const customerOrderEmailHtml = generateEmailTemplate('order-confirmation', {
+              heading: `Order Update - Your Order is Being Fulfilled!`,
+              content: emailContent,
+              products: orderProducts,
+              includeSocialMedia: true,
+              isSubscribed: true
+            });
+            
+            const customerOrderEmailText = `Order Update - Your Order is Being Fulfilled!\n\nDear ${order.customerName},\n\nGreat news! Your order is now being fulfilled and will come soon! We've restocked the items you ordered.\n\n${orderDetailsText}\n\nThank you for choosing Saint Ventura!`;
+            
+            await sendEmailViaResendOrSMTP({
+              from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
+              to: order.customerEmail,
+              subject: 'Order Update - Your Order is Being Fulfilled!',
+              text: customerOrderEmailText,
+              html: customerOrderEmailHtml
+            });
+            
+            console.log(`✅ Sent fulfillment email to ${order.customerEmail} for order ${order.id}`);
+          } catch (emailError) {
+            console.error(`⚠️ Failed to send fulfillment email to ${order.customerEmail}:`, emailError.message);
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error checking and fulfilling no stock orders:', error);
+  }
+}
 
 // Inbox routes
 app.get('/api/admin/inbox', adminAuth, async (req, res) => {
