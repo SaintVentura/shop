@@ -3740,7 +3740,7 @@ app.put('/api/admin/orders/:orderId/status', adminAuth, async (req, res) => {
 // POS/Sales Dashboard routes
 app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
   try {
-    const { customerName, customerEmail, customerPhone, paymentMethod, items, total } = req.body;
+    const { customerName, customerEmail, customerPhone, paymentMethod, items, total, newsletterSubscribe } = req.body;
     
     // Store order
     const orders = await readDataFile('orders');
