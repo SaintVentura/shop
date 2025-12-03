@@ -3582,36 +3582,61 @@ app.get('/api/admin/dashboard', adminAuth, async (req, res) => {
     
     // Calculate stats
     const totalOrders = orders.length;
-    // Only count revenue from fulfilled orders (deduct delivery costs)
+    // Only count revenue from fulfilled orders (total sale price)
     const fulfilledOrdersList = orders.filter(o => o.status === 'fulfilled');
     const totalRevenue = fulfilledOrdersList.reduce((sum, o) => {
       const orderTotal = parseFloat(o.total) || 0;
-      const deliveryCost = parseFloat(o.deliveryCost) || 0;
-      return sum + (orderTotal - deliveryCost);
+      return sum + orderTotal;
     }, 0);
     
-    // Calculate total costs (stock costs + delivery costs)
+    // Calculate profit: Total sale price - (cost per unit × quantity) - delivery cost
+    let totalProfit = 0;
     let totalStockCost = 0;
-    let totalDeliveryCost = fulfilledOrdersList.reduce((sum, o) => sum + (parseFloat(o.deliveryCost) || 0), 0);
+    let totalDeliveryCost = 0;
     
-    // Calculate stock costs for fulfilled orders
+    // Calculate profit for each fulfilled order
     fulfilledOrdersList.forEach(order => {
+      const orderTotal = parseFloat(order.total) || 0; // Total sale price
+      const deliveryCost = parseFloat(order.deliveryCost) || 0;
+      totalDeliveryCost += deliveryCost;
+      
+      // Calculate stock cost for this order (cost per unit × quantity for each item)
+      let orderStockCost = 0;
       const orderItems = order.items || [];
       orderItems.forEach(item => {
-        const inventoryItem = inventory.find(inv => 
-          inv.productId === item.id || 
-          inv.productId === parseInt(item.id) ||
-          inv.productName === item.name
-        );
+        // Find inventory item matching product and variant (size/color)
+        const inventoryItem = inventory.find(inv => {
+          const productMatch = inv.productId === item.id || 
+                              inv.productId === parseInt(item.id) ||
+                              inv.productName === item.name;
+          
+          if (!productMatch) return false;
+          
+          // Match by variant if size/color provided
+          if (item.size || item.color) {
+            const variantMatch = (!item.size || inv.variant?.includes(item.size)) &&
+                                (!item.color || inv.variant?.includes(item.color));
+            return variantMatch;
+          }
+          
+          return true; // If no size/color specified, match any variant of the product
+        });
+        
         if (inventoryItem && inventoryItem.costPerUnit) {
           const quantity = item.quantity || 1;
-          totalStockCost += (inventoryItem.costPerUnit * quantity);
+          const itemCost = inventoryItem.costPerUnit * quantity;
+          orderStockCost += itemCost;
         }
       });
+      
+      totalStockCost += orderStockCost;
+      
+      // Profit for this order = Total sale price - Stock cost - Delivery cost
+      const orderProfit = orderTotal - orderStockCost - deliveryCost;
+      totalProfit += orderProfit;
     });
     
     const totalCosts = totalStockCost + totalDeliveryCost;
-    const totalProfit = totalRevenue - totalCosts;
     
     const pendingCheckoutOrders = orders.filter(o => o.status === 'pending checkout').length;
     const pendingFulfillmentOrders = orders.filter(o => o.status === 'pending fulfillment').length;
