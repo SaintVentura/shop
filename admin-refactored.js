@@ -6,9 +6,9 @@
 const AdminApp = (function() {
     'use strict';
     
-    // Configuration
+    // Configuration - password will be set after login verification
+    let ADMIN_PASSWORD = null;
     const CONFIG = {
-        ADMIN_PASSWORD: 'WEAR3+H3$@!N+$*',
         BACKEND_URL: getBackendUrl(),
         SECTIONS: ['dashboard', 'orders', 'inventory', 'inbox', 'broadcast', 'abandoned-carts', 'fulfillers', 'notifications', 'sales', 'analytics']
     };
@@ -32,9 +32,13 @@ const AdminApp = (function() {
     }
     
     async function apiCall(endpoint, options = {}) {
+        if (!ADMIN_PASSWORD) {
+            throw new Error('Not authenticated. Please log in first.');
+        }
+        
         const url = `${CONFIG.BACKEND_URL}${endpoint}`;
         const headers = {
-            'X-Admin-Password': CONFIG.ADMIN_PASSWORD,
+            'X-Admin-Password': ADMIN_PASSWORD,
             'Content-Type': 'application/json',
             ...options.headers
         };
@@ -49,6 +53,27 @@ const AdminApp = (function() {
         } catch (error) {
             console.error(`API Error [${endpoint}]:`, error);
             throw error;
+        }
+    }
+    
+    // Login function - verifies password with backend
+    async function login(password) {
+        try {
+            const response = await fetch(`${CONFIG.BACKEND_URL}/api/admin/verify-password`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password })
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                ADMIN_PASSWORD = password;
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('Login error:', error);
+            return false;
         }
     }
     
@@ -108,6 +133,23 @@ const AdminApp = (function() {
         const loadFunction = loaders[sectionName];
         if (loadFunction && typeof loadFunction === 'function') {
             loadFunction();
+        }
+        
+        // Setup forms when sections are shown
+        if (sectionName === 'sales') {
+            setTimeout(() => {
+                AdminApp.setupPOSForm();
+            }, 100);
+        }
+        if (sectionName === 'fulfillers') {
+            setTimeout(() => {
+                AdminApp.setupAddFulfillerForm();
+            }, 100);
+        }
+        if (sectionName === 'broadcast') {
+            setTimeout(() => {
+                AdminApp.setupAddSubscriberForm();
+            }, 100);
         }
     }
     
@@ -450,19 +492,524 @@ const AdminApp = (function() {
         }
     };
     
+    // Login handler for form submission
+    async function handleLogin(e) {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        const passwordInput = document.getElementById('admin-password');
+        const password = passwordInput ? passwordInput.value.trim() : '';
+        const errorElement = document.getElementById('login-error');
+        
+        if (!password) {
+            if (errorElement) {
+                errorElement.textContent = 'Please enter a password';
+                errorElement.classList.remove('hidden');
+            }
+            return false;
+        }
+        
+        const success = await login(password);
+        if (success) {
+            const loginScreen = document.getElementById('login-screen');
+            const adminDashboard = document.getElementById('admin-dashboard');
+            
+            if (!loginScreen || !adminDashboard) {
+                alert('Error: Page elements not found. Please refresh the page.');
+                return false;
+            }
+            
+            loginScreen.classList.add('hidden');
+            adminDashboard.classList.remove('hidden');
+            localStorage.setItem('adminLoggedIn', 'true');
+            
+            if (errorElement) {
+                errorElement.classList.add('hidden');
+            }
+            
+            // Load dashboard
+            setTimeout(() => {
+                showSection('dashboard');
+            }, 100);
+            
+            return false;
+        } else {
+            if (errorElement) {
+                errorElement.textContent = 'Invalid password. Please try again.';
+                errorElement.classList.remove('hidden');
+            }
+            if (passwordInput) {
+                passwordInput.value = '';
+                passwordInput.focus();
+            }
+            return false;
+        }
+    }
+    
+    // Check login status on page load
+    function checkLoginStatus() {
+        const isLoggedIn = localStorage.getItem('adminLoggedIn') === 'true';
+        const loginScreen = document.getElementById('login-screen');
+        const adminDashboard = document.getElementById('admin-dashboard');
+        
+        if (isLoggedIn && loginScreen && adminDashboard) {
+            loginScreen.classList.add('hidden');
+            adminDashboard.classList.remove('hidden');
+        }
+    }
+    
+    // Initialize on DOM ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', checkLoginStatus);
+    } else {
+        checkLoginStatus();
+    }
+    
     // Public API
     return {
+        // Authentication
+        login,
+        handleLogin,
+        
         // Core functions
         showSection,
         apiCall,
         
-        // Helper functions (to be implemented)
-        viewEmail: (id) => { console.log('viewEmail:', id); },
-        sendCartReminder: (id) => { console.log('sendCartReminder:', id); },
-        deleteFulfiller: (id) => { console.log('deleteFulfiller:', id); },
-        markNotificationRead: (id) => { console.log('markNotificationRead:', id); },
-        showVariantModal: (id) => { console.log('showVariantModal:', id); },
-        addToPOSCart: (id, name, price, size, color) => { console.log('addToPOSCart:', {id, name, price, size, color}); },
+        // Load functions
+        loadDashboardData: loaders.dashboard,
+        loadOrders: loaders.orders,
+        loadInventory: loaders.inventory,
+        loadInbox: loaders.inbox,
+        loadBroadcast: loaders.broadcast,
+        loadAbandonedCarts: loaders['abandoned-carts'],
+        loadFulfillers: loaders.fulfillers,
+        loadNotifications: loaders.notifications,
+        loadSales: loaders.sales,
+        loadAnalytics: loaders.analytics,
+        
+        // Helper functions
+        viewEmail: async (id) => {
+            try {
+                const email = await apiCall(`/api/admin/inbox/${id}`);
+                const modal = document.getElementById('view-email-modal');
+                if (modal) {
+                    document.getElementById('view-email-subject').textContent = email.subject || 'No Subject';
+                    document.getElementById('view-email-from').textContent = email.from || email.name || 'Unknown';
+                    document.getElementById('view-email-date').textContent = email.date ? new Date(email.date).toLocaleString() : 'N/A';
+                    document.getElementById('view-email-body').innerHTML = email.body || email.text || 'No content';
+                    modal.classList.remove('hidden');
+                    state.currentViewingEmail = email;
+                }
+            } catch (error) {
+                alert('Error loading email: ' + error.message);
+            }
+        },
+        
+        sendCartReminder: async (id) => {
+            try {
+                await apiCall(`/api/admin/abandoned-carts/${id}/remind`, { method: 'POST' });
+                alert('Reminder email sent successfully');
+                loaders['abandoned-carts']();
+            } catch (error) {
+                alert('Error sending reminder: ' + error.message);
+            }
+        },
+        
+        deleteFulfiller: async (id) => {
+            if (!confirm('Are you sure you want to delete this fulfiller?')) return;
+            try {
+                await apiCall(`/api/admin/fulfillers/${id}`, { method: 'DELETE' });
+                loaders.fulfillers();
+            } catch (error) {
+                alert('Error deleting fulfiller: ' + error.message);
+            }
+        },
+        
+        markNotificationRead: async (id) => {
+            try {
+                await apiCall(`/api/admin/notifications/${id}/read`, { method: 'POST' });
+                loaders.notifications();
+            } catch (error) {
+                alert('Error marking notification as read: ' + error.message);
+            }
+        },
+        
+        showVariantModal: (id) => {
+            alert('Variant modal for product ' + id + ' - to be implemented');
+        },
+        
+        addToPOSCart: (id, name, price, size, color) => {
+            state.posCart.push({ id, name, price, size, color, quantity: 1 });
+            AdminApp.updatePOSCartDisplay();
+        },
+        
+        updatePOSCartDisplay: () => {
+            const cartContainer = document.getElementById('pos-cart');
+            const totalElement = document.getElementById('pos-total');
+            if (!cartContainer) return;
+            
+            if (state.posCart.length === 0) {
+                cartContainer.innerHTML = '<p class="text-gray-500 text-sm">No items added</p>';
+                if (totalElement) totalElement.textContent = 'R0.00';
+                return;
+            }
+            
+            const total = state.posCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            cartContainer.innerHTML = state.posCart.map((item, index) => `
+                <div class="flex justify-between items-center p-3 border border-gray-200 rounded-lg">
+                    <div class="flex-1">
+                        <p class="font-semibold">${item.name}</p>
+                        ${item.size ? `<p class="text-sm text-gray-600">Size: ${item.size}</p>` : ''}
+                        ${item.color ? `<p class="text-sm text-gray-600">Color: ${item.color}</p>` : ''}
+                        <p class="text-sm text-gray-600">Quantity: ${item.quantity}</p>
+                    </div>
+                    <div class="text-right ml-4">
+                        <p class="font-bold">R${(item.price * item.quantity).toFixed(2)}</p>
+                        <button onclick="AdminApp.removeFromPOSCart(${index})" class="text-red-500 text-sm hover:text-red-700 mt-1">Remove</button>
+                    </div>
+                </div>
+            `).join('');
+            if (totalElement) totalElement.textContent = `R${total.toFixed(2)}`;
+        },
+        
+        removeFromPOSCart: (index) => {
+            state.posCart.splice(index, 1);
+            AdminApp.updatePOSCartDisplay();
+        },
+        
+        // UI Helper Functions
+        logout: () => {
+            localStorage.removeItem('adminLoggedIn');
+            ADMIN_PASSWORD = null;
+            const loginScreen = document.getElementById('login-screen');
+            const adminDashboard = document.getElementById('admin-dashboard');
+            if (loginScreen) loginScreen.classList.remove('hidden');
+            if (adminDashboard) adminDashboard.classList.add('hidden');
+        },
+        
+        toggleMobileSidebar: () => {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if (sidebar) sidebar.classList.toggle('mobile-open');
+            if (overlay) overlay.classList.toggle('active');
+        },
+        
+        closeMobileSidebar: () => {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if (sidebar) sidebar.classList.remove('mobile-open');
+            if (overlay) overlay.classList.remove('active');
+        },
+        
+        toggleSidebar: () => {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            if (window.innerWidth <= 768) {
+                AdminApp.toggleMobileSidebar();
+                return;
+            }
+            if (sidebar && mainContent) {
+                const isCollapsed = sidebar.classList.contains('collapsed');
+                if (isCollapsed) {
+                    sidebar.classList.remove('collapsed');
+                    sidebar.classList.remove('w-20');
+                    sidebar.classList.add('w-64');
+                    mainContent.classList.remove('ml-20');
+                    mainContent.classList.add('ml-64');
+                } else {
+                    sidebar.classList.add('collapsed');
+                    sidebar.classList.remove('w-64');
+                    sidebar.classList.add('w-20');
+                    mainContent.classList.remove('ml-64');
+                    mainContent.classList.add('ml-20');
+                }
+            }
+        },
+        
+        refreshOrders: () => loaders.orders(),
+        refreshInventory: () => loaders.inventory(),
+        refreshInbox: () => loaders.inbox(),
+        refreshAbandonedCarts: () => loaders['abandoned-carts'](),
+        refreshNotifications: () => loaders.notifications(),
+        
+        fetchEmails: async () => {
+            try {
+                await apiCall('/api/admin/fetch-emails', { method: 'POST' });
+                alert('Emails fetched successfully');
+                loaders.inbox();
+            } catch (error) {
+                alert('Error fetching emails: ' + error.message);
+            }
+        },
+        
+        showAddFulfillerModal: () => {
+            const modal = document.getElementById('add-fulfiller-modal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                setTimeout(() => {
+                    AdminApp.setupAddFulfillerForm();
+                }, 100);
+            }
+        },
+        
+        closeAddFulfillerModal: () => {
+            const modal = document.getElementById('add-fulfiller-modal');
+            const form = document.getElementById('add-fulfiller-form');
+            if (modal) modal.classList.add('hidden');
+            if (form) form.reset();
+        },
+        
+        showComposeEmail: () => {
+            const modal = document.getElementById('compose-email-modal');
+            if (modal) modal.classList.remove('hidden');
+        },
+        
+        closeComposeEmail: () => {
+            const modal = document.getElementById('compose-email-modal');
+            if (modal) modal.classList.add('hidden');
+        },
+        
+        openBroadcastEmailComposer: () => {
+            const modal = document.getElementById('compose-email-modal');
+            const toField = document.getElementById('compose-to');
+            const addSubscribersBtn = document.getElementById('add-subscribers-btn');
+            if (modal) {
+                if (toField) toField.value = '';
+                if (addSubscribersBtn) addSubscribersBtn.classList.remove('hidden');
+                modal.classList.remove('hidden');
+            }
+        },
+        
+        openAbandonedCartEmailComposer: () => {
+            AdminApp.showComposeEmail();
+        },
+        
+        openFulfillerEmailComposer: () => {
+            AdminApp.showComposeEmail();
+        },
+        
+        markAllRead: async () => {
+            try {
+                await apiCall('/api/admin/notifications/mark-all-read', { method: 'POST' });
+                loaders.notifications();
+            } catch (error) {
+                alert('Error marking all as read: ' + error.message);
+            }
+        },
+        
+        addAllSubscribers: async () => {
+            try {
+                const subscribers = await apiCall('/api/admin/subscribers');
+                const toField = document.getElementById('compose-to');
+                if (toField) {
+                    const emails = subscribers.map(s => s.email).join(', ');
+                    toField.value = emails;
+                }
+            } catch (error) {
+                alert('Error loading subscribers: ' + error.message);
+            }
+        },
+        
+        loadEmailTemplate: (template) => {
+            const templates = {
+                promotion: { subject: 'Special Promotion - Limited Time Offer!', body: 'We have an amazing promotion for you...' },
+                'new-product': { subject: 'New Product Launch!', body: 'Check out our latest product...' },
+                news: { subject: 'News & Updates', body: 'Here are the latest updates...' },
+                'fulfiller-order': { subject: 'New Order to Fulfill', body: 'You have a new order to fulfill...' }
+            };
+            const t = templates[template];
+            if (t) {
+                const subjectField = document.getElementById('compose-subject');
+                if (subjectField) subjectField.value = t.subject;
+            }
+        },
+        
+        addEmailSection: (type) => {
+            const builder = document.getElementById('email-builder');
+            if (!builder) return;
+            const section = document.createElement('div');
+            section.className = 'email-section';
+            section.setAttribute('data-type', type);
+            section.innerHTML = `
+                <div class="flex justify-between items-center mb-2">
+                    <label class="text-xs text-gray-500 font-medium">${type.charAt(0).toUpperCase() + type.slice(1)} Section</label>
+                    <button type="button" onclick="AdminApp.removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
+                </div>
+                ${type === 'text' ? '<textarea class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="3" placeholder="Enter text content..."></textarea>' : ''}
+                ${type === 'heading' ? '<input type="text" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Enter heading...">' : ''}
+                ${type === 'image' ? '<input type="url" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Enter image URL...">' : ''}
+                ${type === 'button' ? '<input type="text" class="w-full px-3 py-2 border border-gray-200 rounded text-sm mb-2" placeholder="Button text..."><input type="url" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Button URL...">' : ''}
+                ${type === 'divider' ? '<hr class="border-gray-300">' : ''}
+                ${type === 'spacer' ? '<div class="h-8"></div>' : ''}
+            `;
+            builder.appendChild(section);
+        },
+        
+        removeEmailSection: (button) => {
+            const section = button.closest('.email-section');
+            if (section) section.remove();
+        },
+        
+        toggleEmailPreview: () => {
+            const builder = document.getElementById('email-builder');
+            const previewMode = document.getElementById('preview-mode')?.checked;
+            if (builder) {
+                if (previewMode) {
+                    state.emailBuilderSections = builder.innerHTML;
+                    builder.innerHTML = '<div class="p-4 bg-gray-50 rounded">Preview mode - content will be rendered here</div>';
+                } else {
+                    if (state.emailBuilderSections) {
+                        builder.innerHTML = state.emailBuilderSections;
+                    }
+                }
+            }
+        },
+        
+        closeViewEmail: () => {
+            const modal = document.getElementById('view-email-modal');
+            if (modal) modal.classList.add('hidden');
+            state.currentViewingEmail = null;
+        },
+        
+        replyToEmail: () => {
+            AdminApp.closeViewEmail();
+            AdminApp.showComposeEmail();
+            const toField = document.getElementById('compose-to');
+            const subjectField = document.getElementById('compose-subject');
+            if (state.currentViewingEmail && toField) {
+                toField.value = state.currentViewingEmail.from || state.currentViewingEmail.name || '';
+            }
+            if (state.currentViewingEmail && subjectField) {
+                subjectField.value = 'Re: ' + (state.currentViewingEmail.subject || '');
+            }
+        },
+        
+        deleteEmail: async () => {
+            if (!state.currentViewingEmail || !state.currentViewingEmail.id) return;
+            if (!confirm('Are you sure you want to delete this email?')) return;
+            try {
+                await apiCall(`/api/admin/inbox/${state.currentViewingEmail.id}`, { method: 'DELETE' });
+                AdminApp.closeViewEmail();
+                loaders.inbox();
+            } catch (error) {
+                alert('Error deleting email: ' + error.message);
+            }
+        },
+        
+        setupAddFulfillerForm: () => {
+            const form = document.getElementById('add-fulfiller-form');
+            if (!form) return;
+            
+            form.onsubmit = async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('fulfiller-name')?.value.trim();
+                const email = document.getElementById('fulfiller-email')?.value.trim();
+                const phone = document.getElementById('fulfiller-phone')?.value.trim();
+                
+                if (!name || !email) {
+                    alert('Please fill in name and email');
+                    return;
+                }
+                
+                try {
+                    await apiCall('/api/admin/fulfillers', {
+                        method: 'POST',
+                        body: JSON.stringify({ name, email, phone })
+                    });
+                    alert('Fulfiller added successfully!');
+                    AdminApp.closeAddFulfillerModal();
+                    loaders.fulfillers();
+                } catch (error) {
+                    alert('Error adding fulfiller: ' + error.message);
+                }
+            };
+        },
+        
+        setupAddSubscriberForm: () => {
+            const form = document.getElementById('add-subscriber-form');
+            if (!form) return;
+            
+            form.onsubmit = async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('new-subscriber-email')?.value.trim();
+                
+                if (!email) {
+                    alert('Please enter an email address');
+                    return;
+                }
+                
+                try {
+                    await apiCall('/api/newsletter-subscribe', {
+                        method: 'POST',
+                        body: JSON.stringify({ email })
+                    });
+                    alert('Subscriber added successfully!');
+                    form.reset();
+                    loaders.broadcast();
+                } catch (error) {
+                    alert('Error adding subscriber: ' + error.message);
+                }
+            };
+        },
+        
+        setupPOSForm: () => {
+            const form = document.getElementById('pos-order-form');
+            if (!form) return;
+            
+            form.onsubmit = async (e) => {
+                e.preventDefault();
+                if (state.posCart.length === 0) {
+                    alert('Please add items to cart first');
+                    return;
+                }
+                
+                const customerName = document.getElementById('pos-customer-name')?.value.trim();
+                const customerEmail = document.getElementById('pos-customer-email')?.value.trim();
+                const customerPhone = document.getElementById('pos-customer-phone')?.value.trim();
+                const paymentMethod = document.getElementById('pos-payment-method')?.value;
+                const subscribe = document.getElementById('pos-subscribe')?.checked || false;
+                
+                if (!customerName || !customerEmail || !customerPhone) {
+                    alert('Please fill in all customer details');
+                    return;
+                }
+                
+                try {
+                    const items = state.posCart.map(item => ({
+                        productId: item.id,
+                        productName: item.name,
+                        quantity: item.quantity,
+                        price: item.price,
+                        size: item.size,
+                        color: item.color
+                    }));
+                    
+                    const total = state.posCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                    
+                    await apiCall('/api/admin/pos/order', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            customerName,
+                            customerEmail,
+                            customerPhone,
+                            items,
+                            total,
+                            paymentMethod,
+                            subscribe
+                        })
+                    });
+                    
+                    alert('Order processed successfully!');
+                    form.reset();
+                    state.posCart = [];
+                    AdminApp.updatePOSCartDisplay();
+                } catch (error) {
+                    alert('Error processing order: ' + error.message);
+                }
+            };
+        },
         
         // State access
         getState: () => ({ ...state }),
@@ -471,6 +1018,56 @@ const AdminApp = (function() {
         CONFIG
     };
 })();
+
+// Make AdminApp globally available
+window.AdminApp = AdminApp;
+
+// Expose showSection globally for backward compatibility
+window.showSection = (section) => AdminApp.showSection(section);
+
+// Expose handleLogin globally for form onsubmit
+window.handleLogin = (e) => AdminApp.handleLogin(e);
+
+// Expose all helper functions globally
+window.logout = () => AdminApp.logout();
+window.toggleMobileSidebar = () => AdminApp.toggleMobileSidebar();
+window.closeMobileSidebar = () => AdminApp.closeMobileSidebar();
+window.toggleSidebar = () => AdminApp.toggleSidebar();
+window.refreshOrders = () => AdminApp.refreshOrders();
+window.refreshInventory = () => AdminApp.refreshInventory();
+window.refreshInbox = () => AdminApp.refreshInbox();
+window.refreshAbandonedCarts = () => AdminApp.refreshAbandonedCarts();
+window.refreshNotifications = () => AdminApp.refreshNotifications();
+window.fetchEmails = () => AdminApp.fetchEmails();
+window.showAddFulfillerModal = () => AdminApp.showAddFulfillerModal();
+window.closeAddFulfillerModal = () => AdminApp.closeAddFulfillerModal();
+window.showComposeEmail = () => AdminApp.showComposeEmail();
+window.closeComposeEmail = () => AdminApp.closeComposeEmail();
+window.openBroadcastEmailComposer = () => AdminApp.openBroadcastEmailComposer();
+window.openAbandonedCartEmailComposer = () => AdminApp.openAbandonedCartEmailComposer();
+window.openFulfillerEmailComposer = () => AdminApp.openFulfillerEmailComposer();
+window.markAllRead = () => AdminApp.markAllRead();
+window.addAllSubscribers = () => AdminApp.addAllSubscribers();
+window.loadEmailTemplate = (t) => AdminApp.loadEmailTemplate(t);
+window.addEmailSection = (t) => AdminApp.addEmailSection(t);
+window.removeEmailSection = (b) => AdminApp.removeEmailSection(b);
+window.toggleEmailPreview = () => AdminApp.toggleEmailPreview();
+window.closeViewEmail = () => AdminApp.closeViewEmail();
+window.replyToEmail = () => AdminApp.replyToEmail();
+window.deleteEmail = () => AdminApp.deleteEmail();
+window.removeFromPOSCart = (i) => AdminApp.removeFromPOSCart(i);
+
+// Expose all load functions globally for backward compatibility
+window.loadDashboardData = () => AdminApp.loadDashboardData();
+window.loadOrders = () => AdminApp.loadOrders();
+window.loadInventory = () => AdminApp.loadInventory();
+window.loadInbox = () => AdminApp.loadInbox();
+window.loadBroadcast = () => AdminApp.loadBroadcast();
+window.loadAbandonedCarts = () => AdminApp.loadAbandonedCarts();
+window.loadFulfillers = () => AdminApp.loadFulfillers();
+window.loadNotifications = () => AdminApp.loadNotifications();
+window.loadSales = () => AdminApp.loadSales();
+window.loadAnalytics = () => AdminApp.loadAnalytics();
 
 // Make globally available
 window.AdminApp = AdminApp;

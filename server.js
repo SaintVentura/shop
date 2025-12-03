@@ -1346,7 +1346,7 @@ app.get('/api/payment-status/:checkoutId', async (req, res) => {
 // ============================================
 // ADMIN DASHBOARD CONFIGURATION
 // ============================================
-const ADMIN_PASSWORD = 'WEAR3+H3$@!N+$*';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'WEAR3+H3$@!N+$*';
 const DATA_DIR = path.join(__dirname, 'data');
 const ADMIN_DATA_FILES = {
   inventory: path.join(DATA_DIR, 'inventory.json'),
@@ -1357,6 +1357,16 @@ const ADMIN_DATA_FILES = {
   notifications: path.join(DATA_DIR, 'notifications.json'),
   orders: path.join(DATA_DIR, 'orders.json')
 };
+
+// Admin password verification endpoint (doesn't expose password)
+app.post('/api/admin/verify-password', (req, res) => {
+  const { password } = req.body;
+  if (password === ADMIN_PASSWORD) {
+    res.json({ success: true });
+  } else {
+    res.status(401).json({ success: false, error: 'Invalid password' });
+  }
+});
 
 // Ensure data directory exists
 async function ensureDataDir() {
