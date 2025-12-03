@@ -998,6 +998,7 @@
         let currentSection = 'dashboard';
         let sidebarCollapsed = false;
         let posCart = [];
+        let posProducts = [];
         
         function toggleSidebar() {
             if (window.innerWidth <= 768) {
@@ -4044,8 +4045,7 @@ Thank you!</textarea>
         // ============================================
         // POINT OF SALE (POS) FUNCTIONS
         // ============================================
-        // posCart is already declared at the top level (line 1000)
-        let posProducts = [];
+        // posCart and posProducts are already declared at the top level
 
         function loadPOS() {
             console.log('Loading POS section...');
