@@ -4155,7 +4155,7 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
           isSubscribed: true
         });
 
-        const customerOrderEmailText = `Order Confirmation - Thank You!\n\nDear ${customerName},\n\nThank you for your order! Your payment has been successfully processed.\n\n${orderDetailsText}\n\nThank you for choosing Saint Ventura!`;
+        const customerOrderEmailText = `Order Confirmation - Thank You!\n\nDear ${customerName},\n\nThank you for your order! Your payment has been successfully processed.\n\n${orderDetailsText}\n\nEnjoy your package! We hope you love your new Saint Ventura pieces.\n\nThank you for choosing Saint Ventura!`;
 
         await sendEmailViaResendOrSMTP({
           from: process.env.EMAIL_USER || process.env.FROM_EMAIL || 'contact@saintventura.co.za',
