@@ -4357,20 +4357,7 @@ Thank you!</textarea>
                     });
 
                     if (response.success) {
-                        // If newsletter subscription is checked, add to subscribers
-                        if (newsletterSubscribe && customerEmail) {
-                            try {
-                                await adminFetch(`${BACKEND_URL}/api/subscribe`, {
-                                    method: 'POST',
-                                    body: JSON.stringify({
-                                        email: customerEmail,
-                                        name: customerName
-                                    })
-                                });
-                            } catch (subError) {
-                                console.warn('Failed to subscribe customer to newsletter:', subError);
-                            }
-                        }
+                        // Newsletter subscription is handled on the backend
 
                         // If Yoco payment, redirect to checkout
                         if (paymentMethod === 'yoco' && response.paymentUrl) {

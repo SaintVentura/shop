@@ -3910,6 +3910,34 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
     });
     await writeDataFile('orders', orders);
     
+    // Add to subscribers if newsletter subscription is checked
+    if (newsletterSubscribe && customerEmail) {
+      try {
+        const subscribers = await readDataFile('subscribers');
+        const emailLower = customerEmail.toLowerCase().trim();
+        
+        // Check if already subscribed
+        const existingSubscriber = subscribers.find(s => s.email?.toLowerCase().trim() === emailLower);
+        
+        if (!existingSubscriber) {
+          subscribers.push({
+            id: Date.now().toString(),
+            email: customerEmail,
+            name: customerName || '',
+            date: new Date().toISOString(),
+            source: 'POS'
+          });
+          await writeDataFile('subscribers', subscribers);
+          console.log(`✅ Added ${customerEmail} to subscribers from POS order`);
+        } else {
+          console.log(`ℹ️ ${customerEmail} is already subscribed`);
+        }
+      } catch (subError) {
+        console.error('Error adding subscriber from POS order:', subError);
+        // Don't fail the order if subscription fails
+      }
+    }
+    
     // Reduce stock when order is fulfilled (POS with cash/EFT)
     if (paymentMethod !== 'yoco') {
       try {
