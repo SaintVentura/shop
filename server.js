@@ -3925,8 +3925,8 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
           // Fallback: match by productId only (for products without variants)
           if (!inventoryItem) {
             inventoryItem = inventory.find(inv => 
-              inv.productId === item.id || 
-              inv.productId === parseInt(item.id) ||
+            inv.productId === item.id || 
+            inv.productId === parseInt(item.id) ||
               String(inv.productId) === String(item.id)
             );
           }
@@ -3936,7 +3936,7 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
             inventoryItem = inventory.find(inv => 
               inv.productName === item.name || 
               inv.name === item.name
-            );
+          );
           }
           
           if (inventoryItem) {
@@ -3952,7 +3952,7 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
         }
         
         if (stockUpdated) {
-          await writeDataFile('inventory', inventory);
+        await writeDataFile('inventory', inventory);
           console.log('✅ Stock updated successfully');
         }
         
@@ -3966,16 +3966,16 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
 
     // Create notification
     try {
-      const notifications = await readDataFile('notifications');
-      notifications.push({
-        id: Date.now().toString(),
-        type: 'order',
-        title: 'New POS Order',
+    const notifications = await readDataFile('notifications');
+    notifications.push({
+      id: Date.now().toString(),
+      type: 'order',
+      title: 'New POS Order',
         message: `${customerName} - R${parseFloat(total).toFixed(2)} (${paymentMethod})`,
-        date: new Date().toISOString(),
-        read: false
-      });
-      await writeDataFile('notifications', notifications);
+      date: new Date().toISOString(),
+      read: false
+    });
+    await writeDataFile('notifications', notifications);
     } catch (notifError) {
       console.error('Error creating notification:', notifError);
       // Don't fail the order if notification fails
@@ -4071,10 +4071,10 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
         console.error('Yoco error stack:', error.stack);
         try {
           if (!res.headersSent) {
-            res.status(500).json({ 
-              success: false, 
-              error: 'Failed to create Yoco checkout: ' + (error.response?.data?.message || error.message) 
-            });
+        res.status(500).json({ 
+          success: false, 
+          error: 'Failed to create Yoco checkout: ' + (error.response?.data?.message || error.message) 
+        });
           }
         } catch (responseError) {
           console.error('Error sending Yoco error response:', responseError);
