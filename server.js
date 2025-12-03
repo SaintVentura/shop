@@ -3963,7 +3963,7 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
         });
       }
     } else {
-      res.json({ success: true, orderId });
+      res.json({ success: true, orderId, order: orders.find(o => o.id === orderId) });
     }
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

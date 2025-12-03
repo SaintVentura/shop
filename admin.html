@@ -4024,6 +4024,378 @@ Thank you!</textarea>
             `;
         }
 
+        // ============================================
+        // POINT OF SALE (POS) FUNCTIONS
+        // ============================================
+        let posCart = [];
+        let posProducts = [];
+
+        function loadPOS() {
+            console.log('Loading POS section...');
+            loadPOSProducts();
+            updatePOSCart();
+            setupPOSForm();
+        }
+
+        function loadPOSProducts() {
+            const container = document.getElementById('pos-products-grid');
+            if (!container) return;
+
+            container.innerHTML = `
+                <div class="col-span-full text-center py-8 text-gray-500">
+                    <div class="flex items-center justify-center space-x-2">
+                        <div class="loading-spinner"></div>
+                        <span>Loading products...</span>
+                    </div>
+                </div>
+            `;
+
+            adminFetch(`${BACKEND_URL}/api/admin/products`)
+                .then(data => {
+                    console.log('POS products loaded:', data);
+                    posProducts = data || [];
+                    
+                    if (!Array.isArray(data) || data.length === 0) {
+                        container.innerHTML = '<div class="col-span-full text-center py-8 text-gray-500">No products available</div>';
+                        return;
+                    }
+
+                    renderPOSProducts(data);
+                    setupPOSSearch();
+                })
+                .catch(err => {
+                    console.error('Error loading POS products:', err);
+                    container.innerHTML = `<div class="col-span-full text-center py-8 text-red-500">Error loading products: ${err.message}</div>`;
+                });
+        }
+
+        function setupPOSSearch() {
+            const searchInput = document.getElementById('pos-product-search');
+            if (!searchInput) return;
+
+            searchInput.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase().trim();
+                if (searchTerm === '') {
+                    renderPOSProducts(posProducts);
+                } else {
+                    const filtered = posProducts.filter(p => 
+                        (p.name || '').toLowerCase().includes(searchTerm) ||
+                        (p.category || '').toLowerCase().includes(searchTerm)
+                    );
+                    renderPOSProducts(filtered);
+                }
+            });
+        }
+
+        function renderPOSProducts(products) {
+            const container = document.getElementById('pos-products-grid');
+            if (!container) return;
+
+            if (!products || products.length === 0) {
+                container.innerHTML = '<div class="col-span-full text-center py-8 text-gray-500">No products found</div>';
+                return;
+            }
+
+            container.innerHTML = products.map(product => {
+                const firstImage = (product.images && product.images.length > 0) 
+                    ? product.images[0] 
+                    : (product.availableColors && product.availableColors.length > 0 && product.availableColors[0].image)
+                        ? product.availableColors[0].image
+                        : 'https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1';
+                
+                const hasVariants = (product.sizes && product.sizes.length > 1) || 
+                                   (product.colors && product.colors.length > 1) ||
+                                   (product.availableColors && product.availableColors.length > 1);
+
+                return `
+                    <div class="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-all duration-200">
+                        <div class="aspect-square bg-gray-100 overflow-hidden">
+                            <img src="${firstImage}" alt="${product.name || 'Product'}" 
+                                 class="w-full h-full object-cover" 
+                                 onerror="this.src='https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1'">
+                        </div>
+                        <div class="p-3">
+                            <h4 class="font-semibold text-sm mb-1 line-clamp-2">${product.name || 'Unknown Product'}</h4>
+                            <p class="text-gray-600 font-bold text-sm mb-2">R${(product.price || 0).toFixed(2)}</p>
+                            <button onclick="openPOSVariantModal(${product.id})" 
+                                    class="w-full px-3 py-2 bg-black text-white rounded-lg text-xs font-medium hover:bg-gray-800 transition">
+                                ${hasVariants ? 'Select Variant' : 'Add to Cart'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openPOSVariantModal(productId) {
+            const product = posProducts.find(p => p.id === productId);
+            if (!product) {
+                alert('Product not found');
+                return;
+            }
+
+            // Remove existing modal if any
+            const existingModal = document.getElementById('pos-variant-modal');
+            if (existingModal) existingModal.remove();
+
+            const hasSizes = product.sizes && product.sizes.length > 0;
+            const hasColors = (product.colors && product.colors.length > 0) || 
+                            (product.availableColors && product.availableColors.length > 0);
+            const colors = product.availableColors || (product.colors ? product.colors.map(c => ({ name: c })) : []);
+
+            let modalHtml = `
+                <div id="pos-variant-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div class="bg-white rounded-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-bold">${product.name}</h3>
+                            <button onclick="closePOSVariantModal()" class="text-gray-500 hover:text-gray-700 text-2xl font-bold">&times;</button>
+                        </div>
+                        <div class="space-y-4">
+            `;
+
+            if (hasSizes) {
+                modalHtml += `
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Size <span class="text-red-500">*</span></label>
+                        <select id="pos-variant-size" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black">
+                            ${product.sizes.map(s => `<option value="${s}">${s}</option>`).join('')}
+                        </select>
+                    </div>
+                `;
+            }
+
+            if (hasColors) {
+                modalHtml += `
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Color <span class="text-red-500">*</span></label>
+                        <select id="pos-variant-color" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black">
+                            ${colors.map(c => `<option value="${c.name || c}">${c.name || c}</option>`).join('')}
+                        </select>
+                    </div>
+                `;
+            }
+
+            modalHtml += `
+                            <div class="flex space-x-2 pt-2">
+                                <button onclick="addToPOSCartFromModal(${productId})" 
+                                        class="flex-1 px-4 py-2 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition">
+                                    Add to Cart
+                                </button>
+                                <button onclick="closePOSVariantModal()" 
+                                        class="flex-1 px-4 py-2 bg-gray-300 text-black rounded-lg font-medium hover:bg-gray-400 transition">
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+
+        function closePOSVariantModal() {
+            const modal = document.getElementById('pos-variant-modal');
+            if (modal) modal.remove();
+        }
+
+        function addToPOSCartFromModal(productId) {
+            const product = posProducts.find(p => p.id === productId);
+            if (!product) return;
+
+            const sizeSelect = document.getElementById('pos-variant-size');
+            const colorSelect = document.getElementById('pos-variant-color');
+            
+            const size = sizeSelect ? sizeSelect.value : (product.sizes && product.sizes.length === 1 ? product.sizes[0] : null);
+            const color = colorSelect ? colorSelect.value : (product.availableColors && product.availableColors.length === 1 ? product.availableColors[0].name : 
+                                                           (product.colors && product.colors.length === 1 ? product.colors[0] : null));
+
+            addToPOSCart(productId, product.name, product.price, size, color);
+            closePOSVariantModal();
+        }
+
+        function addToPOSCart(id, name, price, size, color) {
+            const variantKey = `${id}-${size || 'default'}-${color || 'default'}`;
+            const existing = posCart.find(item => item.variantKey === variantKey);
+            
+            if (existing) {
+                existing.quantity++;
+            } else {
+                posCart.push({
+                    id,
+                    name,
+                    price: parseFloat(price) || 0,
+                    quantity: 1,
+                    size: size || null,
+                    color: color || null,
+                    variantKey: variantKey
+                });
+            }
+            
+            updatePOSCart();
+        }
+
+        function updatePOSCart() {
+            const container = document.getElementById('pos-cart-items');
+            const totalElement = document.getElementById('pos-cart-total');
+            
+            if (!container) return;
+
+            if (posCart.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">No items in cart</p>';
+                if (totalElement) totalElement.textContent = 'R0.00';
+                return;
+            }
+
+            container.innerHTML = posCart.map((item, index) => {
+                const variantText = [item.size, item.color].filter(Boolean).join(' / ');
+                return `
+                    <div class="flex items-start justify-between p-3 border border-gray-200 rounded-lg bg-gray-50">
+                        <div class="flex-1">
+                            <p class="font-semibold text-sm">${item.name}</p>
+                            ${variantText ? `<p class="text-xs text-gray-500 mt-1">${variantText}</p>` : ''}
+                            <p class="text-sm text-gray-600 mt-1">R${item.price.toFixed(2)} × ${item.quantity} = R${(item.price * item.quantity).toFixed(2)}</p>
+                        </div>
+                        <div class="flex items-center space-x-2 ml-2">
+                            <button onclick="updatePOSQuantity(${index}, -1)" 
+                                    class="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 font-semibold text-sm">-</button>
+                            <span class="font-semibold min-w-[2rem] text-center text-sm">${item.quantity}</span>
+                            <button onclick="updatePOSQuantity(${index}, 1)" 
+                                    class="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 font-semibold text-sm">+</button>
+                            <button onclick="removeFromPOSCart(${index})" 
+                                    class="ml-2 px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600">Remove</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            const total = posCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            if (totalElement) totalElement.textContent = `R${total.toFixed(2)}`;
+        }
+
+        function updatePOSQuantity(index, change) {
+            const item = posCart[index];
+            if (item) {
+                item.quantity += change;
+                if (item.quantity <= 0) {
+                    posCart.splice(index, 1);
+                }
+                updatePOSCart();
+            }
+        }
+
+        function removeFromPOSCart(index) {
+            posCart.splice(index, 1);
+            updatePOSCart();
+        }
+
+        function setupPOSForm() {
+            const form = document.getElementById('pos-checkout-form');
+            if (!form) return;
+
+            // Remove existing event listeners by cloning the form
+            const newForm = form.cloneNode(true);
+            form.parentNode.replaceChild(newForm, form);
+
+            // Add new event listener
+            document.getElementById('pos-checkout-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                if (posCart.length === 0) {
+                    alert('Please add items to cart before processing order');
+                    return;
+                }
+
+                const customerName = document.getElementById('pos-customer-name').value.trim();
+                const customerEmail = document.getElementById('pos-customer-email').value.trim();
+                const customerPhone = document.getElementById('pos-customer-phone').value.trim();
+                const paymentMethod = document.getElementById('pos-payment-method').value;
+                const newsletterSubscribe = document.getElementById('pos-newsletter-subscribe').checked;
+
+                if (!customerName || !customerEmail || !customerPhone || !paymentMethod) {
+                    alert('Please fill in all required fields');
+                    return;
+                }
+
+                const total = posCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                const processBtn = document.getElementById('pos-process-btn');
+                
+                if (processBtn) {
+                    processBtn.disabled = true;
+                    processBtn.textContent = 'Processing...';
+                }
+
+                try {
+                    const response = await adminFetch(`${BACKEND_URL}/api/admin/pos/order`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            customerName,
+                            customerEmail,
+                            customerPhone,
+                            paymentMethod,
+                            items: posCart,
+                            total,
+                            newsletterSubscribe
+                        })
+                    });
+
+                    if (response.success) {
+                        // If newsletter subscription is checked, add to subscribers
+                        if (newsletterSubscribe && customerEmail) {
+                            try {
+                                await adminFetch(`${BACKEND_URL}/api/subscribe`, {
+                                    method: 'POST',
+                                    body: JSON.stringify({
+                                        email: customerEmail,
+                                        name: customerName
+                                    })
+                                });
+                            } catch (subError) {
+                                console.warn('Failed to subscribe customer to newsletter:', subError);
+                            }
+                        }
+
+                        // If Yoco payment, redirect to checkout
+                        if (paymentMethod === 'yoco' && response.paymentUrl) {
+                            alert('Redirecting to Yoco payment...');
+                            window.location.href = response.paymentUrl;
+                            return;
+                        }
+
+                        // For cash/EFT, show success and reset
+                        alert(`Order processed successfully!\nOrder ID: ${response.orderId || 'N/A'}\nTotal: R${total.toFixed(2)}`);
+                        
+                        // Reset form and cart
+                        posCart = [];
+                        updatePOSCart();
+                        document.getElementById('pos-checkout-form').reset();
+                        
+                        // Refresh dashboard data if on dashboard
+                        if (currentSection === 'dashboard') {
+                            loadDashboardData();
+                        }
+                    } else {
+                        alert('Error: ' + (response.error || 'Failed to process order'));
+                    }
+                } catch (error) {
+                    console.error('Error processing POS order:', error);
+                    alert('Error processing order: ' + (error.message || 'Unknown error'));
+                } finally {
+                    if (processBtn) {
+                        processBtn.disabled = false;
+                        processBtn.textContent = 'Process Order';
+                    }
+                }
+            });
+        }
+
+        // Make functions globally accessible
+        window.openPOSVariantModal = openPOSVariantModal;
+        window.closePOSVariantModal = closePOSVariantModal;
+        window.addToPOSCartFromModal = addToPOSCartFromModal;
+        window.updatePOSQuantity = updatePOSQuantity;
+        window.removeFromPOSCart = removeFromPOSCart;
+
     </script>
 </body>
 </html>
