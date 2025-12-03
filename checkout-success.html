@@ -183,6 +183,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         orderId: orderId !== 'Pending' ? orderId : undefined
       };
       
+      console.log('Sending order confirmation email request to:', backendUrl);
+      console.log('Email data:', { customerEmail: emailData.customerEmail, customerName: emailData.customerName, orderId: emailData.orderId });
+      
       const response = await fetch(backendUrl, {
         method: 'POST',
         headers: {
@@ -191,10 +194,24 @@ document.addEventListener('DOMContentLoaded', async function() {
         body: JSON.stringify(emailData)
       });
       
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Order confirmation endpoint returned error:', response.status, errorText);
+        throw new Error(`Server error: ${response.status} - ${errorText}`);
+      }
+      
       const result = await response.json();
+      console.log('Order confirmation response:', result);
       
       if (result.success) {
-        console.log('Order confirmation email sent successfully');
+        if (result.emailSent) {
+          console.log('✅ Order confirmation email sent successfully to:', emailData.customerEmail);
+        } else {
+          console.warn('⚠️ Order confirmation processed but email may not have been sent:', result.emailError || 'Unknown error');
+          if (result.emailError) {
+            console.error('Email error:', result.emailError);
+          }
+        }
         // Remove pending order data after successful email send
         localStorage.removeItem('pendingOrderDetails');
         // Clear abandoned cart timeout since order completed
@@ -205,7 +222,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
         localStorage.removeItem('checkoutStartTime');
       } else {
-        console.error('Failed to send order confirmation email:', result.error);
+        console.error('Failed to send order confirmation email:', result.error || result.message);
       }
     } catch (error) {
       console.error('Error sending order confirmation email:', error);
