@@ -4417,7 +4417,31 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
     let outOfStockItems = [];
     try {
       const inventory = await readDataFile('inventory');
+      console.log(`📦 Total inventory items: ${inventory.length}`);
+      console.log(`📦 Inventory sample:`, inventory.slice(0, 3).map(inv => ({
+        productId: inv.productId,
+        productName: inv.productName || inv.name,
+        variant: inv.variant,
+        variantId: inv.variantId,
+        stock: inv.stock
+      })));
+      
       for (const item of enhancedItems) {
+        // First, find all matching products to debug
+        const matchingProducts = inventory.filter(inv => 
+          inv.productId === item.id || 
+          inv.productId === parseInt(item.id) ||
+          inv.productName === item.name
+        );
+        
+        console.log(`🔍 Looking for: ${item.name} (ID: ${item.id}, Size: ${item.size || 'N/A'}, Color: ${item.color || 'N/A'})`);
+        console.log(`   Found ${matchingProducts.length} inventory items for this product:`, matchingProducts.map(inv => ({
+          productId: inv.productId,
+          variant: inv.variant,
+          variantId: inv.variantId,
+          stock: inv.stock
+        })));
+        
         const inventoryItem = inventory.find(inv => {
           const productMatch = inv.productId === item.id || 
                               inv.productId === parseInt(item.id) ||
@@ -4428,28 +4452,43 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
           // Match by variant if size/color provided
           if (item.size || item.color) {
             // Check both variant and variantId fields (case-insensitive)
-            const variantStr = (inv.variant || '').toLowerCase();
-            const variantIdStr = (inv.variantId || '').toLowerCase();
+            const variantStr = (inv.variant || '').toLowerCase().trim();
+            const variantIdStr = (inv.variantId || '').toLowerCase().trim();
             
             // Build expected variant strings for matching
-            const sizeStr = (item.size || '').toLowerCase();
-            const colorStr = (item.color || '').toLowerCase();
+            const sizeStr = (item.size || '').toLowerCase().trim();
+            const colorStr = (item.color || '').toLowerCase().trim();
             const isOneSize = sizeStr === 'one size fits all';
+            
+            console.log(`   Checking variant match for inventory item:`, {
+              variant: inv.variant,
+              variantId: inv.variantId,
+              itemSize: item.size,
+              itemColor: item.color,
+              isOneSize: isOneSize,
+              variantStr: variantStr,
+              variantIdStr: variantIdStr,
+              sizeStr: sizeStr,
+              colorStr: colorStr
+            });
             
             // For "One Size Fits All" products, inventory only stores color, so match by color only
             if (isOneSize && colorStr) {
               // Check if variantId or variant is just the color (no size)
-              const variantIdMatchesColor = variantIdStr === colorStr || variantIdStr === colorStr.trim();
-              const variantMatchesColor = variantStr === colorStr || variantStr === colorStr.trim();
+              const variantIdMatchesColor = variantIdStr === colorStr;
+              const variantMatchesColor = variantStr === colorStr;
+              
+              console.log(`   One Size check: variantIdMatches=${variantIdMatchesColor}, variantMatches=${variantMatchesColor}`);
               
               if (variantIdMatchesColor || variantMatchesColor) {
+                console.log(`   ✅ MATCHED by color for One Size product`);
                 return true;
               }
             }
             
             // For regular products with sizes, match using both size and color
-            const expectedVariantId = sizeStr && colorStr ? `${sizeStr}-${colorStr}` : (sizeStr || colorStr);
-            const expectedVariantWithSlash = sizeStr && colorStr ? `${sizeStr} / ${colorStr}` : (sizeStr || colorStr);
+            const expectedVariantId = sizeStr && colorStr && !isOneSize ? `${sizeStr}-${colorStr}` : (sizeStr || colorStr);
+            const expectedVariantWithSlash = sizeStr && colorStr && !isOneSize ? `${sizeStr} / ${colorStr}` : (sizeStr || colorStr);
             
             // Match using variantId (e.g., "M-Black" or "Black")
             const variantIdMatch = variantIdStr === expectedVariantId || 
@@ -4461,7 +4500,10 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
                                 (sizeStr && !isOneSize && variantStr.includes(sizeStr) && (!colorStr || variantStr.includes(colorStr))) ||
                                 (colorStr && variantStr.includes(colorStr) && (!sizeStr || isOneSize || variantStr.includes(sizeStr)));
             
-            return variantIdMatch || variantMatch;
+            const matched = variantIdMatch || variantMatch;
+            console.log(`   Regular match check: variantIdMatch=${variantIdMatch}, variantMatch=${variantMatch}, final=${matched}`);
+            
+            return matched;
           }
           
           return true; // If no size/color specified, match any variant of the product
