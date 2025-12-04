@@ -624,14 +624,13 @@ app.post('/api/newsletter-subscribe', async (req, res) => {
               };
             });
             
-            // Use fulfiller-order style for newsletter subscription emails
-            const welcomeEmailHtml = generateEmailTemplate('fulfiller-order', {
+            const welcomeEmailHtml = generateEmailTemplate('new-subscriber', {
               heading: 'Welcome to Saint Ventura!',
               content: `Thank you for subscribing to our newsletter! You'll be the first to know about:\n\n• New product launches\n• Exclusive promotions and sales\n• Special offers and discounts\n• Latest news and updates\n\nWe're excited to have you as part of the Saint Ventura family! Check out some of our featured products below.`,
               ctaText: 'Explore Our Collection',
               ctaLink: BRAND_WEBSITE,
               products: featuredProducts,
-              includeSlideshow: false, // Fulfiller style doesn't use slideshow
+              includeSlideshow: true,
               includeSocialMedia: true
             });
             
@@ -2064,11 +2063,11 @@ function generateEmailTemplate(type, data = {}) {
   // Template-specific content
   switch(type) {
     case 'new-subscriber':
-      heading = heading || 'Welcome to Saint Ventura!';
-      content = content || `Thank you for subscribing to our newsletter! You'll be the first to know about:\n\n• New product launches\n• Exclusive promotions and sales\n• Special offers and discounts\n• Latest news and updates\n\nWe're excited to have you as part of the Saint Ventura family! Check out some of our featured products below.`;
+      heading = heading || 'Welcome to the Saint Ventura Family - Your Journey to Premium Streetwear Begins Now!';
+      content = content || `Welcome to Saint Ventura, where premium streetwear meets exceptional style! We're absolutely thrilled and honored to have you join our exclusive community of fashion-forward individuals who appreciate quality, craftsmanship, and authentic street culture.\n\nAt Saint Ventura, we don't just create clothing—we craft experiences. Every piece in our collection is thoughtfully designed, carefully curated, and meticulously produced to meet the highest standards of quality and style. We believe that what you wear is an extension of who you are, and we're here to help you express your unique identity through premium streetwear that speaks to your soul.\n\nAs a valued subscriber, you're now part of an elite community that receives:\n\n✨ Exclusive Early Access: Be the first to discover our latest collections and new product launches before anyone else. Get first dibs on limited edition pieces and special collaborations.\n\n🎁 Special Promotions: Enjoy members-only discounts, flash sales, and exclusive offers reserved just for our community. We regularly reward our subscribers with incredible savings.\n\n📰 Insider Updates: Stay ahead of the trends with behind-the-scenes content, styling tips, and exclusive insights into our design process and upcoming releases.\n\n🌟 Priority Support: Receive personalized customer service and priority assistance whenever you need help or have questions.\n\nWe're constantly working to bring you the freshest designs and most innovative streetwear pieces that reflect your unique style and personality. Our team of designers and craftspeople pour their passion into every detail, ensuring that each piece not only looks incredible but feels amazing when you wear it.\n\nFrom bold statement pieces that command attention to versatile essentials that seamlessly integrate into your wardrobe, our collections are designed to elevate your style and help you stand out from the crowd. We source only the finest materials and work with expert manufacturers to ensure every item meets our exacting standards.\n\nGet ready to elevate your wardrobe, express your individuality, and stay ahead of the trends. We can't wait to share our passion for streetwear with you and help you discover pieces that will become staples in your collection!\n\nThank you for choosing Saint Ventura. Your style journey starts here, and we're excited to be part of it.`;
       ctaText = 'Explore Our Collection';
       backgroundColor = '#FFFFFF';
-      headerImage = '<div style="background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%); padding: 60px 20px; text-align: center; border-bottom: 4px solid #FFFFFF;"><h1 style="color: #FFFFFF; font-size: 40px; margin: 0 0 15px 0; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; text-shadow: 3px 3px 6px rgba(0,0,0,0.7);">WELCOME</h1><p style="color: #FFFFFF; font-size: 18px; margin: 0 0 10px 0; font-weight: 600; letter-spacing: 1px;">To Saint Ventura</p><p style="color: #CCCCCC; font-size: 14px; margin: 0; font-weight: 400;">Your Style Journey Begins</p></div>';
+      headerImage = '<div style="background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%); padding: 60px 20px; text-align: center; border-bottom: 4px solid #FFFFFF;"><h1 style="color: #FFFFFF; font-size: 42px; margin: 0 0 15px 0; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">WELCOME TO SAINT VENTURA</h1><p style="color: #CCCCCC; font-size: 18px; margin: 0 0 10px 0; font-weight: 500; letter-spacing: 1px;">Premium Streetwear Awaits</p><p style="color: #999999; font-size: 14px; margin: 0; font-weight: 400;">Your Style Journey Begins Here</p></div>';
       break;
     
     case 'promotion':
@@ -3545,8 +3544,8 @@ app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
     
     // If HTML not provided, generate professional template
     if (!emailHtml) {
-      // Use fulfiller-order template style for all broadcast emails (same style as order fulfillers)
-      let templateType = 'fulfiller-order';
+      // Use new-subscriber template style for all broadcast emails
+      let templateType = 'new-subscriber';
       let templateProducts = [];
       
       // Set default subject based on template if not provided
@@ -3581,24 +3580,25 @@ app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
         });
       }
       
-      // Format message content in fulfiller-order style
-      let formattedMessage = message;
+      // Generate product grid HTML if products provided
+      let productGridHtml = '';
       if (templateProducts.length > 0) {
-        const productList = templateProducts.map((p, idx) => 
-          `${idx + 1}. ${p.name}\n   Price: R${p.price.toFixed(2)}\n   ${p.description ? p.description.substring(0, 60) + '...' : ''}\n`
-        ).join('\n');
-        formattedMessage = `${message}\n\n🛍️ FEATURED PRODUCTS:\n\n${productList}`;
+        productGridHtml = generateProductGrid(templateProducts);
       }
       
-      // Generate fulfiller-order style email
-      emailHtml = generateEmailTemplate('fulfiller-order', {
-        heading: emailSubject,
-        content: formattedMessage,
+      // Use new template system with Handlebars
+      emailHtml = generateEmailTemplate('broadcast', {
+        title: emailSubject,
+        subtitle: req.body.subtitle || '',
+        message: formatMessageContent(message),
         ctaText: req.body.ctaText || 'Shop Now',
         ctaLink: req.body.ctaLink || BRAND_WEBSITE,
-        products: templateProducts,
-        includeSlideshow: false, // Fulfiller style doesn't use slideshow
-        includeSocialMedia: true
+        bannerImage: req.body.bannerImage || '',
+        productGrid: productGridHtml,
+        products: templateProducts, // Keep for backward compatibility
+        includeSlideshow: true,
+        includeSocialMedia: true,
+        isSubscribed: true
       });
       
       // Replace {{EMAIL}} placeholder in unsubscribe link (will be replaced per subscriber)
