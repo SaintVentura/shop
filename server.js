@@ -8,6 +8,7 @@ const nodemailer = require('nodemailer');
 const { Resend } = require('resend');
 const Imap = require('imap');
 const { simpleParser } = require('mailparser');
+const handlebars = require('handlebars');
 require('dotenv').config();
 
 const app = express();
@@ -1200,31 +1201,57 @@ app.post('/api/send-order-confirmation', async (req, res) => {
           // If stock check fails, assume items are available (don't block order)
         }
         
-        // Determine order status for website orders:
-        // - Always set to "pending fulfillment" (admin will mark as fulfilled after shipping)
-        // - hasOutOfStockItems flag will indicate if any items are out of stock
-        const orderStatus = 'pending fulfillment';
+        // Check if order already exists with "pending checkout" status and update it
+        const existingOrderIndex = orders.findIndex(o => o.id === finalOrderId);
         
-        orders.push({
-          id: finalOrderId,
-          customerName,
-          customerEmail,
-          customerPhone: req.body.customerPhone || '', // Optional field
-          shippingMethod,
-          deliveryAddress,
-          deliveryDetails,
-          items: enhancedOrderItems, // Store as array with images and details
-          subtotal,
-          shipping,
-          total,
-          date: new Date().toISOString(),
-          status: orderStatus, // pending fulfillment (admin will mark as fulfilled)
-          paymentMethod: 'yoco', // Assuming Yoco payment gateway
-          orderType: 'online', // Mark as online order
-          hasOutOfStockItems: hasOutOfStockItems // Track if order has out of stock items
-        });
-        await writeDataFile('orders', orders);
-        console.log(`✅ Saved completed order to orders.json: ${finalOrderId} with status: ${orderStatus}`);
+        if (existingOrderIndex !== -1 && orders[existingOrderIndex].status === 'pending checkout') {
+          // Update existing order from "pending checkout" to "pending fulfilment"
+          orders[existingOrderIndex].status = 'pending fulfilment';
+          orders[existingOrderIndex].customerName = customerName;
+          orders[existingOrderIndex].customerEmail = customerEmail;
+          orders[existingOrderIndex].customerPhone = req.body.customerPhone || orders[existingOrderIndex].customerPhone || '';
+          orders[existingOrderIndex].shippingMethod = shippingMethod;
+          orders[existingOrderIndex].deliveryAddress = deliveryAddress;
+          orders[existingOrderIndex].deliveryDetails = deliveryDetails;
+          orders[existingOrderIndex].items = enhancedOrderItems;
+          orders[existingOrderIndex].subtotal = subtotal;
+          orders[existingOrderIndex].shipping = shipping;
+          orders[existingOrderIndex].total = total;
+          orders[existingOrderIndex].date = new Date().toISOString();
+          orders[existingOrderIndex].paymentMethod = 'yoco';
+          orders[existingOrderIndex].orderType = 'online';
+          orders[existingOrderIndex].hasOutOfStockItems = hasOutOfStockItems;
+          orders[existingOrderIndex].updatedAt = new Date().toISOString();
+          
+          await writeDataFile('orders', orders);
+          console.log(`✅ Updated order ${finalOrderId} from "pending checkout" to "pending fulfilment"`);
+        } else {
+          // Determine order status for website orders:
+          // - Always set to "pending fulfilment" (admin will mark as fulfilled after shipping)
+          // - hasOutOfStockItems flag will indicate if any items are out of stock
+          const orderStatus = 'pending fulfilment';
+          
+          orders.push({
+            id: finalOrderId,
+            customerName,
+            customerEmail,
+            customerPhone: req.body.customerPhone || '', // Optional field
+            shippingMethod,
+            deliveryAddress,
+            deliveryDetails,
+            items: enhancedOrderItems, // Store as array with images and details
+            subtotal,
+            shipping,
+            total,
+            date: new Date().toISOString(),
+            status: orderStatus, // pending fulfilment (admin will mark as fulfilled)
+            paymentMethod: 'yoco', // Assuming Yoco payment gateway
+            orderType: 'online', // Mark as online order
+            hasOutOfStockItems: hasOutOfStockItems // Track if order has out of stock items
+          });
+          await writeDataFile('orders', orders);
+          console.log(`✅ Saved completed order to orders.json: ${finalOrderId} with status: ${orderStatus}`);
+        }
         
         // Reduce stock when order is fulfilled (from abandoned cart or website orders)
         // Note: Stock is only reduced when admin marks order as fulfilled, not here
@@ -1891,6 +1918,45 @@ if (process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS) 
   }
 }
 
+// Handlebars template setup
+let emailTemplates = {};
+let baseTemplate = null;
+
+// Load and compile email templates
+async function loadEmailTemplates() {
+  try {
+    const templatesDir = path.join(__dirname, 'templates');
+    
+    // Load base template
+    const baseTemplatePath = path.join(templatesDir, 'base.hbs');
+    const baseTemplateContent = await fs.readFile(baseTemplatePath, 'utf8');
+    baseTemplate = handlebars.compile(baseTemplateContent);
+    
+    // Register base as a partial
+    handlebars.registerPartial('base', baseTemplate);
+    
+    // Load other templates
+    const templateFiles = await fs.readdir(templatesDir);
+    for (const file of templateFiles) {
+      if (file.endsWith('.hbs') && file !== 'base.hbs') {
+        const templateName = file.replace('.hbs', '');
+        const templatePath = path.join(templatesDir, file);
+        const templateContent = await fs.readFile(templatePath, 'utf8');
+        emailTemplates[templateName] = handlebars.compile(templateContent);
+        console.log(`✅ Loaded email template: ${templateName}`);
+      }
+    }
+    
+    console.log('✅ All email templates loaded successfully');
+  } catch (error) {
+    console.error('❌ Error loading email templates:', error);
+    // Continue without templates - fallback to old method
+  }
+}
+
+// Initialize templates on startup
+loadEmailTemplates();
+
 // Professional Email Template Generator
 const BRAND_LOGO = 'https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1';
 const BRAND_COLOR_PRIMARY = '#000000';
@@ -1914,6 +1980,60 @@ const SOCIAL_MEDIA = {
   youtube: 'https://www.youtube.com/@saintventura'
 };
 
+// Helper function to render email template using Handlebars
+function renderEmailTemplate(templateName, context) {
+  try {
+    // Try to use Handlebars template if available
+    if (emailTemplates[templateName]) {
+      return emailTemplates[templateName](context);
+    } else if (baseTemplate) {
+      // Fallback to base template
+      return baseTemplate(context);
+    }
+  } catch (error) {
+    console.error(`Error rendering template ${templateName}:`, error);
+  }
+  return null;
+}
+
+// Helper function to format message content (convert newlines to HTML paragraphs)
+function formatMessageContent(content) {
+  if (!content) return '';
+  return content.split('\n').map(p => {
+    const trimmed = p.trim();
+    if (!trimmed) return '<br>';
+    return `<p style="margin: 0 0 18px 0; word-wrap: break-word; color: #444444; font-weight: 700;">${trimmed}</p>`;
+  }).join('');
+}
+
+// Helper function to generate product grid HTML
+function generateProductGrid(products) {
+  if (!products || products.length === 0) return '';
+  
+  const productsPerRow = Math.min(products.length, 4);
+  const productRows = [];
+  for (let i = 0; i < products.length; i += productsPerRow) {
+    productRows.push(products.slice(i, i + productsPerRow));
+  }
+  
+  return productRows.map(row => `
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin: 20px 0; width: 100% !important; max-width: 100% !important; table-layout: fixed;">
+      <tr>
+        ${row.map(product => `
+          <td align="center" class="product-cell" style="padding: 10px; width: ${100 / row.length}%; vertical-align: top; word-wrap: break-word;">
+            <div style="background: #FFFFFF; border: 1px solid #E5E5E5; border-radius: 8px; padding: 15px; max-width: 250px; margin: 0 auto; width: 100%; box-sizing: border-box;">
+              ${product.image && product.image.trim() ? `<img src="${product.image.trim()}" alt="${(product.name || '').replace(/"/g, '&quot;')}" style="width: 100%; max-width: 200px; height: auto; border-radius: 4px; margin-bottom: 12px; display: block; margin-left: auto; margin-right: auto; border: 0; outline: none; text-decoration: none;">` : ''}
+              <h3 style="color: #000000; font-size: 16px; font-weight: 700; margin: 0 0 8px 0; line-height: 1.3; word-wrap: break-word;">${product.name || ''}</h3>
+              ${product.description ? `<p style="color: #666666; font-size: 13px; margin: 0 0 12px 0; line-height: 1.4; word-wrap: break-word;">${product.description.substring(0, 80)}${product.description.length > 80 ? '...' : ''}</p>` : ''}
+              <p style="color: #000000; font-size: 18px; font-weight: 900; margin: 0;">R${(product.price || 0).toFixed(2)}</p>
+            </div>
+          </td>
+        `).join('')}
+      </tr>
+    </table>
+  `).join('');
+}
+
 function generateEmailTemplate(type, data = {}) {
   let { 
     heading = '', 
@@ -1926,7 +2046,14 @@ function generateEmailTemplate(type, data = {}) {
     supportResponse = '',
     includeSlideshow = false,
     includeSocialMedia = true, // Always include footer with social media
-    isSubscribed = true // Whether the recipient is subscribed to newsletter
+    isSubscribed = true, // Whether the recipient is subscribed to newsletter
+    // New template variables
+    title = '',
+    subtitle = '',
+    message = '',
+    bannerImage = '',
+    productGrid = '',
+    email = ''
   } = data;
 
   let mainContent = '';
@@ -2067,6 +2194,33 @@ function generateEmailTemplate(type, data = {}) {
   
   // Social media links will be added to footer
 
+  // Try to use Handlebars template if available (for broadcast emails and new template system)
+  if (type === 'broadcast' || title || subtitle || message) {
+    const templateContext = {
+      title: title || heading,
+      subtitle: subtitle || '',
+      message: formatMessageContent(message || content),
+      ctaText: ctaText || '',
+      ctaLink: ctaLink || BRAND_WEBSITE,
+      bannerImage: bannerImage || '',
+      productGrid: productGrid || (productsSection || ''),
+      brandName: BRAND_NAME,
+      brandLogo: BRAND_LOGO,
+      brandWebsite: BRAND_WEBSITE,
+      socialMedia: SOCIAL_MEDIA,
+      isSubscribed: isSubscribed !== false,
+      email: email || '',
+      currentYear: new Date().getFullYear(),
+      headerImage: headerImage || ''
+    };
+    
+    const rendered = renderEmailTemplate('broadcast', templateContext);
+    if (rendered) {
+      return rendered;
+    }
+  }
+  
+  // Fallback to original string-based template generation
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -3426,14 +3580,25 @@ app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
         });
       }
       
-      emailHtml = generateEmailTemplate(templateType, {
-        heading: emailSubject, // Use subject as heading
-        content: message,
-        ctaText: 'Shop Now',
-        ctaLink: BRAND_WEBSITE,
-        products: templateProducts,
-        includeSlideshow: true, // Include slideshow images like new-subscriber
-        includeSocialMedia: true // Always include footer
+      // Generate product grid HTML if products provided
+      let productGridHtml = '';
+      if (templateProducts.length > 0) {
+        productGridHtml = generateProductGrid(templateProducts);
+      }
+      
+      // Use new template system with Handlebars
+      emailHtml = generateEmailTemplate('broadcast', {
+        title: emailSubject,
+        subtitle: req.body.subtitle || '',
+        message: formatMessageContent(message),
+        ctaText: req.body.ctaText || 'Shop Now',
+        ctaLink: req.body.ctaLink || BRAND_WEBSITE,
+        bannerImage: req.body.bannerImage || '',
+        productGrid: productGridHtml,
+        products: templateProducts, // Keep for backward compatibility
+        includeSlideshow: true,
+        includeSocialMedia: true,
+        isSubscribed: true
       });
       
       // Replace {{EMAIL}} placeholder in unsubscribe link (will be replaced per subscriber)
@@ -3466,7 +3631,14 @@ app.post('/api/admin/broadcast', adminAuth, async (req, res) => {
       while (retries > 0 && !success) {
         try {
           // Replace {{EMAIL}} placeholder in unsubscribe link with actual subscriber email
-          const personalizedHtml = emailHtml.replace(/\{\{EMAIL\}\}/g, encodeURIComponent(subscriber.email));
+          // Also replace any other email placeholders in the template
+          let personalizedHtml = emailHtml.replace(/\{\{EMAIL\}\}/g, encodeURIComponent(subscriber.email));
+          
+          // If using Handlebars template, render with subscriber email
+          if (emailTemplates['broadcast'] && !personalizedHtml.includes('{{EMAIL}}')) {
+            // Template already rendered, just replace email in unsubscribe link
+            personalizedHtml = personalizedHtml.replace(/email=([^"&]+)/g, `email=${encodeURIComponent(subscriber.email)}`);
+          }
           
           // Send email via Resend (preferred) or SMTP (fallback)
           const result = await sendEmailViaResendOrSMTP({
@@ -4266,6 +4438,48 @@ setInterval(async () => {
     console.error('Error in periodic abandoned cart check:', error);
   }
 }, 5 * 60 * 1000); // Check every 5 minutes
+
+// Update order status (public endpoint for checkout success)
+app.post('/api/update-order-status', async (req, res) => {
+  try {
+    const { orderId, status } = req.body;
+    
+    if (!orderId || !status) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Order ID and status are required' 
+      });
+    }
+    
+    const orders = await readDataFile('orders');
+    const orderIndex = orders.findIndex(o => o.id === orderId);
+    
+    if (orderIndex === -1) {
+      return res.status(404).json({ success: false, error: 'Order not found' });
+    }
+    
+    const oldStatus = orders[orderIndex].status;
+    
+    // Only allow updating from "pending checkout" to "pending fulfilment"
+    if (oldStatus === 'pending checkout' && status === 'pending fulfilment') {
+      orders[orderIndex].status = status;
+      orders[orderIndex].updatedAt = new Date().toISOString();
+      await writeDataFile('orders', orders);
+      console.log(`✅ Updated order ${orderId} from "pending checkout" to "pending fulfilment"`);
+      return res.json({ success: true, order: orders[orderIndex] });
+    } else {
+      // If status is already correct or different transition, return success anyway
+      return res.json({ 
+        success: true, 
+        message: `Order status is already "${oldStatus}" or invalid transition`,
+        order: orders[orderIndex]
+      });
+    }
+  } catch (error) {
+    console.error('Error updating order status:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 // Update order status
 app.put('/api/admin/orders/:orderId/status', adminAuth, async (req, res) => {

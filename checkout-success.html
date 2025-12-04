@@ -212,6 +212,38 @@ document.addEventListener('DOMContentLoaded', async function() {
             console.error('Email error:', result.emailError);
           }
         }
+        
+        // Update order status from "pending checkout" to "pending fulfilment"
+        if (emailData.orderId) {
+          try {
+            const updateStatusUrl = `${backendBaseUrl}/api/update-order-status`;
+            const updateResponse = await fetch(updateStatusUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                orderId: emailData.orderId,
+                status: 'pending fulfilment'
+              })
+            });
+            
+            if (updateResponse.ok) {
+              const updateResult = await updateResponse.json();
+              if (updateResult.success) {
+                console.log('✅ Order status updated to "pending fulfilment"');
+              } else {
+                console.warn('⚠️ Order status update returned success=false:', updateResult.error);
+              }
+            } else {
+              console.warn('⚠️ Failed to update order status:', updateResponse.status);
+            }
+          } catch (updateError) {
+            console.error('Error updating order status:', updateError);
+            // Don't block success page if status update fails
+          }
+        }
+        
         // Remove pending order data after successful email send
         localStorage.removeItem('pendingOrderDetails');
         // Clear abandoned cart timeout since order completed

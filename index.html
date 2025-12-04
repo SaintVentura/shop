@@ -1731,7 +1731,6 @@
                                 <option value="">Select your location</option>
                                 <option id="door-option" value="door">Door-to-Door Courier (R130)</option>
                                 <option id="uj-option" value="uj">UJ Campus Delivery (R30)</option>
-                                <option id="test-option" value="test">Testing Delivery (R1)</option>
                             </select>
                             
                             <!-- Address Fields - Shows for Door-to-Door Courier -->
@@ -1796,12 +1795,6 @@
                                 <p class="text-xs text-gray-500 mt-2">Delivery will be made to your selected campus</p>
                             </div>
 
-                            <!-- Testing Delivery Section - Shows for Testing Delivery -->
-                            <div id="test-delivery-section" class="hidden mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                                <label class="block mb-3 font-semibold text-lg">Testing Delivery</label>
-                                <p class="text-sm text-gray-600 mb-4">This is a testing delivery option for R1. No actual delivery will be made.</p>
-                                <p class="text-xs text-gray-500 mt-2">Use this option for testing checkout and payment functionality only.</p>
-                            </div>
                         </div>
 
                         <button type="submit" class="w-full bg-black text-white py-4 rounded-lg font-semibold hover:bg-gray-800 transition-all duration-300 transform hover:scale-[1.02] text-lg">
@@ -2207,22 +2200,7 @@
                 sizes: ["13cm", "14cm", "15cm", "16cm", "17cm", "18cm"],
                 colors: ["Black"],
                 availableColors: [{ name: "Black", gradient: "from-gray-900 to-black", image: "https://dl.dropboxusercontent.com/scl/fi/xevb4s1aeggk0fjcwk85e/1-18.png?rlkey=vs9rk6nu79b5nwtdxme114crx&st=6fn852el&dl=1" }]
-            },
-            {
-                id: 11,
-                name: "Test Product",
-                price: 1,
-                category: "accessories",
-                description: "Test product for testing checkout and payment functionality. This is a low-cost item for testing purposes only.",
-                details: ["Test item", "For testing only", "Low cost"],
-                gradient: "from-gray-100 to-white",
-                images: [
-                    "https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1"
-                ],
-                sizes: ["One Size Fits All"],
-                colors: ["Test"],
-                availableColors: [{ name: "Test", gradient: "from-gray-100 to-white", image: "https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1" }]
-            },
+            }
 
         ];
 
@@ -3689,7 +3667,6 @@ function initializeCheckoutPage() {
     } else {
         const addressSection = document.getElementById('address-section');
         const ujCampusSection = document.getElementById('uj-campus-section');
-        const testDeliverySection = document.getElementById('test-delivery-section');
         if (addressSection) {
             addressSection.classList.add('hidden');
             addressSection.style.setProperty('display', 'none', 'important');
@@ -3697,10 +3674,6 @@ function initializeCheckoutPage() {
         if (ujCampusSection) {
             ujCampusSection.classList.add('hidden');
             ujCampusSection.style.setProperty('display', 'none', 'important');
-        }
-        if (testDeliverySection) {
-            testDeliverySection.classList.add('hidden');
-            testDeliverySection.style.setProperty('display', 'none', 'important');
         }
     }
 }
@@ -3758,7 +3731,6 @@ function renderCheckoutCart() {
 function updateCheckoutDeliveryMethodText() {
     const doorOption = document.getElementById('door-option');
     const ujOption = document.getElementById('uj-option');
-    const testOption = document.getElementById('test-option');
     if (!doorOption || !ujOption) return;
     
     let subtotalBeforeDiscount = parseFloat(localStorage.getItem('cartSubtotalBeforeDiscount') || 0);
@@ -3773,11 +3745,6 @@ function updateCheckoutDeliveryMethodText() {
     } else {
         doorOption.textContent = 'Door-to-Door Courier (R130)';
         ujOption.textContent = 'UJ Campus Delivery (R30)';
-    }
-    
-    // Test option always shows (R1)
-    if (testOption) {
-        testOption.textContent = 'Testing Delivery (R1)';
     }
 }
 
@@ -3846,7 +3813,6 @@ function updateCheckoutShipping() {
 
     const addressSection = document.getElementById('address-section');
     const ujCampusSection = document.getElementById('uj-campus-section');
-    const testDeliverySection = document.getElementById('test-delivery-section');
     
     // Hide all sections first
     if (addressSection) {
@@ -3857,11 +3823,6 @@ function updateCheckoutShipping() {
     if (ujCampusSection) {
         ujCampusSection.classList.add('hidden');
         ujCampusSection.style.setProperty('display', 'none', 'important');
-    }
-    
-    if (testDeliverySection) {
-        testDeliverySection.classList.add('hidden');
-        testDeliverySection.style.setProperty('display', 'none', 'important');
     }
     
     if (location === 'door') {
@@ -3891,29 +3852,6 @@ function updateCheckoutShipping() {
         }
         
         // Remove required attributes from address fields (not needed for campus delivery)
-        const addressInput = document.getElementById('address-autocomplete');
-        const cityInput = document.getElementById('address-city');
-        const provinceSelect = document.getElementById('address-province');
-        const postalInput = document.getElementById('address-postal');
-        
-        if (addressInput) addressInput.removeAttribute('required');
-        if (cityInput) cityInput.removeAttribute('required');
-        if (provinceSelect) provinceSelect.removeAttribute('required');
-        if (postalInput) postalInput.removeAttribute('required');
-    } else if (location === 'test') {
-        // Show testing delivery section
-        if (testDeliverySection) {
-            testDeliverySection.classList.remove('hidden');
-            testDeliverySection.style.setProperty('display', 'block', 'important');
-        }
-        
-        // Hide address section - not needed for testing delivery
-        if (addressSection) {
-            addressSection.classList.add('hidden');
-            addressSection.style.setProperty('display', 'none', 'important');
-        }
-        
-        // Remove required attributes from address fields (not needed for testing delivery)
         const addressInput = document.getElementById('address-autocomplete');
         const cityInput = document.getElementById('address-city');
         const provinceSelect = document.getElementById('address-province');
@@ -3977,7 +3915,7 @@ async function sendCheckoutEmailNotification(orderDetails) {
             customerName: orderDetails.customerName,
             customerEmail: orderDetails.customerEmail,
             customerPhone: orderDetails.customerPhone,
-            shippingMethod: orderDetails.shippingMethod === 'door' ? 'Door-to-Door Courier' : (orderDetails.shippingMethod === 'uj' ? 'UJ Campus Delivery' : 'Testing Delivery'),
+            shippingMethod: orderDetails.shippingMethod === 'door' ? 'Door-to-Door Courier' : 'UJ Campus Delivery',
             deliveryAddress: orderDetails.deliveryAddress,
             orderItems: orderDetails.orderItems, // Send as array, backend will format it
             subtotal: orderDetails.subtotal,
@@ -4113,14 +4051,6 @@ async function handleCheckout(event) {
         deliveryDetails = {
             type: 'campus',
             campus: campus
-        };
-    } else if (location === 'test') {
-        // Testing delivery option - no address needed
-        deliveryInfo = 'Testing Delivery - No actual delivery will be made';
-        
-        deliveryDetails = {
-            type: 'test',
-            note: 'This is a testing delivery option for checkout and payment testing only'
         };
     }
 
