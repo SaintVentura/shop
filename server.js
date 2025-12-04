@@ -4428,26 +4428,48 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
       
       for (const item of enhancedItems) {
         // First, find all matching products to debug
-        const matchingProducts = inventory.filter(inv => 
-          inv.productId === item.id || 
-          inv.productId === parseInt(item.id) ||
-          inv.productName === item.name
-        );
+        const matchingProducts = inventory.filter(inv => {
+          const productIdMatch = inv.productId === item.id || 
+                                inv.productId === parseInt(item.id) ||
+                                String(inv.productId) === String(item.id);
+          const productNameMatch = inv.productName && item.name && 
+                                  (inv.productName.toLowerCase().trim() === item.name.toLowerCase().trim());
+          const nameMatch = inv.name && item.name && 
+                           (inv.name.toLowerCase().trim() === item.name.toLowerCase().trim());
+          return productIdMatch || productNameMatch || nameMatch;
+        });
         
         console.log(`🔍 Looking for: ${item.name} (ID: ${item.id}, Size: ${item.size || 'N/A'}, Color: ${item.color || 'N/A'})`);
         console.log(`   Found ${matchingProducts.length} inventory items for this product:`, matchingProducts.map(inv => ({
           productId: inv.productId,
+          productName: inv.productName || inv.name,
           variant: inv.variant,
           variantId: inv.variantId,
           stock: inv.stock
         })));
         
         const inventoryItem = inventory.find(inv => {
-          const productMatch = inv.productId === item.id || 
-                              inv.productId === parseInt(item.id) ||
-                              inv.productName === item.name;
+          // Try multiple ways to match the product
+          const productIdMatch = inv.productId === item.id || 
+                                inv.productId === parseInt(item.id) ||
+                                String(inv.productId) === String(item.id);
+          
+          const productNameMatch = inv.productName && item.name && 
+                                  (inv.productName.toLowerCase().trim() === item.name.toLowerCase().trim());
+          
+          const nameMatch = inv.name && item.name && 
+                           (inv.name.toLowerCase().trim() === item.name.toLowerCase().trim());
+          
+          const productMatch = productIdMatch || productNameMatch || nameMatch;
           
           if (!productMatch) return false;
+          
+          console.log(`   ✅ Product matched:`, {
+            invProductId: inv.productId,
+            invProductName: inv.productName || inv.name,
+            itemId: item.id,
+            itemName: item.name
+          });
           
           // Match by variant if size/color provided
           if (item.size || item.color) {
