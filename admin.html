@@ -3817,12 +3817,36 @@ Thank you!</textarea>
                     
                     // Render order items with images
                     const itemsHtml = Array.isArray(order.items) ? order.items.map(item => {
-                        const itemImage = item.image || item.imageUrl || 'https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1';
+                        // Try to get the best available image for this item
+                        let itemImage = item.image || item.imageUrl;
+                        
+                        // If no image stored, try to get color-specific image from product data
+                        if (!itemImage && item.color && posProducts && posProducts.length > 0) {
+                            const product = posProducts.find(p => 
+                                (p.id === item.id || p.id === parseInt(item.id) || p.name === item.name)
+                            );
+                            if (product && product.availableColors) {
+                                const colorMatch = product.availableColors.find(c => 
+                                    c.name.toLowerCase().trim() === item.color.toLowerCase().trim()
+                                );
+                                if (colorMatch && colorMatch.image) {
+                                    itemImage = colorMatch.image.trim();
+                                } else if (product.images && product.images.length > 0) {
+                                    itemImage = product.images[0].trim();
+                                }
+                            }
+                        }
+                        
+                        // Fallback to default image
+                        if (!itemImage || (!itemImage.startsWith('http://') && !itemImage.startsWith('https://'))) {
+                            itemImage = 'https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1';
+                        }
+                        
                         const sizeText = item.size ? ` • Size: ${item.size}` : '';
                         const colorText = item.color ? ` • Color: ${item.color}` : '';
                         return `
                             <div class="flex items-center space-x-3 py-2 border-b border-gray-100 last:border-0">
-                                <img src="${itemImage}" alt="${item.name || 'Product'}" class="w-12 h-12 object-cover rounded" onerror="this.src='https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1'">
+                                <img src="${itemImage}" alt="${item.name || 'Product'}${colorText ? ' - ' + item.color : ''}" class="w-12 h-12 object-cover rounded" onerror="this.src='https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1'">
                                 <div class="flex-1 min-w-0">
                                     <p class="font-medium text-sm truncate">${item.name || 'Unknown Product'}</p>
                                     <p class="text-xs text-gray-500">Qty: ${item.quantity || 1}${sizeText}${colorText}</p>

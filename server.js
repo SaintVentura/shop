@@ -4328,23 +4328,32 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
       
       let imageUrl = null;
       if (product) {
-        // Try to get color-specific image first
+        // Try to get color-specific image first (case-insensitive matching)
         if (item.color && product.availableColors) {
           const colorMatch = product.availableColors.find(c => 
-            c.name.toLowerCase() === item.color.toLowerCase()
+            c.name.toLowerCase().trim() === item.color.toLowerCase().trim()
           );
           if (colorMatch && colorMatch.image) {
             imageUrl = colorMatch.image.trim();
+            console.log(`✅ Found color-specific image for ${item.name} (${item.color}): ${imageUrl}`);
           }
         }
         // Fallback to first product image
         if (!imageUrl && product.images && product.images.length > 0) {
           imageUrl = product.images[0].trim();
+          console.log(`📷 Using default product image for ${item.name}: ${imageUrl}`);
         }
+      }
+      
+      // Use existing image if available (from cart/order)
+      if (!imageUrl && (item.image || item.imageUrl)) {
+        imageUrl = (item.image || item.imageUrl).trim();
+        console.log(`🖼️ Using existing image from item for ${item.name}: ${imageUrl}`);
       }
       
       // Validate URL format
       if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+        console.warn(`⚠️ Invalid image URL format for ${item.name}: ${imageUrl}`);
         imageUrl = null;
       }
       
@@ -4370,9 +4379,27 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
           
           // Match by variant if size/color provided
           if (item.size || item.color) {
-            const variantMatch = (!item.size || inv.variant?.includes(item.size)) &&
-                                (!item.color || inv.variant?.includes(item.color));
-            return variantMatch;
+            // Check both variant and variantId fields (case-insensitive)
+            const variantStr = (inv.variant || '').toLowerCase();
+            const variantIdStr = (inv.variantId || '').toLowerCase();
+            
+            // Build expected variant strings for matching
+            const sizeStr = (item.size || '').toLowerCase();
+            const colorStr = (item.color || '').toLowerCase();
+            const expectedVariantId = sizeStr && colorStr ? `${sizeStr}-${colorStr}` : (sizeStr || colorStr);
+            const expectedVariantWithSlash = sizeStr && colorStr ? `${sizeStr} / ${colorStr}` : (sizeStr || colorStr);
+            
+            // Match using variantId (e.g., "M-Black" or "Black")
+            const variantIdMatch = variantIdStr === expectedVariantId || 
+                                  (sizeStr && variantIdStr.includes(sizeStr) && (!colorStr || variantIdStr.includes(colorStr))) ||
+                                  (colorStr && variantIdStr.includes(colorStr) && (!sizeStr || variantIdStr.includes(sizeStr)));
+            
+            // Match using variant (e.g., "M / Black" or "Black")
+            const variantMatch = variantStr === expectedVariantWithSlash ||
+                                (sizeStr && variantStr.includes(sizeStr) && (!colorStr || variantStr.includes(colorStr))) ||
+                                (colorStr && variantStr.includes(colorStr) && (!sizeStr || variantStr.includes(sizeStr)));
+            
+            return variantIdMatch || variantMatch;
           }
           
           return true; // If no size/color specified, match any variant of the product
@@ -4380,6 +4407,17 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
         
         const requiredQuantity = item.quantity || 1;
         const availableStock = inventoryItem ? (parseInt(inventoryItem.stock) || 0) : 0;
+        
+        // Debug logging
+        console.log(`🔍 Checking stock for ${item.name} (Size: ${item.size || 'N/A'}, Color: ${item.color || 'N/A'}):`, {
+          found: !!inventoryItem,
+          inventoryVariant: inventoryItem?.variant,
+          inventoryVariantId: inventoryItem?.variantId,
+          inventoryStock: inventoryItem?.stock,
+          stockType: typeof inventoryItem?.stock,
+          parsedStock: availableStock,
+          required: requiredQuantity
+        });
         
         // For POS orders: Only allow if stock > 0
         if (!inventoryItem || availableStock <= 0 || availableStock < requiredQuantity) {
@@ -4392,6 +4430,11 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
             available: availableStock
           });
           console.warn(`⚠️ Item ${item.name} (Size: ${item.size || 'N/A'}, Color: ${item.color || 'N/A'}) is out of stock. Required: ${requiredQuantity}, Available: ${availableStock}`);
+          if (inventoryItem) {
+            console.warn(`   Inventory item found but stock insufficient: variant="${inventoryItem.variant}", variantId="${inventoryItem.variantId}", stock=${inventoryItem.stock}`);
+          } else {
+            console.warn(`   Inventory item NOT found for this variant`);
+          }
         }
       }
     } catch (stockCheckError) {
