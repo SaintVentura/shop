@@ -1162,8 +1162,24 @@ app.post('/api/send-order-confirmation', async (req, res) => {
               
               // Match by variant if size/color provided
               if (item.size || item.color) {
-                const variantMatch = (!item.size || inv.variant?.includes(item.size)) &&
-                                    (!item.color || inv.variant?.includes(item.color));
+                const variantStr = (inv.variant || '').toLowerCase();
+                const variantIdStr = (inv.variantId || '').toLowerCase();
+                const sizeStr = (item.size || '').toLowerCase();
+                const colorStr = (item.color || '').toLowerCase();
+                const isOneSize = sizeStr === 'one size fits all';
+                
+                // For "One Size Fits All" products, inventory only stores color, so match by color only
+                if (isOneSize && colorStr) {
+                  const variantIdMatchesColor = variantIdStr === colorStr || variantIdStr === colorStr.trim();
+                  const variantMatchesColor = variantStr === colorStr || variantStr === colorStr.trim();
+                  if (variantIdMatchesColor || variantMatchesColor) {
+                    return true;
+                  }
+                }
+                
+                // For regular products, match using both size and color
+                const variantMatch = (!item.size || isOneSize || inv.variant?.toLowerCase().includes(sizeStr)) &&
+                                    (!item.color || inv.variant?.toLowerCase().includes(colorStr) || inv.variantId?.toLowerCase() === colorStr);
                 return variantMatch;
               }
               
@@ -1227,8 +1243,24 @@ app.post('/api/send-order-confirmation', async (req, res) => {
                 
                 // Match by variant if size/color provided
                 if (item.size || item.color) {
-                  const variantMatch = (!item.size || inv.variant?.includes(item.size)) &&
-                                      (!item.color || inv.variant?.includes(item.color));
+                  const variantStr = (inv.variant || '').toLowerCase();
+                  const variantIdStr = (inv.variantId || '').toLowerCase();
+                  const sizeStr = (item.size || '').toLowerCase();
+                  const colorStr = (item.color || '').toLowerCase();
+                  const isOneSize = sizeStr === 'one size fits all';
+                  
+                  // For "One Size Fits All" products, inventory only stores color, so match by color only
+                  if (isOneSize && colorStr) {
+                    const variantIdMatchesColor = variantIdStr === colorStr || variantIdStr === colorStr.trim();
+                    const variantMatchesColor = variantStr === colorStr || variantStr === colorStr.trim();
+                    if (variantIdMatchesColor || variantMatchesColor) {
+                      return true;
+                    }
+                  }
+                  
+                  // For regular products, match using both size and color
+                  const variantMatch = (!item.size || isOneSize || inv.variant?.toLowerCase().includes(sizeStr)) &&
+                                      (!item.color || inv.variant?.toLowerCase().includes(colorStr) || inv.variantId?.toLowerCase() === colorStr);
                   return variantMatch;
                 }
                 
@@ -1498,8 +1530,24 @@ async function fulfillPOSOrderIfNeeded(orderId) {
             if (!productMatch) return false;
             
             if (item.size || item.color) {
-              const variantMatch = (!item.size || inv.variant?.includes(item.size)) &&
-                                  (!item.color || inv.variant?.includes(item.color));
+              const variantStr = (inv.variant || '').toLowerCase();
+              const variantIdStr = (inv.variantId || '').toLowerCase();
+              const sizeStr = (item.size || '').toLowerCase();
+              const colorStr = (item.color || '').toLowerCase();
+              const isOneSize = sizeStr === 'one size fits all';
+              
+              // For "One Size Fits All" products, inventory only stores color, so match by color only
+              if (isOneSize && colorStr) {
+                const variantIdMatchesColor = variantIdStr === colorStr || variantIdStr === colorStr.trim();
+                const variantMatchesColor = variantStr === colorStr || variantStr === colorStr.trim();
+                if (variantIdMatchesColor || variantMatchesColor) {
+                  return true;
+                }
+              }
+              
+              // For regular products, match using both size and color
+              const variantMatch = (!item.size || isOneSize || inv.variant?.toLowerCase().includes(sizeStr)) &&
+                                  (!item.color || inv.variant?.toLowerCase().includes(colorStr) || inv.variantId?.toLowerCase() === colorStr);
               return variantMatch;
             }
             
@@ -4386,18 +4434,32 @@ app.post('/api/admin/pos/order', adminAuth, async (req, res) => {
             // Build expected variant strings for matching
             const sizeStr = (item.size || '').toLowerCase();
             const colorStr = (item.color || '').toLowerCase();
+            const isOneSize = sizeStr === 'one size fits all';
+            
+            // For "One Size Fits All" products, inventory only stores color, so match by color only
+            if (isOneSize && colorStr) {
+              // Check if variantId or variant is just the color (no size)
+              const variantIdMatchesColor = variantIdStr === colorStr || variantIdStr === colorStr.trim();
+              const variantMatchesColor = variantStr === colorStr || variantStr === colorStr.trim();
+              
+              if (variantIdMatchesColor || variantMatchesColor) {
+                return true;
+              }
+            }
+            
+            // For regular products with sizes, match using both size and color
             const expectedVariantId = sizeStr && colorStr ? `${sizeStr}-${colorStr}` : (sizeStr || colorStr);
             const expectedVariantWithSlash = sizeStr && colorStr ? `${sizeStr} / ${colorStr}` : (sizeStr || colorStr);
             
             // Match using variantId (e.g., "M-Black" or "Black")
             const variantIdMatch = variantIdStr === expectedVariantId || 
-                                  (sizeStr && variantIdStr.includes(sizeStr) && (!colorStr || variantIdStr.includes(colorStr))) ||
-                                  (colorStr && variantIdStr.includes(colorStr) && (!sizeStr || variantIdStr.includes(sizeStr)));
+                                  (sizeStr && !isOneSize && variantIdStr.includes(sizeStr) && (!colorStr || variantIdStr.includes(colorStr))) ||
+                                  (colorStr && variantIdStr.includes(colorStr) && (!sizeStr || isOneSize || variantIdStr.includes(sizeStr)));
             
             // Match using variant (e.g., "M / Black" or "Black")
             const variantMatch = variantStr === expectedVariantWithSlash ||
-                                (sizeStr && variantStr.includes(sizeStr) && (!colorStr || variantStr.includes(colorStr))) ||
-                                (colorStr && variantStr.includes(colorStr) && (!sizeStr || variantStr.includes(sizeStr)));
+                                (sizeStr && !isOneSize && variantStr.includes(sizeStr) && (!colorStr || variantStr.includes(colorStr))) ||
+                                (colorStr && variantStr.includes(colorStr) && (!sizeStr || isOneSize || variantStr.includes(sizeStr)));
             
             return variantIdMatch || variantMatch;
           }
