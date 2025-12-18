@@ -1205,8 +1205,8 @@ app.post('/api/send-order-confirmation', async (req, res) => {
         const existingOrderIndex = orders.findIndex(o => o.id === finalOrderId);
         
         if (existingOrderIndex !== -1 && orders[existingOrderIndex].status === 'pending checkout') {
-          // Update existing order from "pending checkout" to "pending fulfilment"
-          orders[existingOrderIndex].status = 'pending fulfilment';
+          // Update existing order from "pending checkout" to "pending fulfillment"
+          orders[existingOrderIndex].status = 'pending fulfillment';
           orders[existingOrderIndex].customerName = customerName;
           orders[existingOrderIndex].customerEmail = customerEmail;
           orders[existingOrderIndex].customerPhone = req.body.customerPhone || orders[existingOrderIndex].customerPhone || '';
@@ -1224,12 +1224,12 @@ app.post('/api/send-order-confirmation', async (req, res) => {
           orders[existingOrderIndex].updatedAt = new Date().toISOString();
           
           await writeDataFile('orders', orders);
-          console.log(`✅ Updated order ${finalOrderId} from "pending checkout" to "pending fulfilment"`);
+          console.log(`✅ Updated order ${finalOrderId} from "pending checkout" to "pending fulfillment"`);
         } else {
           // Determine order status for website orders:
-          // - Always set to "pending fulfilment" (admin will mark as fulfilled after shipping)
+          // - Always set to "pending fulfillment" (admin will mark as fulfilled after shipping)
           // - hasOutOfStockItems flag will indicate if any items are out of stock
-          const orderStatus = 'pending fulfilment';
+          const orderStatus = 'pending fulfillment';
           
           orders.push({
             id: finalOrderId,
