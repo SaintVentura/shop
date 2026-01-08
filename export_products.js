@@ -82,7 +82,7 @@ const products = [
         category: "tops",
         description: "Cropped tank top perfect for layering or standalone wear. Available in multiple colorways to match your personal style.",
         sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-        colors: ["Black", "Army Green", "White", "Red"],
+        colors: ["Black", "Army Green", "White"],
         images: ["https://dl.dropboxusercontent.com/scl/fi/j22zx7qt5efevtqmbki5a/1-10.png?rlkey=w1m9xosbjx5jiihn45l1o7hj7&st=9whfbavz&dl=1"]
     },
     {
