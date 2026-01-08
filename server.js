@@ -97,6 +97,30 @@ app.get('/api/test', (req, res) => {
   });
 });
 
+// Admin password validation endpoint - MUST be before adminAuth middleware
+app.post('/api/admin/validate-password', async (req, res) => {
+  try {
+    console.log('Password validation request received from:', req.headers.origin || req.headers.referer || 'unknown');
+    const { password } = req.body;
+    if (!password) {
+      return res.status(400).json({ success: false, valid: false, error: 'Password is required' });
+    }
+    
+    // Validate against environment variable (ADMIN_PASSWORD from Render)
+    const isValid = password === ADMIN_PASSWORD;
+    console.log('Password validation result:', isValid ? 'VALID' : 'INVALID');
+    
+    if (isValid) {
+      res.json({ success: true, valid: true });
+    } else {
+      res.json({ success: true, valid: false });
+    }
+  } catch (error) {
+    console.error('Password validation error:', error);
+    res.status(500).json({ success: false, valid: false, error: error.message });
+  }
+});
+
 // Keep-alive endpoint - ping this to keep server active
 app.get('/keep-alive', (req, res) => {
   console.log('Keep-alive ping received at:', new Date().toISOString());
@@ -2686,28 +2710,6 @@ async function fetchEmailsFromIMAP() {
     }
   });
 }
-
-// Admin password validation endpoint
-app.post('/api/admin/validate-password', async (req, res) => {
-  try {
-    const { password } = req.body;
-    if (!password) {
-      return res.status(400).json({ success: false, valid: false, error: 'Password is required' });
-    }
-    
-    // Validate against environment variable (ADMIN_PASSWORD from Render)
-    const isValid = password === ADMIN_PASSWORD;
-    
-    if (isValid) {
-      res.json({ success: true, valid: true });
-    } else {
-      res.json({ success: true, valid: false });
-    }
-  } catch (error) {
-    console.error('Password validation error:', error);
-    res.status(500).json({ success: false, valid: false, error: error.message });
-  }
-});
 
 // Admin authentication middleware
 function adminAuth(req, res, next) {
