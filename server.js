@@ -2375,8 +2375,6 @@ function generateEmailTemplate(type, data = {}) {
                                     <a href="${BRAND_WEBSITE}" style="color: #FFFFFF; text-decoration: none; margin: 0 10px; word-wrap: break-word; font-size: 13px; font-weight: 500;">Visit Website</a>
                                     <span style="color: #666666; margin: 0 5px;">•</span>
                                     <a href="mailto:contact@saintventura.co.za" style="color: #FFFFFF; text-decoration: none; margin: 0 10px; word-wrap: break-word; font-size: 13px; font-weight: 500;">Contact Us</a>
-                                    <span style="color: #666666; margin: 0 5px;">•</span>
-                                    <a href="${BRAND_WEBSITE}/shipping" style="color: #FFFFFF; text-decoration: none; margin: 0 10px; word-wrap: break-word; font-size: 13px; font-weight: 500;">Shipping Info</a>
                                 </p>
                             </div>
                             
