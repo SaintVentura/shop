@@ -1382,8 +1382,8 @@
             if (!options) options = {};
             if (!options.headers) options.headers = {};
             
-            // Set required headers - use stored password from login
-            options.headers['x-admin-password'] = ADMIN_PASSWORD;
+            // Set required headers - use stored password from login (use currentPassword which may have been reloaded)
+            options.headers['x-admin-password'] = currentPassword || ADMIN_PASSWORD;
             options.headers['Content-Type'] = 'application/json';
             options.headers['Accept'] = 'application/json';
             
