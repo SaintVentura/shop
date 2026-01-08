@@ -31,22 +31,36 @@
     </div>
 
     <script>
-        // Get backend URL
+        // Get backend URL - match logic from admin.html
         function getBackendUrl() {
-            // Check if we're on GitHub Pages or local
             const hostname = window.location.hostname;
-            if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('localhost')) {
-                const LOCAL_BACKEND_URL = 'http://localhost:10000';
-                console.log('Using local backend:', LOCAL_BACKEND_URL);
-                return LOCAL_BACKEND_URL;
-            } else {
-                const PRODUCTION_BACKEND_URL = 'https://saint-ventura-backend.onrender.com';
-                console.log('Using production backend:', PRODUCTION_BACKEND_URL);
+            const origin = window.location.origin;
+            
+            console.log('Admin Login - Detecting backend URL for hostname:', hostname, 'origin:', origin);
+            
+            // Local development
+            if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '' || hostname === '0.0.0.0') {
+                console.log('Using localhost backend');
+                return 'http://localhost:10000';
+            }
+            
+            // GitHub Pages (production)
+            // Backend deployed on Render
+            const PRODUCTION_BACKEND_URL = 'https://saint-ventura-backend.onrender.com';
+            
+            // If you're on GitHub Pages, use production backend
+            if (hostname.includes('github.io') || hostname.includes('github.com') || origin.includes('github.io') || origin.includes('github.com')) {
+                console.log('Detected GitHub Pages, using production backend:', PRODUCTION_BACKEND_URL);
                 return PRODUCTION_BACKEND_URL;
             }
+            
+            // Default to production for any other domain
+            console.log('Using production backend:', PRODUCTION_BACKEND_URL);
+            return PRODUCTION_BACKEND_URL;
         }
 
         const BACKEND_URL = getBackendUrl();
+        console.log('Admin Login - Backend URL:', BACKEND_URL);
 
         // Check if already logged in
         if (sessionStorage.getItem('adminAuthenticated') === 'true') {
@@ -72,20 +86,30 @@
             submitButton.textContent = 'Validating...';
             
             try {
+                console.log('Attempting to validate password with backend:', `${BACKEND_URL}/api/admin/validate-password`);
+                
                 // Validate password with server
                 const response = await fetch(`${BACKEND_URL}/api/admin/validate-password`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
                     },
-                    body: JSON.stringify({ password })
+                    body: JSON.stringify({ password }),
+                    mode: 'cors',
+                    credentials: 'omit'
                 });
                 
+                console.log('Response status:', response.status, response.statusText);
+                
                 if (!response.ok) {
-                    throw new Error('Server error');
+                    const errorText = await response.text();
+                    console.error('Server error response:', errorText);
+                    throw new Error(`Server error: ${response.status} ${response.statusText}`);
                 }
                 
                 const result = await response.json();
+                console.log('Validation result:', result);
                 
                 if (result.success && result.valid) {
                     // Password is valid - set authentication token and redirect
@@ -101,7 +125,23 @@
                 }
             } catch (error) {
                 console.error('Login error:', error);
-                errorElement.textContent = 'Error connecting to server. Please try again.';
+                console.error('Error details:', {
+                    message: error.message,
+                    stack: error.stack,
+                    name: error.name
+                });
+                
+                // Provide more specific error messages
+                let errorMessage = 'Error connecting to server. Please try again.';
+                if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                    errorMessage = `Cannot connect to server at ${BACKEND_URL}. Please check your internet connection and ensure the backend is running.`;
+                } else if (error.message.includes('CORS')) {
+                    errorMessage = `CORS error: The backend at ${BACKEND_URL} may not be allowing requests from this origin.`;
+                } else if (error.message.includes('Server error')) {
+                    errorMessage = `Server error: ${error.message}. Please check if the backend is running.`;
+                }
+                
+                errorElement.textContent = errorMessage;
                 errorElement.classList.remove('hidden');
             } finally {
                 // Re-enable form
