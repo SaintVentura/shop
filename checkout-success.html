@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Successful - Saint Ventura</title>
+  <link rel="icon" type="image/png" href="https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1">
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50 font-sans text-gray-900">
+
+  <!-- Header -->
+  <header class="bg-white shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+      <img src="https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1" alt="Saint Ventura Logo" class="w-10 h-10 rounded-lg object-cover">
+      <h1 class="text-2xl font-bold tracking-wide">Payment Successful</h1>
+    </div>
+  </header>
+
+  <!-- Main Section -->
+  <section class="max-w-2xl mx-auto px-4 py-12">
+    <div class="bg-white p-8 rounded-xl shadow-md text-center">
+      <!-- Success Icon -->
+      <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+        <svg class="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+      </div>
+
+      <h2 class="text-3xl font-bold mb-4">Payment Successful!</h2>
+      <p class="text-gray-600 mb-8 text-lg">Thank you for your order. We've received your payment and will process your order shortly.</p>
+
+      <!-- Order Details -->
+      <div class="bg-gray-50 rounded-lg p-6 mb-8 text-left">
+        <h3 class="font-semibold text-lg mb-4">Order Summary</h3>
+        <div id="order-details" class="space-y-2">
+          <!-- Order details will be populated from URL parameters or localStorage -->
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="space-y-4">
+        <button onclick="window.location.href='index.html'" class="w-full bg-black text-white py-4 rounded-lg font-semibold hover:bg-gray-800 transition duration-300">
+          Continue Shopping
+        </button>
+        <p class="text-sm text-gray-500">
+          You will receive an order confirmation email shortly.
+        </p>
+      </div>
+    </div>
+  </section>
+
+<script>
+// Load order details from URL parameters or localStorage
+document.addEventListener('DOMContentLoaded', async function() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const orderDetails = document.getElementById('order-details');
+  
+  // Try to get order info from URL parameters (Yoco redirects with these)
+  const amount = urlParams.get('amount') || localStorage.getItem('lastOrderAmount');
+  const orderId = urlParams.get('orderId') || urlParams.get('id') || urlParams.get('checkoutId') || 'Pending';
+  const checkoutId = urlParams.get('checkoutId') || urlParams.get('id');
+  
+  // Check if this is a POS order (starts with POS-)
+  const isPOSOrder = orderId && orderId.startsWith('POS-');
+  
+  // Get order details from localStorage (saved before payment redirect)
+  const pendingOrderData = localStorage.getItem('pendingOrderDetails');
+  const orderData = pendingOrderData ? JSON.parse(pendingOrderData) : null;
+  
+  // If POS order, verify payment and fulfill order
+  if (isPOSOrder && orderId) {
+    try {
+      function getBackendBaseUrl() {
+        const hostname = window.location.hostname;
+        const PRODUCTION_BACKEND_URL = 'https://saint-ventura-backend.onrender.com';
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+          return 'http://localhost:3000';
+        }
+        return PRODUCTION_BACKEND_URL;
+      }
+      
+      const backendBaseUrl = getBackendBaseUrl();
+      const verifyUrl = `${backendBaseUrl}/api/verify-pos-payment`;
+      
+      const verifyResponse = await fetch(verifyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          orderId: orderId,
+          checkoutId: checkoutId
+        })
+      });
+      
+      const verifyResult = await verifyResponse.json();
+      
+      if (verifyResult.success) {
+        console.log('✅ POS order verified and fulfilled');
+        // Redirect back to admin dashboard after a short delay
+        setTimeout(() => {
+          window.location.href = 'admin.html?posPaymentSuccess=true&orderId=' + orderId;
+        }, 2000);
+        return; // Exit early, don't show checkout success page
+      } else {
+        console.warn('⚠️ POS order verification failed:', verifyResult.error);
+      }
+    } catch (error) {
+      console.error('Error verifying POS payment:', error);
+      // Continue to show success page anyway
+    }
+  }
+  
+  // Get cart info from localStorage
+  const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+  const total = orderData ? orderData.total : (parseFloat(localStorage.getItem('checkoutSubtotal') || 0) + parseFloat(localStorage.getItem('shippingFee') || 0));
+  
+  let html = '';
+  
+  if (orderId && orderId !== 'Pending') {
+    html += `<div class="flex justify-between"><span>Order ID:</span><span class="font-medium">${orderId}</span></div>`;
+  }
+  
+  if (amount) {
+    html += `<div class="flex justify-between"><span>Amount Paid:</span><span class="font-medium">R${(parseFloat(amount) / 100).toFixed(2)}</span></div>`;
+  } else if (total > 0) {
+    html += `<div class="flex justify-between"><span>Amount Paid:</span><span class="font-medium">R${total.toFixed(2)}</span></div>`;
+  }
+  
+  html += `<div class="flex justify-between"><span>Items:</span><span class="font-medium">${cart.length} item(s)</span></div>`;
+  
+  if (html) {
+    orderDetails.innerHTML = html;
+  } else {
+    orderDetails.innerHTML = '<p class="text-gray-500">Order details will be sent to your email.</p>';
+  }
+  
+  // Send order confirmation email if order data exists
+  if (orderData) {
+    try {
+      // Auto-detect backend URL based on environment
+      function getBackendBaseUrl() {
+        const hostname = window.location.hostname;
+        const origin = window.location.origin;
+        
+        console.log('Detecting backend URL for hostname:', hostname, 'origin:', origin);
+        
+        // Local development
+        if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '' || hostname === '0.0.0.0') {
+          console.log('Using localhost backend');
+          return 'http://localhost:3000';
+        }
+        
+        // GitHub Pages (production)
+        // Backend deployed on Render
+        const PRODUCTION_BACKEND_URL = 'https://saint-ventura-backend.onrender.com';
+        
+        // If you're on GitHub Pages, use production backend
+        if (hostname.includes('github.io') || hostname.includes('github.com') || origin.includes('github.io') || origin.includes('github.com')) {
+          console.log('Detected GitHub Pages, using production backend:', PRODUCTION_BACKEND_URL);
+          return PRODUCTION_BACKEND_URL;
+        }
+        
+        // Default to production for any other domain
+        console.log('Using production backend:', PRODUCTION_BACKEND_URL);
+        return PRODUCTION_BACKEND_URL;
+      }
+      
+      const backendBaseUrl = getBackendBaseUrl();
+      const backendUrl = `${backendBaseUrl}/api/send-order-confirmation`;
+      
+      const emailData = {
+        customerName: orderData.customerName,
+        customerEmail: orderData.customerEmail,
+        shippingMethod: orderData.shippingMethod,
+        deliveryAddress: orderData.deliveryAddress,
+        deliveryDetails: orderData.deliveryDetails,
+        orderItems: orderData.orderItems,
+        subtotal: orderData.subtotal,
+        shipping: orderData.shipping,
+        total: orderData.total,
+        orderId: orderId !== 'Pending' ? orderId : undefined
+      };
+      
+      console.log('Sending order confirmation email request to:', backendUrl);
+      console.log('Email data:', { customerEmail: emailData.customerEmail, customerName: emailData.customerName, orderId: emailData.orderId });
+      
+      const response = await fetch(backendUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(emailData)
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Order confirmation endpoint returned error:', response.status, errorText);
+        throw new Error(`Server error: ${response.status} - ${errorText}`);
+      }
+      
+      const result = await response.json();
+      console.log('Order confirmation response:', result);
+      
+      if (result.success) {
+        if (result.emailSent) {
+          console.log('✅ Order confirmation email sent successfully to:', emailData.customerEmail);
+        } else {
+          console.warn('⚠️ Order confirmation processed but email may not have been sent:', result.emailError || 'Unknown error');
+          if (result.emailError) {
+            console.error('Email error:', result.emailError);
+          }
+        }
+        
+        // Update order status from "pending checkout" to "pending fulfilment"
+        if (emailData.orderId) {
+          try {
+            const updateStatusUrl = `${backendBaseUrl}/api/update-order-status`;
+            const updateResponse = await fetch(updateStatusUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                orderId: emailData.orderId,
+                status: 'pending fulfilment'
+              })
+            });
+            
+            if (updateResponse.ok) {
+              const updateResult = await updateResponse.json();
+              if (updateResult.success) {
+                console.log('✅ Order status updated to "pending fulfilment"');
+              } else {
+                console.warn('⚠️ Order status update returned success=false:', updateResult.error);
+              }
+            } else {
+              console.warn('⚠️ Failed to update order status:', updateResponse.status);
+            }
+          } catch (updateError) {
+            console.error('Error updating order status:', updateError);
+            // Don't block success page if status update fails
+          }
+        }
+        
+        // Remove pending order data after successful email send
+        localStorage.removeItem('pendingOrderDetails');
+        // Clear abandoned cart timeout since order completed
+        // Timeout is stored in window object on checkout page
+        if (window.abandonedCartTimeout) {
+          clearTimeout(window.abandonedCartTimeout);
+          window.abandonedCartTimeout = null;
+        }
+        localStorage.removeItem('checkoutStartTime');
+      } else {
+        console.error('Failed to send order confirmation email:', result.error || result.message);
+      }
+    } catch (error) {
+      console.error('Error sending order confirmation email:', error);
+      // Don't show error to user - email sending failure shouldn't block success page
+    }
+  }
+  
+  // Clear cart after successful payment (optional - you may want to keep it for reference)
+  // localStorage.removeItem('cart');
+  // localStorage.removeItem('checkoutSubtotal');
+});
+</script>
+
+</body>
+</html>
+
+
+
