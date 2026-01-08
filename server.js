@@ -97,30 +97,6 @@ app.get('/api/test', (req, res) => {
   });
 });
 
-// Admin password validation endpoint - MUST be before adminAuth middleware
-app.post('/api/admin/validate-password', async (req, res) => {
-  try {
-    console.log('Password validation request received from:', req.headers.origin || req.headers.referer || 'unknown');
-    const { password } = req.body;
-    if (!password) {
-      return res.status(400).json({ success: false, valid: false, error: 'Password is required' });
-    }
-    
-    // Validate against environment variable (ADMIN_PASSWORD from Render)
-    const isValid = password === ADMIN_PASSWORD;
-    console.log('Password validation result:', isValid ? 'VALID' : 'INVALID');
-    
-    if (isValid) {
-      res.json({ success: true, valid: true });
-    } else {
-      res.json({ success: true, valid: false });
-    }
-  } catch (error) {
-    console.error('Password validation error:', error);
-    res.status(500).json({ success: false, valid: false, error: error.message });
-  }
-});
-
 // Keep-alive endpoint - ping this to keep server active
 app.get('/keep-alive', (req, res) => {
   console.log('Keep-alive ping received at:', new Date().toISOString());
@@ -1695,7 +1671,7 @@ async function fulfillPOSOrderIfNeeded(orderId) {
 // ============================================
 // ADMIN DASHBOARD CONFIGURATION
 // ============================================
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'WEAR3+H3$@!N+$*';
+const ADMIN_PASSWORD = 'WEAR3+H3$@!N+$*';
 const DATA_DIR = path.join(__dirname, 'data');
 const ADMIN_DATA_FILES = {
   inventory: path.join(DATA_DIR, 'inventory.json'),
@@ -2840,12 +2816,6 @@ async function initializeInventory() {
     await ensureDataDir();
     await initializeInventory();
     console.log('✅ Inventory initialized successfully');
-    // Log admin password status (don't log the actual password)
-    if (process.env.ADMIN_PASSWORD) {
-      console.log('✅ Admin password loaded from environment variable');
-    } else {
-      console.log('⚠️  Admin password using default fallback (set ADMIN_PASSWORD in environment variables)');
-    }
   } catch (error) {
     console.error('❌ Error initializing data:', error);
   }
