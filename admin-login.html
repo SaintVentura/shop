@@ -62,6 +62,26 @@
         const BACKEND_URL = getBackendUrl();
         console.log('Admin Login - Backend URL:', BACKEND_URL);
 
+        // Test backend connectivity on page load
+        (async () => {
+            try {
+                const testResponse = await fetch(`${BACKEND_URL}/api/test`, {
+                    method: 'GET',
+                    mode: 'cors',
+                    credentials: 'omit'
+                });
+                if (testResponse.ok) {
+                    const testData = await testResponse.json();
+                    console.log('✅ Backend connectivity test passed:', testData);
+                } else {
+                    console.warn('⚠️ Backend test returned non-OK status:', testResponse.status);
+                }
+            } catch (error) {
+                console.error('❌ Backend connectivity test failed:', error);
+                console.error('   This might indicate the backend is not running or not accessible');
+            }
+        })();
+
         // Check if already logged in
         if (sessionStorage.getItem('adminAuthenticated') === 'true') {
             window.location.href = 'admin.html';
