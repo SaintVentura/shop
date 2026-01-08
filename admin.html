@@ -1342,8 +1342,12 @@
 
         // Helper function to add admin auth header
         function adminFetch(url, options = {}) {
-            // Ensure user is logged in
-            if (!ADMIN_PASSWORD) {
+            // Ensure user is logged in - check both sessionStorage and ADMIN_PASSWORD variable
+            const isAuth = sessionStorage.getItem('adminAuthenticated') === 'true';
+            const hasPassword = ADMIN_PASSWORD && ADMIN_PASSWORD.length > 0;
+            
+            if (!isAuth || !hasPassword) {
+                console.error('adminFetch: Authentication check failed. isAuth:', isAuth, 'hasPassword:', hasPassword);
                 // Not logged in - redirect to login
                 sessionStorage.removeItem('adminAuthenticated');
                 sessionStorage.removeItem('adminPassword');
