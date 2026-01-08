@@ -248,26 +248,8 @@
     </style>
 </head>
 <body class="h-full bg-white text-black">
-    <!-- Login Screen -->
-    <div id="login-screen" class="min-h-screen flex items-center justify-center bg-black">
-        <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
-            <div class="text-center mb-8">
-                <h1 class="text-3xl font-bold mb-2">Saint Ventura</h1>
-                <p class="text-gray-600">Admin Dashboard</p>
-            </div>
-            <form id="login-form" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium mb-2">Password</label>
-                    <input type="password" id="admin-password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black" placeholder="Enter admin password" required>
-                </div>
-                <button type="submit" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition">Login</button>
-                <p id="login-error" class="text-red-500 text-sm text-center hidden"></p>
-            </form>
-        </div>
-    </div>
-
     <!-- Admin Dashboard -->
-    <div id="admin-dashboard" class="hidden min-h-screen">
+    <div id="admin-dashboard" class="min-h-screen">
         <!-- Header -->
         <header class="bg-white/95 backdrop-blur-md border-b border-gray-200 fixed top-0 left-0 right-0 z-[70]" style="z-index: 70 !important;">
             <div class="flex items-center justify-between px-4 md:px-6 py-4">
@@ -910,9 +892,19 @@
     </div>
 
     <script>
-        // Store validated password (set after successful login)
+        // Check authentication - redirect to login if not authenticated
+        if (sessionStorage.getItem('adminAuthenticated') !== 'true') {
+            window.location.href = 'admin-login.html';
+        }
+        
+        // Store validated password from sessionStorage (set after successful login)
         // Never hardcode password - always validate with server
-        let ADMIN_PASSWORD = null;
+        let ADMIN_PASSWORD = sessionStorage.getItem('adminPassword') || null;
+        
+        // If no password in sessionStorage, redirect to login
+        if (!ADMIN_PASSWORD) {
+            window.location.href = 'admin-login.html';
+        }
         
         // Initialize data arrays and variables at the top level to avoid initialization errors
         let allInventoryData = [];
@@ -1109,69 +1101,9 @@
             }
         }
 
-        // Login - validate password with server, always require login
-        document.getElementById('login-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const passwordInput = document.getElementById('admin-password');
-            const password = passwordInput.value;
-            const errorElement = document.getElementById('login-error');
-            
-            // Clear previous errors
-            errorElement.classList.add('hidden');
-            errorElement.textContent = '';
-            
-            // Disable form during validation
-            passwordInput.disabled = true;
-            const submitButton = e.target.querySelector('button[type="submit"]');
-            const originalButtonText = submitButton.textContent;
-            submitButton.disabled = true;
-            submitButton.textContent = 'Validating...';
-            
-            try {
-                // Validate password with server
-                const response = await fetch(`${BACKEND_URL}/api/admin/validate-password`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ password })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success && result.valid) {
-                    // Password is valid - store it and show dashboard
-                    ADMIN_PASSWORD = password;
-                    document.getElementById('login-screen').classList.add('hidden');
-                    document.getElementById('admin-dashboard').classList.remove('hidden');
-                    // Don't save to localStorage - always require login
-                    loadDashboard();
-                    // Start real-time sync immediately after login
-                    startRealTimeSync();
-                } else {
-                    // Password is invalid
-                    errorElement.textContent = 'Invalid password';
-                    errorElement.classList.remove('hidden');
-                    passwordInput.value = '';
-                    passwordInput.focus();
-                }
-            } catch (error) {
-                console.error('Login error:', error);
-                errorElement.textContent = 'Error connecting to server. Please try again.';
-                errorElement.classList.remove('hidden');
-            } finally {
-                // Re-enable form
-                passwordInput.disabled = false;
-                submitButton.disabled = false;
-                submitButton.textContent = originalButtonText;
-            }
-        });
-
-        // Always show login screen first - never auto-login
-        // Clear any stored login state to ensure security
-        localStorage.removeItem('adminLoggedIn');
-        document.getElementById('login-screen').classList.remove('hidden');
-        document.getElementById('admin-dashboard').classList.add('hidden');
+        // Initialize dashboard on page load (user is already authenticated)
+        loadDashboard();
+        startRealTimeSync();
         
         // Check for POS payment success
         const urlParams = new URLSearchParams(window.location.search);
@@ -1193,14 +1125,13 @@
         function logout() {
             // Clear password and login state
             ADMIN_PASSWORD = null;
+            sessionStorage.removeItem('adminAuthenticated');
+            sessionStorage.removeItem('adminPassword');
             localStorage.removeItem('adminLoggedIn');
-            document.getElementById('login-screen').classList.remove('hidden');
-            document.getElementById('admin-dashboard').classList.add('hidden');
-            // Clear password input
-            const passwordInput = document.getElementById('admin-password');
-            if (passwordInput) passwordInput.value = '';
             // Stop real-time sync when logging out
             stopRealTimeSync();
+            // Redirect to login page
+            window.location.href = 'admin-login.html';
         }
 
 
@@ -1398,10 +1329,11 @@
         function adminFetch(url, options = {}) {
             // Ensure user is logged in
             if (!ADMIN_PASSWORD) {
-                // Not logged in - show login screen
-                document.getElementById('login-screen').classList.remove('hidden');
-                document.getElementById('admin-dashboard').classList.add('hidden');
-                throw new Error('Not authenticated. Please login first.');
+                // Not logged in - redirect to login
+                sessionStorage.removeItem('adminAuthenticated');
+                sessionStorage.removeItem('adminPassword');
+                window.location.href = 'admin-login.html';
+                throw new Error('Not authenticated. Redirecting to login...');
             }
             
             // Ensure options object exists
@@ -1432,12 +1364,11 @@
                         // Handle 401 Unauthorized - redirect to login
                         if (response.status === 401) {
                             ADMIN_PASSWORD = null;
+                            sessionStorage.removeItem('adminAuthenticated');
+                            sessionStorage.removeItem('adminPassword');
                             localStorage.removeItem('adminLoggedIn');
-                            document.getElementById('login-screen').classList.remove('hidden');
-                            document.getElementById('admin-dashboard').classList.add('hidden');
-                            const passwordInput = document.getElementById('admin-password');
-                            if (passwordInput) passwordInput.value = '';
-                            throw new Error('Authentication failed. Please login again.');
+                            window.location.href = 'admin-login.html';
+                            throw new Error('Authentication failed. Redirecting to login...');
                         }
                         
                         // Try to parse error response

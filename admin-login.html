@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - Saint Ventura</title>
+    <link rel="icon" type="image/png" href="https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #000000;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center bg-black">
+    <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold mb-2">Saint Ventura</h1>
+            <p class="text-gray-600">Admin Dashboard</p>
+        </div>
+        <form id="login-form" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium mb-2">Password</label>
+                <input type="password" id="admin-password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-black" placeholder="Enter admin password" required autofocus>
+            </div>
+            <button type="submit" class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition">Login</button>
+            <p id="login-error" class="text-red-500 text-sm text-center hidden"></p>
+        </form>
+    </div>
+
+    <script>
+        // Get backend URL
+        function getBackendUrl() {
+            // Check if we're on GitHub Pages or local
+            const hostname = window.location.hostname;
+            if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('localhost')) {
+                const LOCAL_BACKEND_URL = 'http://localhost:10000';
+                console.log('Using local backend:', LOCAL_BACKEND_URL);
+                return LOCAL_BACKEND_URL;
+            } else {
+                const PRODUCTION_BACKEND_URL = 'https://saint-ventura-backend.onrender.com';
+                console.log('Using production backend:', PRODUCTION_BACKEND_URL);
+                return PRODUCTION_BACKEND_URL;
+            }
+        }
+
+        const BACKEND_URL = getBackendUrl();
+
+        // Check if already logged in
+        if (sessionStorage.getItem('adminAuthenticated') === 'true') {
+            window.location.href = 'admin.html';
+        }
+
+        // Login form handler
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const passwordInput = document.getElementById('admin-password');
+            const password = passwordInput.value;
+            const errorElement = document.getElementById('login-error');
+            
+            // Clear previous errors
+            errorElement.classList.add('hidden');
+            errorElement.textContent = '';
+            
+            // Disable form during validation
+            passwordInput.disabled = true;
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            const originalButtonText = submitButton.textContent;
+            submitButton.disabled = true;
+            submitButton.textContent = 'Validating...';
+            
+            try {
+                // Validate password with server
+                const response = await fetch(`${BACKEND_URL}/api/admin/validate-password`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ password })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Server error');
+                }
+                
+                const result = await response.json();
+                
+                if (result.success && result.valid) {
+                    // Password is valid - set authentication token and redirect
+                    sessionStorage.setItem('adminAuthenticated', 'true');
+                    sessionStorage.setItem('adminPassword', password); // Store for API calls
+                    window.location.href = 'admin.html';
+                } else {
+                    // Password is invalid
+                    errorElement.textContent = 'Invalid password';
+                    errorElement.classList.remove('hidden');
+                    passwordInput.value = '';
+                    passwordInput.focus();
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                errorElement.textContent = 'Error connecting to server. Please try again.';
+                errorElement.classList.remove('hidden');
+            } finally {
+                // Re-enable form
+                passwordInput.disabled = false;
+                submitButton.disabled = false;
+                submitButton.textContent = originalButtonText;
+            }
+        });
+    </script>
+</body>
+</html>
+
