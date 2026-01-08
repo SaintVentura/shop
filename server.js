@@ -55,13 +55,13 @@ app.post('/api/create-yoco-checkout', async (req, res) => {
     console.log('Creating Yoco checkout session...');
     const yocoResponse = await axios.post(YOCO_API_URL, checkoutData, {
       headers: {
-        'Authorization': Bearer ,
+        'Authorization': `Bearer ${YOCO_SECRET_KEY}`,
         'Content-Type': 'application/json'
       }
     });
 
     const checkoutId = yocoResponse.data.id;
-    const redirectUrl = https://payments.yoco.com/checkout/;
+    const redirectUrl = `https://payments.yoco.com/checkout/${checkoutId}`;
 
     console.log('Yoco checkout created:', checkoutId);
 
@@ -120,7 +120,7 @@ app.post('/api/newsletter-subscribe', async (req, res) => {
       from: ZOHO_EMAIL,
       to: ZOHO_EMAIL,
       subject: 'New Newsletter Subscription',
-      text: New newsletter subscription:\n\nEmail: \nTimestamp: 
+      text: `New newsletter subscription:\n\nEmail: ${email}\nTimestamp: ${new Date().toISOString()}`
     };
 
     await transporter.sendMail(mailOptions);
@@ -164,6 +164,6 @@ app.post('/api/track-abandoned-cart', async (req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(Server running on port );
-  console.log(Health check: http://localhost:/health);
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Health check: http://localhost:${PORT}/health`);
 });
