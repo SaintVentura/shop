@@ -1349,16 +1349,34 @@
         function adminFetch(url, options = {}) {
             // Ensure user is logged in - check both sessionStorage and ADMIN_PASSWORD variable
             const isAuth = sessionStorage.getItem('adminAuthenticated') === 'true';
-            const hasPassword = ADMIN_PASSWORD && ADMIN_PASSWORD.length > 0;
+            let currentPassword = ADMIN_PASSWORD;
+            
+            // If password variable is missing but we're authenticated, reload from sessionStorage
+            if (!currentPassword && isAuth) {
+                currentPassword = sessionStorage.getItem('adminPassword');
+                if (currentPassword) {
+                    ADMIN_PASSWORD = currentPassword;
+                    console.log('Password reloaded from sessionStorage for API call');
+                }
+            }
+            
+            const hasPassword = currentPassword && currentPassword.length > 0;
             
             if (!isAuth || !hasPassword) {
-                console.error('adminFetch: Authentication check failed. isAuth:', isAuth, 'hasPassword:', hasPassword);
-                // Not logged in - redirect to login
-                sessionStorage.removeItem('adminAuthenticated');
-                sessionStorage.removeItem('adminPassword');
-                window.location.href = 'admin-login.html';
-                throw new Error('Not authenticated. Redirecting to login...');
+                console.error('adminFetch: Authentication lost. isAuth:', isAuth, 'hasPassword:', hasPassword);
+                // Only redirect if truly not authenticated
+                if (!isAuth) {
+                    sessionStorage.removeItem('adminAuthenticated');
+                    sessionStorage.removeItem('adminPassword');
+                    window.location.href = 'admin-login.html';
+                    throw new Error('Not authenticated. Redirecting to login...');
+                }
+                // If authenticated but password missing, throw error but don't redirect
+                throw new Error('Password not available for API call');
             }
+            
+            // Use the current password (either from variable or sessionStorage)
+            const passwordToUse = currentPassword || ADMIN_PASSWORD;
             
             // Ensure options object exists
             if (!options) options = {};
