@@ -66,11 +66,38 @@
             window.location.href = 'admin.html';
         }
 
-        // Admin password - update this to match your Render ADMIN_PASSWORD environment variable
-        // This should match the ADMIN_PASSWORD in server.js (process.env.ADMIN_PASSWORD)
-        const ADMIN_PASSWORD = 'WEAR3+H3$@!N+$*'; // Update this when you change password in Render
+        // Load admin password from README.md (not visible in inspectable code)
+        let ADMIN_PASSWORD = null;
         
-        // Login form handler - validates password locally (no server call)
+        // Fetch password from README.md
+        (async function loadPasswordFromReadme() {
+            try {
+                const response = await fetch('README.md');
+                if (!response.ok) {
+                    throw new Error('Failed to load README.md');
+                }
+                const readmeText = await response.text();
+                
+                // Extract password from README.md
+                // Look for pattern: **Admin Password:** `password`
+                const passwordMatch = readmeText.match(/\*\*Admin Password:\*\*\s*`([^`]+)`/);
+                if (passwordMatch && passwordMatch[1]) {
+                    ADMIN_PASSWORD = passwordMatch[1].trim();
+                    console.log('Password loaded from README.md');
+                } else {
+                    throw new Error('Password not found in README.md');
+                }
+            } catch (error) {
+                console.error('Error loading password from README:', error);
+                const errorElement = document.getElementById('login-error');
+                if (errorElement) {
+                    errorElement.textContent = 'Error loading admin configuration. Please check README.md.';
+                    errorElement.classList.remove('hidden');
+                }
+            }
+        })();
+        
+        // Login form handler - validates password from README.md
         document.getElementById('login-form').addEventListener('submit', (e) => {
             e.preventDefault();
             const passwordInput = document.getElementById('admin-password');
@@ -81,7 +108,18 @@
             errorElement.classList.add('hidden');
             errorElement.textContent = '';
             
-            // Validate password locally - matches ADMIN_PASSWORD from server.js
+            // Check if password is loaded
+            if (!ADMIN_PASSWORD) {
+                errorElement.textContent = 'Loading configuration... Please wait and try again.';
+                errorElement.classList.remove('hidden');
+                // Retry loading password
+                setTimeout(() => {
+                    location.reload();
+                }, 2000);
+                return;
+            }
+            
+            // Validate password - matches ADMIN_PASSWORD from README.md
             if (password === ADMIN_PASSWORD) {
                 // Password is valid - set authentication token and redirect
                 sessionStorage.setItem('adminAuthenticated', 'true');

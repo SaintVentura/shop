@@ -88,6 +88,12 @@ Open `index.html` in your browser or serve it via a web server.
 - ✅ Secure backend payment processing
 - ✅ HTTPS required for live payments
 
+## Admin Access
+
+**Admin Password:** `WEAR3+H3$@!N+$*`
+
+*Note: This password should match the ADMIN_PASSWORD environment variable in Render.*
+
 ## License
 
 ISC
