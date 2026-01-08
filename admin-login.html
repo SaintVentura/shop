@@ -87,8 +87,12 @@
             window.location.href = 'admin.html';
         }
 
-        // Login form handler
-        document.getElementById('login-form').addEventListener('submit', async (e) => {
+        // Admin password - update this to match your Render ADMIN_PASSWORD environment variable
+        // This should match the ADMIN_PASSWORD in server.js (process.env.ADMIN_PASSWORD)
+        const ADMIN_PASSWORD = 'WEAR3+H3$@!N+$*'; // Update this when you change password in Render
+        
+        // Login form handler - validates password locally (no server call)
+        document.getElementById('login-form').addEventListener('submit', (e) => {
             e.preventDefault();
             const passwordInput = document.getElementById('admin-password');
             const password = passwordInput.value;
@@ -98,76 +102,18 @@
             errorElement.classList.add('hidden');
             errorElement.textContent = '';
             
-            // Disable form during validation
-            passwordInput.disabled = true;
-            const submitButton = e.target.querySelector('button[type="submit"]');
-            const originalButtonText = submitButton.textContent;
-            submitButton.disabled = true;
-            submitButton.textContent = 'Validating...';
-            
-            try {
-                console.log('Attempting to validate password with backend:', `${BACKEND_URL}/api/admin/validate-password`);
-                
-                // Validate password with server
-                const response = await fetch(`${BACKEND_URL}/api/admin/validate-password`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({ password }),
-                    mode: 'cors',
-                    credentials: 'omit'
-                });
-                
-                console.log('Response status:', response.status, response.statusText);
-                
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('Server error response:', errorText);
-                    throw new Error(`Server error: ${response.status} ${response.statusText}`);
-                }
-                
-                const result = await response.json();
-                console.log('Validation result:', result);
-                
-                if (result.success && result.valid) {
-                    // Password is valid - set authentication token and redirect
-                    sessionStorage.setItem('adminAuthenticated', 'true');
-                    sessionStorage.setItem('adminPassword', password); // Store for API calls
-                    window.location.href = 'admin.html';
-                } else {
-                    // Password is invalid
-                    errorElement.textContent = 'Invalid password';
-                    errorElement.classList.remove('hidden');
-                    passwordInput.value = '';
-                    passwordInput.focus();
-                }
-            } catch (error) {
-                console.error('Login error:', error);
-                console.error('Error details:', {
-                    message: error.message,
-                    stack: error.stack,
-                    name: error.name
-                });
-                
-                // Provide more specific error messages
-                let errorMessage = 'Error connecting to server. Please try again.';
-                if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-                    errorMessage = `Cannot connect to server at ${BACKEND_URL}. Please check your internet connection and ensure the backend is running.`;
-                } else if (error.message.includes('CORS')) {
-                    errorMessage = `CORS error: The backend at ${BACKEND_URL} may not be allowing requests from this origin.`;
-                } else if (error.message.includes('Server error')) {
-                    errorMessage = `Server error: ${error.message}. Please check if the backend is running.`;
-                }
-                
-                errorElement.textContent = errorMessage;
+            // Validate password locally - matches ADMIN_PASSWORD from server.js
+            if (password === ADMIN_PASSWORD) {
+                // Password is valid - set authentication token and redirect
+                sessionStorage.setItem('adminAuthenticated', 'true');
+                sessionStorage.setItem('adminPassword', password); // Store for API calls
+                window.location.href = 'admin.html';
+            } else {
+                // Password is invalid
+                errorElement.textContent = 'Invalid password';
                 errorElement.classList.remove('hidden');
-            } finally {
-                // Re-enable form
-                passwordInput.disabled = false;
-                submitButton.disabled = false;
-                submitButton.textContent = originalButtonText;
+                passwordInput.value = '';
+                passwordInput.focus();
             }
         });
     </script>
