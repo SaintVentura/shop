@@ -2756,7 +2756,23 @@ const PRODUCTS = [
 // Initialize inventory from products
 async function initializeInventory() {
   const inventory = await readDataFile('inventory');
-  if (inventory.length === 0) {
+  
+  // Clean up any red variants for Ventura Crop Tank (product ID 8)
+  let cleanedInventory = inventory.filter(item => {
+    if (item.productId == 8) {
+      const variantId = (item.variantId || '').toLowerCase();
+      const variant = (item.variant || '').toLowerCase();
+      // Remove red variants
+      if (variantId.includes('red') || variant.includes('red')) {
+        console.log(`Removing red variant from inventory: ${item.id}`);
+        return false;
+      }
+    }
+    return true;
+  });
+  
+  // Only initialize if inventory is empty
+  if (cleanedInventory.length === 0) {
     const newInventory = [];
     PRODUCTS.forEach(product => {
       if (product.sizes.length === 1 && product.sizes[0] === "One Size Fits All") {
@@ -2787,6 +2803,10 @@ async function initializeInventory() {
       }
     });
     await writeDataFile('inventory', newInventory);
+  } else if (cleanedInventory.length !== inventory.length) {
+    // If we removed red variants, save the cleaned inventory
+    await writeDataFile('inventory', cleanedInventory);
+    console.log('Cleaned inventory: removed red variants for Ventura Crop Tank');
   }
 }
 
@@ -2830,30 +2850,43 @@ app.get('/api/admin/badges', async (req, res) => {
 app.get('/api/admin/inventory', adminAuth, async (req, res) => {
   try {
     const inventory = await readDataFile('inventory');
-    // Enrich inventory with product details
-    const enrichedInventory = inventory.map(item => {
-      const product = PRODUCTS.find(p => p.id == item.productId);
-      if (product) {
-        // Find the color variant image
-        let variantImage = product.images[0];
-        if (item.variantId && product.availableColors) {
-          const colorMatch = product.availableColors.find(c => 
-            item.variantId.includes(c.name) || item.variantId === c.name
-          );
-          if (colorMatch) variantImage = colorMatch.image;
+    // Enrich inventory with product details and filter out red variants for Ventura Crop Tank
+    const enrichedInventory = inventory
+      .filter(item => {
+        // Filter out red variants for Ventura Crop Tank (product ID 8)
+        if (item.productId == 8) {
+          const variantId = (item.variantId || '').toLowerCase();
+          const variant = (item.variant || '').toLowerCase();
+          // Exclude if variant contains "red"
+          if (variantId.includes('red') || variant.includes('red')) {
+            return false;
+          }
         }
-        return {
-          ...item,
-          productName: product.name,
-          price: product.price,
-          category: product.category,
-          image: variantImage,
-          sizes: product.sizes,
-          colors: product.colors
-        };
-      }
-      return item;
-    });
+        return true;
+      })
+      .map(item => {
+        const product = PRODUCTS.find(p => p.id == item.productId);
+        if (product) {
+          // Find the color variant image
+          let variantImage = product.images[0];
+          if (item.variantId && product.availableColors) {
+            const colorMatch = product.availableColors.find(c => 
+              item.variantId.includes(c.name) || item.variantId === c.name
+            );
+            if (colorMatch) variantImage = colorMatch.image;
+          }
+          return {
+            ...item,
+            productName: product.name,
+            price: product.price,
+            category: product.category,
+            image: variantImage,
+            sizes: product.sizes,
+            colors: product.colors
+          };
+        }
+        return item;
+      });
     res.json(enrichedInventory);
   } catch (error) {
     res.status(500).json({ error: error.message });
