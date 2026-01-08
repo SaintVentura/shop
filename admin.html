@@ -894,29 +894,33 @@
     <script>
         // Check authentication - redirect to login if not authenticated
         // Only check once and allow full access if authenticated
-        const isAuthenticated = sessionStorage.getItem('adminAuthenticated') === 'true';
-        const storedPassword = sessionStorage.getItem('adminPassword');
+        (function() {
+            const isAuthenticated = sessionStorage.getItem('adminAuthenticated') === 'true';
+            const storedPassword = sessionStorage.getItem('adminPassword');
+            
+            console.log('Admin page load - Auth check:', {
+                isAuthenticated: isAuthenticated,
+                hasPassword: !!storedPassword,
+                passwordLength: storedPassword ? storedPassword.length : 0
+            });
+            
+            if (!isAuthenticated || !storedPassword) {
+                console.log('Not authenticated, redirecting to login');
+                // Clear any stale data
+                sessionStorage.removeItem('adminAuthenticated');
+                sessionStorage.removeItem('adminPassword');
+                window.location.href = 'admin-login.html';
+                return; // Stop execution if not authenticated
+            }
+            
+            // Store validated password from sessionStorage (set after successful login)
+            window.ADMIN_PASSWORD = storedPassword;
+            console.log('✅ Admin authenticated successfully - password loaded from sessionStorage');
+            console.log('✅ Full admin access granted until browser tab is closed');
+        })();
         
-        console.log('Admin page load - Auth check:', {
-            isAuthenticated: isAuthenticated,
-            hasPassword: !!storedPassword,
-            passwordLength: storedPassword ? storedPassword.length : 0
-        });
-        
-        if (!isAuthenticated || !storedPassword) {
-            console.log('Not authenticated, redirecting to login');
-            // Clear any stale data
-            sessionStorage.removeItem('adminAuthenticated');
-            sessionStorage.removeItem('adminPassword');
-            window.location.href = 'admin-login.html';
-            // Stop execution - don't continue if not authenticated
-            return;
-        }
-        
-        // Store validated password from sessionStorage (set after successful login)
-        let ADMIN_PASSWORD = storedPassword;
-        console.log('✅ Admin authenticated successfully - password loaded from sessionStorage');
-        console.log('✅ Full admin access granted until browser tab is closed');
+        // Declare ADMIN_PASSWORD in global scope for use throughout the script
+        let ADMIN_PASSWORD = window.ADMIN_PASSWORD || sessionStorage.getItem('adminPassword') || null;
         
         // Initialize data arrays and variables at the top level to avoid initialization errors
         let allInventoryData = [];
