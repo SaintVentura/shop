@@ -2748,7 +2748,7 @@ const PRODUCTS = [
   { id: 5, name: "Hood* of The Saints", price: 400, category: "tops", sizes: ["XS", "S", "M", "L", "XL", "XXL"], colors: ["Baby Blue", "Black"], images: ["https://dl.dropboxusercontent.com/scl/fi/tv6xmtknl5e93s4q2rxvr/1-7.png?rlkey=6y8szp285r72rby6k6jkw8038&st=n6gbin36&dl=1"], availableColors: [{ name: "Baby Blue", image: "https://dl.dropboxusercontent.com/scl/fi/tv6xmtknl5e93s4q2rxvr/1-7.png?rlkey=6y8szp285r72rby6k6jkw8038&st=n6gbin36&dl=1" }, { name: "Black", image: "https://dl.dropboxusercontent.com/scl/fi/mtvek2orgliosk1e5w0zg/1-5.png?rlkey=akio0f1ps0tumeghs50q10blr&st=ktcib4de&dl=1" }] },
   { id: 6, name: "SV Utility Shirt", price: 400, category: "tops", sizes: ["XS", "S", "M", "L", "XL", "XXL"], colors: ["Black"], images: ["https://dl.dropboxusercontent.com/scl/fi/tg8jpo7hxksb5fmiyivo7/1-9.png?rlkey=wlaat82bhy29xpcyuyme0b1mi&st=p7wbg6k7&dl=1"], availableColors: [{ name: "Black", image: "https://dl.dropboxusercontent.com/scl/fi/tg8jpo7hxksb5fmiyivo7/1-9.png?rlkey=wlaat82bhy29xpcyuyme0b1mi&st=p7wbg6k7&dl=1" }] },
   { id: 7, name: "SV Cargo Pants", price: 300, category: "bottoms", sizes: ["XS", "S", "M", "L", "XL", "XXL"], colors: ["Black"], images: ["https://dl.dropboxusercontent.com/scl/fi/q82xmvf10v3bfth0yb9tb/1-17.png?rlkey=86y3k3tbqdqgs63h2gzs86d81&st=brqjs51u&dl=1"], availableColors: [{ name: "Black", image: "https://dl.dropboxusercontent.com/scl/fi/q82xmvf10v3bfth0yb9tb/1-17.png?rlkey=86y3k3tbqdqgs63h2gzs86d81&st=brqjs51u&dl=1" }] },
-  { id: 8, name: "Ventura Crop Tank", price: 300, category: "tops", sizes: ["XS", "S", "M", "L", "XL", "XXL"], colors: ["Black", "Army Green", "White"], images: ["https://dl.dropboxusercontent.com/scl/fi/j22zx7qt5efevtqmbki5a/1-10.png?rlkey=w1m9xosbjx5jiihn45l1o7hj7&st=9whfbavz&dl=1"], availableColors: [{ name: "Army Green", image: "https://dl.dropboxusercontent.com/scl/fi/j22zx7qt5efevtqmbki5a/1-10.png?rlkey=w1m9xosbjx5jiihn45l1o7hj7&st=9whfbavz&dl=1" }, { name: "Black", image: "https://dl.dropboxusercontent.com/scl/fi/mud785w0gso758kjl8d0y/1-6.PNG?rlkey=wj0x9hpnflobqndsak1drzpxt&st=bvmxst4j&dl=1" }, { name: "White", image: "https://dl.dropboxusercontent.com/scl/fi/0izhvhpqgv7ym8o53dfk6/3-1.PNG?rlkey=34wr7bf7w9qr4aqcx8em9puv7&st=5xbyxbt1&dl=1" }] },
+  { id: 8, name: "Ventura Crop Tank", price: 300, category: "tops", sizes: ["XS", "S", "M", "L", "XL", "XXL"], colors: ["Black", "Army Green", "White", "Red"], images: ["https://dl.dropboxusercontent.com/scl/fi/j22zx7qt5efevtqmbki5a/1-10.png?rlkey=w1m9xosbjx5jiihn45l1o7hj7&st=9whfbavz&dl=1"], availableColors: [{ name: "Army Green", image: "https://dl.dropboxusercontent.com/scl/fi/j22zx7qt5efevtqmbki5a/1-10.png?rlkey=w1m9xosbjx5jiihn45l1o7hj7&st=9whfbavz&dl=1" }, { name: "Black", image: "https://dl.dropboxusercontent.com/scl/fi/mud785w0gso758kjl8d0y/1-6.PNG?rlkey=wj0x9hpnflobqndsak1drzpxt&st=bvmxst4j&dl=1" }, { name: "White", image: "https://dl.dropboxusercontent.com/scl/fi/0izhvhpqgv7ym8o53dfk6/3-1.PNG?rlkey=34wr7bf7w9qr4aqcx8em9puv7&st=5xbyxbt1&dl=1" }, { name: "Red", image: "https://dl.dropboxusercontent.com/scl/fi/z3oln893v1j2mkue7um1v/3-2.PNG?rlkey=88buym8r1h4e9m75y076te10w&st=dc7dor6q&dl=1" }] },
   { id: 9, name: "Essential Beanie", price: 200, category: "accessories", sizes: ["One Size Fits All"], colors: ["Black"], images: ["https://dl.dropboxusercontent.com/scl/fi/sw3imbzsqend0zigd3yww/1-13.png?rlkey=iolsj7x1ryqxxh2t4okvw46zp&st=nryoy8dl&dl=1"], availableColors: [{ name: "Black", image: "https://dl.dropboxusercontent.com/scl/fi/sw3imbzsqend0zigd3yww/1-13.png?rlkey=iolsj7x1ryqxxh2t4okvw46zp&st=nryoy8dl&dl=1" }] },
   { id: 10, name: "Onyx Bracelet By SV", price: 60, category: "accessories", sizes: ["13cm", "14cm", "15cm", "16cm", "17cm", "18cm"], colors: ["Black"], images: ["https://dl.dropboxusercontent.com/scl/fi/xevb4s1aeggk0fjcwk85e/1-18.png?rlkey=vs9rk6nu79b5nwtdxme114crx&st=6fn852el&dl=1"], availableColors: [{ name: "Black", image: "https://dl.dropboxusercontent.com/scl/fi/xevb4s1aeggk0fjcwk85e/1-18.png?rlkey=vs9rk6nu79b5nwtdxme114crx&st=6fn852el&dl=1" }] }
 ];
@@ -2756,23 +2756,7 @@ const PRODUCTS = [
 // Initialize inventory from products
 async function initializeInventory() {
   const inventory = await readDataFile('inventory');
-  
-  // Clean up any red variants for Ventura Crop Tank (product ID 8)
-  let cleanedInventory = inventory.filter(item => {
-    if (item.productId == 8) {
-      const variantId = (item.variantId || '').toLowerCase();
-      const variant = (item.variant || '').toLowerCase();
-      // Remove red variants
-      if (variantId.includes('red') || variant.includes('red')) {
-        console.log(`Removing red variant from inventory: ${item.id}`);
-        return false;
-      }
-    }
-    return true;
-  });
-  
-  // Only initialize if inventory is empty
-  if (cleanedInventory.length === 0) {
+  if (inventory.length === 0) {
     const newInventory = [];
     PRODUCTS.forEach(product => {
       if (product.sizes.length === 1 && product.sizes[0] === "One Size Fits All") {
@@ -2803,10 +2787,6 @@ async function initializeInventory() {
       }
     });
     await writeDataFile('inventory', newInventory);
-  } else if (cleanedInventory.length !== inventory.length) {
-    // If we removed red variants, save the cleaned inventory
-    await writeDataFile('inventory', cleanedInventory);
-    console.log('Cleaned inventory: removed red variants for Ventura Crop Tank');
   }
 }
 
@@ -2850,43 +2830,30 @@ app.get('/api/admin/badges', async (req, res) => {
 app.get('/api/admin/inventory', adminAuth, async (req, res) => {
   try {
     const inventory = await readDataFile('inventory');
-    // Enrich inventory with product details and filter out red variants for Ventura Crop Tank
-    const enrichedInventory = inventory
-      .filter(item => {
-        // Filter out red variants for Ventura Crop Tank (product ID 8)
-        if (item.productId == 8) {
-          const variantId = (item.variantId || '').toLowerCase();
-          const variant = (item.variant || '').toLowerCase();
-          // Exclude if variant contains "red"
-          if (variantId.includes('red') || variant.includes('red')) {
-            return false;
-          }
+    // Enrich inventory with product details
+    const enrichedInventory = inventory.map(item => {
+      const product = PRODUCTS.find(p => p.id == item.productId);
+      if (product) {
+        // Find the color variant image
+        let variantImage = product.images[0];
+        if (item.variantId && product.availableColors) {
+          const colorMatch = product.availableColors.find(c => 
+            item.variantId.includes(c.name) || item.variantId === c.name
+          );
+          if (colorMatch) variantImage = colorMatch.image;
         }
-        return true;
-      })
-      .map(item => {
-        const product = PRODUCTS.find(p => p.id == item.productId);
-        if (product) {
-          // Find the color variant image
-          let variantImage = product.images[0];
-          if (item.variantId && product.availableColors) {
-            const colorMatch = product.availableColors.find(c => 
-              item.variantId.includes(c.name) || item.variantId === c.name
-            );
-            if (colorMatch) variantImage = colorMatch.image;
-          }
-          return {
-            ...item,
-            productName: product.name,
-            price: product.price,
-            category: product.category,
-            image: variantImage,
-            sizes: product.sizes,
-            colors: product.colors
-          };
-        }
-        return item;
-      });
+        return {
+          ...item,
+          productName: product.name,
+          price: product.price,
+          category: product.category,
+          image: variantImage,
+          sizes: product.sizes,
+          colors: product.colors
+        };
+      }
+      return item;
+    });
     res.json(enrichedInventory);
   } catch (error) {
     res.status(500).json({ error: error.message });

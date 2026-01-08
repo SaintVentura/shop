@@ -910,9 +910,7 @@
     </div>
 
     <script>
-        // Store validated password (set after successful login)
-        // Never hardcode password - always validate with server
-        let ADMIN_PASSWORD = null;
+        const ADMIN_PASSWORD = 'WEAR3+H3$@!N+$*';
         
         // Initialize data arrays and variables at the top level to avoid initialization errors
         let allInventoryData = [];
@@ -1109,69 +1107,30 @@
             }
         }
 
-        // Login - validate password with server, always require login
-        document.getElementById('login-form').addEventListener('submit', async (e) => {
+        // Login
+        document.getElementById('login-form').addEventListener('submit', (e) => {
             e.preventDefault();
-            const passwordInput = document.getElementById('admin-password');
-            const password = passwordInput.value;
-            const errorElement = document.getElementById('login-error');
-            
-            // Clear previous errors
-            errorElement.classList.add('hidden');
-            errorElement.textContent = '';
-            
-            // Disable form during validation
-            passwordInput.disabled = true;
-            const submitButton = e.target.querySelector('button[type="submit"]');
-            const originalButtonText = submitButton.textContent;
-            submitButton.disabled = true;
-            submitButton.textContent = 'Validating...';
-            
-            try {
-                // Validate password with server
-                const response = await fetch(`${BACKEND_URL}/api/admin/validate-password`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ password })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success && result.valid) {
-                    // Password is valid - store it and show dashboard
-                    ADMIN_PASSWORD = password;
-                    document.getElementById('login-screen').classList.add('hidden');
-                    document.getElementById('admin-dashboard').classList.remove('hidden');
-                    // Don't save to localStorage - always require login
-                    loadDashboard();
-                    // Start real-time sync immediately after login
-                    startRealTimeSync();
-                } else {
-                    // Password is invalid
-                    errorElement.textContent = 'Invalid password';
-                    errorElement.classList.remove('hidden');
-                    passwordInput.value = '';
-                    passwordInput.focus();
-                }
-            } catch (error) {
-                console.error('Login error:', error);
-                errorElement.textContent = 'Error connecting to server. Please try again.';
-                errorElement.classList.remove('hidden');
-            } finally {
-                // Re-enable form
-                passwordInput.disabled = false;
-                submitButton.disabled = false;
-                submitButton.textContent = originalButtonText;
+            const password = document.getElementById('admin-password').value;
+            if (password === ADMIN_PASSWORD) {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('admin-dashboard').classList.remove('hidden');
+                localStorage.setItem('adminLoggedIn', 'true');
+                loadDashboard();
+                // Start real-time sync immediately after login
+                startRealTimeSync();
+            } else {
+                document.getElementById('login-error').textContent = 'Invalid password';
+                document.getElementById('login-error').classList.remove('hidden');
             }
         });
 
-        // Always show login screen first - never auto-login
-        // Clear any stored login state to ensure security
-        localStorage.removeItem('adminLoggedIn');
-        document.getElementById('login-screen').classList.remove('hidden');
-        document.getElementById('admin-dashboard').classList.add('hidden');
+        // Auto-login - always show dashboard
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('admin-dashboard').classList.remove('hidden');
+        localStorage.setItem('adminLoggedIn', 'true');
+        loadDashboard();
+        // Start real-time sync immediately
+        startRealTimeSync();
         
         // Check for POS payment success
         const urlParams = new URLSearchParams(window.location.search);
@@ -1191,14 +1150,9 @@
         }
 
         function logout() {
-            // Clear password and login state
-            ADMIN_PASSWORD = null;
             localStorage.removeItem('adminLoggedIn');
             document.getElementById('login-screen').classList.remove('hidden');
             document.getElementById('admin-dashboard').classList.add('hidden');
-            // Clear password input
-            const passwordInput = document.getElementById('admin-password');
-            if (passwordInput) passwordInput.value = '';
             // Stop real-time sync when logging out
             stopRealTimeSync();
         }
@@ -1396,19 +1350,11 @@
 
         // Helper function to add admin auth header
         function adminFetch(url, options = {}) {
-            // Ensure user is logged in
-            if (!ADMIN_PASSWORD) {
-                // Not logged in - show login screen
-                document.getElementById('login-screen').classList.remove('hidden');
-                document.getElementById('admin-dashboard').classList.add('hidden');
-                throw new Error('Not authenticated. Please login first.');
-            }
-            
             // Ensure options object exists
             if (!options) options = {};
             if (!options.headers) options.headers = {};
             
-            // Set required headers - use stored password from login
+            // Set required headers
             options.headers['x-admin-password'] = ADMIN_PASSWORD;
             options.headers['Content-Type'] = 'application/json';
             options.headers['Accept'] = 'application/json';
@@ -1429,17 +1375,6 @@
                     
                     // Check if response is ok
                     if (!response.ok) {
-                        // Handle 401 Unauthorized - redirect to login
-                        if (response.status === 401) {
-                            ADMIN_PASSWORD = null;
-                            localStorage.removeItem('adminLoggedIn');
-                            document.getElementById('login-screen').classList.remove('hidden');
-                            document.getElementById('admin-dashboard').classList.add('hidden');
-                            const passwordInput = document.getElementById('admin-password');
-                            if (passwordInput) passwordInput.value = '';
-                            throw new Error('Authentication failed. Please login again.');
-                        }
-                        
                         // Try to parse error response
                         const text = await response.text();
                         console.error('Error response text:', text);
