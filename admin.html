@@ -893,18 +893,22 @@
 
     <script>
         // Check authentication - redirect to login if not authenticated
-        if (sessionStorage.getItem('adminAuthenticated') !== 'true') {
+        const isAuthenticated = sessionStorage.getItem('adminAuthenticated') === 'true';
+        const storedPassword = sessionStorage.getItem('adminPassword');
+        
+        if (!isAuthenticated || !storedPassword) {
+            console.log('Not authenticated, redirecting to login. Authenticated:', isAuthenticated, 'Has password:', !!storedPassword);
+            // Clear any stale data
+            sessionStorage.removeItem('adminAuthenticated');
+            sessionStorage.removeItem('adminPassword');
             window.location.href = 'admin-login.html';
+            // Stop execution
+            throw new Error('Redirecting to login');
         }
         
         // Store validated password from sessionStorage (set after successful login)
-        // Never hardcode password - always validate with server
-        let ADMIN_PASSWORD = sessionStorage.getItem('adminPassword') || null;
-        
-        // If no password in sessionStorage, redirect to login
-        if (!ADMIN_PASSWORD) {
-            window.location.href = 'admin-login.html';
-        }
+        let ADMIN_PASSWORD = storedPassword;
+        console.log('Admin authenticated, password loaded from sessionStorage');
         
         // Initialize data arrays and variables at the top level to avoid initialization errors
         let allInventoryData = [];
@@ -1102,8 +1106,19 @@
         }
 
         // Initialize dashboard on page load (user is already authenticated)
-        loadDashboard();
-        startRealTimeSync();
+        // Only initialize if authentication is confirmed
+        if (ADMIN_PASSWORD && sessionStorage.getItem('adminAuthenticated') === 'true') {
+            console.log('Authentication confirmed, initializing dashboard...');
+            try {
+                loadDashboard();
+                startRealTimeSync();
+            } catch (error) {
+                console.error('Error initializing dashboard:', error);
+            }
+        } else {
+            console.error('Authentication check failed, redirecting to login');
+            window.location.href = 'admin-login.html';
+        }
         
         // Check for POS payment success
         const urlParams = new URLSearchParams(window.location.search);
