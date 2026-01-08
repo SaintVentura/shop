@@ -1123,31 +1123,8 @@
             }
         });
 
-        // Check if already logged in
-        if (localStorage.getItem('adminLoggedIn') === 'true') {
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('admin-dashboard').classList.remove('hidden');
-            loadDashboard();
-            // Start real-time sync immediately when logged in
-            startRealTimeSync();
-            
-            // Check for POS payment success
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('posPaymentSuccess') === 'true') {
-                const orderId = urlParams.get('orderId');
-                alert(`✅ Payment successful! Order ${orderId || ''} has been marked as fulfilled.`);
-                // Clean up URL
-                window.history.replaceState({}, document.title, window.location.pathname);
-                // Refresh orders if on orders page
-                if (currentSection === 'orders') {
-                    loadOrders();
-                }
-                // Refresh dashboard if on dashboard
-                if (currentSection === 'dashboard') {
-                    loadDashboardData();
-                }
-            }
-        }
+        // Always show login screen at the beginning
+        // Login screen is visible by default, no auto-login
 
         function logout() {
             localStorage.removeItem('adminLoggedIn');
