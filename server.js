@@ -2383,8 +2383,7 @@ function generateEmailTemplate(type, data = {}) {
                                 ${type === 'abandoned-cart' && !isSubscribed 
                                   ? `You're receiving this email because you abandoned your cart.` 
                                   : `You're receiving this email because you subscribed to ${BRAND_NAME} newsletter.`}<br>
-                                ${isSubscribed ? `<a href="${BRAND_WEBSITE}/unsubscribe.html?email={{EMAIL}}" style="color: #CCCCCC; text-decoration: underline; word-wrap: break-word; font-size: 11px;">Unsubscribe</a> | ` : ''}
-                                <a href="${BRAND_WEBSITE}" style="color: #CCCCCC; text-decoration: underline; word-wrap: break-word; font-size: 11px;">${isSubscribed ? 'Update Preferences' : 'Visit Website'}</a>
+                                ${isSubscribed ? `<a href="${BRAND_WEBSITE}/unsubscribe.html?email={{EMAIL}}" style="color: #CCCCCC; text-decoration: underline; word-wrap: break-word; font-size: 11px;">Unsubscribe</a>` : ''}
                             </p>
                             
                             <!-- Copyright -->
