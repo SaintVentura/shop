@@ -1009,7 +1009,8 @@
         let posCart = [];
         let posProducts = [];
         
-        function toggleSidebar() {
+        // Make toggleSidebar globally accessible
+        window.toggleSidebar = function() {
             if (window.innerWidth <= 768) {
                 toggleMobileSidebar();
                 return;
@@ -1018,6 +1019,8 @@
             const mainContent = document.getElementById('main-content');
             const icon = document.getElementById('sidebar-toggle-icon');
             
+            if (!sidebar || !mainContent) return;
+            
             sidebarCollapsed = !sidebarCollapsed;
             if (sidebarCollapsed) {
                 sidebar.classList.add('collapsed');
@@ -1025,33 +1028,48 @@
                 sidebar.classList.add('w-20');
                 mainContent.classList.remove('ml-64');
                 mainContent.classList.add('ml-20');
-                icon.style.transform = 'rotate(180deg)';
+                if (icon) icon.style.transform = 'rotate(180deg)';
             } else {
                 sidebar.classList.remove('collapsed');
                 sidebar.classList.remove('w-20');
                 sidebar.classList.add('w-64');
                 mainContent.classList.remove('ml-20');
                 mainContent.classList.add('ml-64');
-                icon.style.transform = 'rotate(0deg)';
+                if (icon) icon.style.transform = 'rotate(0deg)';
             }
+        };
+        
+        // Also define as regular function for compatibility
+        function toggleSidebar() {
+            window.toggleSidebar();
         }
         
-        function toggleMobileSidebar() {
+        // Make functions globally accessible
+        window.toggleMobileSidebar = function() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebar-overlay');
-            sidebar.classList.toggle('mobile-open');
-            overlay.classList.toggle('active');
+            if (sidebar) sidebar.classList.toggle('mobile-open');
+            if (overlay) overlay.classList.toggle('active');
+        };
+        
+        window.closeMobileSidebar = function() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if (sidebar) sidebar.classList.remove('mobile-open');
+            if (overlay) overlay.classList.remove('active');
+        };
+        
+        // Also define as regular functions for compatibility
+        function toggleMobileSidebar() {
+            window.toggleMobileSidebar();
         }
         
         function closeMobileSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebar-overlay');
-            sidebar.classList.remove('mobile-open');
-            overlay.classList.remove('active');
+            window.closeMobileSidebar();
         }
         
         // Close mobile sidebar when clicking a menu item
-        function showSection(section) {
+        window.showSection = function(section) {
             if (window.innerWidth <= 768) {
                 closeMobileSidebar();
             }
@@ -1115,6 +1133,11 @@
             } catch (error) {
                 console.error(`Error loading section ${section}:`, error);
             }
+        };
+        
+        // Also define as regular function for compatibility
+        function showSection(section) {
+            window.showSection(section);
         }
 
         // Initialize dashboard on page load (user is already authenticated)
@@ -1146,16 +1169,25 @@
             }
         }
 
-        function logout() {
+        // Make logout globally accessible
+        window.logout = function() {
             // Clear password and login state
             ADMIN_PASSWORD = null;
+            window.ADMIN_PASSWORD = null;
             sessionStorage.removeItem('adminAuthenticated');
             sessionStorage.removeItem('adminPassword');
             localStorage.removeItem('adminLoggedIn');
             // Stop real-time sync when logging out
-            stopRealTimeSync();
+            if (typeof stopRealTimeSync === 'function') {
+                stopRealTimeSync();
+            }
             // Redirect to login page
             window.location.href = 'admin-login.html';
+        };
+        
+        // Also define as regular function for compatibility
+        function logout() {
+            window.logout();
         }
 
 
