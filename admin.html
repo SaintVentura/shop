@@ -466,14 +466,13 @@
                                         <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700 text-sm md:text-base">Items</th>
                                         <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700 text-sm md:text-base">Total</th>
                                         <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700 text-sm md:text-base">Delivery Cost</th>
-                                        <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700 text-sm md:text-base">Delivery Option</th>
                                         <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700 text-sm md:text-base">Status</th>
                                         <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700 text-sm md:text-base">Date</th>
                                         <th class="text-left py-4 px-4 md:px-6 font-semibold text-gray-700 text-sm md:text-base">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="orders-table" class="divide-y divide-gray-200">
-                                    <tr><td colspan="9" class="text-center py-12 text-gray-500">
+                                    <tr><td colspan="8" class="text-center py-12 text-gray-500">
                                         <div class="flex items-center justify-center space-x-2">
                                             <div class="loading-spinner"></div>
                                             <span>Loading orders...</span>
@@ -1124,28 +1123,29 @@
             }
         });
 
-        // Auto-login - always show dashboard
-        document.getElementById('login-screen').classList.add('hidden');
-        document.getElementById('admin-dashboard').classList.remove('hidden');
-        localStorage.setItem('adminLoggedIn', 'true');
-        loadDashboard();
-        // Start real-time sync immediately
-        startRealTimeSync();
-        
-        // Check for POS payment success
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('posPaymentSuccess') === 'true') {
-            const orderId = urlParams.get('orderId');
-            alert(`✅ Payment successful! Order ${orderId || ''} has been marked as fulfilled.`);
-            // Clean up URL
-            window.history.replaceState({}, document.title, window.location.pathname);
-            // Refresh orders if on orders page
-            if (currentSection === 'orders') {
-                loadOrders();
-            }
-            // Refresh dashboard if on dashboard
-            if (currentSection === 'dashboard') {
-                loadDashboardData();
+        // Check if already logged in
+        if (localStorage.getItem('adminLoggedIn') === 'true') {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('admin-dashboard').classList.remove('hidden');
+            loadDashboard();
+            // Start real-time sync immediately when logged in
+            startRealTimeSync();
+            
+            // Check for POS payment success
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('posPaymentSuccess') === 'true') {
+                const orderId = urlParams.get('orderId');
+                alert(`✅ Payment successful! Order ${orderId || ''} has been marked as fulfilled.`);
+                // Clean up URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+                // Refresh orders if on orders page
+                if (currentSection === 'orders') {
+                    loadOrders();
+                }
+                // Refresh dashboard if on dashboard
+                if (currentSection === 'dashboard') {
+                    loadDashboardData();
+                }
             }
         }
 
@@ -1278,7 +1278,7 @@
                                         </div>
                                         <div class="text-right">
                                             <p class="font-semibold">R${(order.total || 0).toFixed(2)}</p>
-                                            <span class="px-2 py-1 rounded-full text-xs font-semibold ${(() => { const s = (order.status === 'pending fulfilment' || order.status === 'pending fulfillment') ? 'pending fulfillment' : order.status; return s === 'fulfilled' ? 'bg-green-100 text-green-800' : s === 'pending fulfillment' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'; })()}">${(() => { const s = (order.status === 'pending fulfilment' || order.status === 'pending fulfillment') ? 'pending fulfillment' : order.status; return s || 'pending checkout'; })()}</span>
+                                            <span class="px-2 py-1 rounded-full text-xs font-semibold ${order.status === 'fulfilled' ? 'bg-green-100 text-green-800' : order.status === 'pending fulfillment' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}">${order.status || 'pending checkout'}</span>
                                         </div>
                                     </div>
                                     <p class="text-xs text-gray-500 mt-2">${order.date ? new Date(order.date).toLocaleString() : 'N/A'}</p>
@@ -2340,32 +2340,35 @@
                 case 'promotion':
                     subject = subject || '🎉 Special Promotion - Limited Time Offer!';
                     templateHtml = `
+                        <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="image">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs text-gray-500 font-medium">Image Section</span>
+                                <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
+                            </div>
+                            <input type="url" class="w-full mb-2 px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Image URL..." value="https://dl.dropboxusercontent.com/scl/fi/j0pgw2egryb9f0470f3p3/1-2.png?rlkey=xaw4k5w0yhwswfae3pi1n0g2r&st=vnlwftci&dl=1">
+                        </div>
                         <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="heading">
                             <div class="flex justify-between items-center mb-2">
-                                <span class="text-xs text-gray-500 font-medium">Main Heading (Title)</span>
+                                <span class="text-xs text-gray-500 font-medium">Heading Section</span>
                                 <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
                             </div>
-                            <input type="text" class="w-full px-3 py-2 border border-gray-200 rounded text-sm font-bold" placeholder="Enter main heading..." value="🎉 Exclusive Promotion Alert - Limited Time Only!">
-                        </div>
-                        <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="subheading">
-                            <div class="flex justify-between items-center mb-2">
-                                <span class="text-xs text-gray-500 font-medium">Subheading (Subtext)</span>
-                                <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
-                            </div>
-                            <input type="text" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Enter subheading..." value="Don't Miss Out on These Incredible Savings!">
+                            <select class="w-full mb-2 px-2 py-1 border border-gray-200 rounded text-sm">
+                                <option value="h1">H1 (Large)</option>
+                                <option value="h2" selected>H2 (Medium)</option>
+                                <option value="h3">H3 (Small)</option>
+                            </select>
+                            <input type="text" class="w-full px-3 py-2 border border-gray-200 rounded text-sm font-bold" placeholder="Enter heading text..." value="🎉 Special Promotion - Limited Time Offer!">
                         </div>
                         <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="text">
                             <div class="flex justify-between items-center mb-2">
-                                <span class="text-xs text-gray-500 font-medium">Message Content</span>
+                                <span class="text-xs text-gray-500 font-medium">Text Section</span>
                                 <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
                             </div>
-                            <textarea class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="8" placeholder="Enter your message content...">This is your moment! We're absolutely thrilled to bring you an exclusive promotion that you simply cannot afford to miss. For a limited time only, we're offering incredible savings on our most popular and sought-after streetwear pieces.
-
-Whether you're looking to refresh your wardrobe with the latest trends, try something completely new and daring, or stock up on your all-time favorite styles, now is the perfect time to shop. Our carefully selected promotion items feature the exact same premium quality, cutting-edge designs, and attention to detail that you've come to expect from Saint Ventura—now available at absolutely unbeatable prices that won't last long.</textarea>
+                            <textarea class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="4" placeholder="Enter text content...">Don't miss out on our amazing promotion! Shop now and save big on selected items.</textarea>
                         </div>
                         <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="button">
                             <div class="flex justify-between items-center mb-2">
-                                <span class="text-xs text-gray-500 font-medium">Call-to-Action Button</span>
+                                <span class="text-xs text-gray-500 font-medium">Button Section</span>
                                 <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
                             </div>
                             <input type="text" class="w-full mb-2 px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Button text..." value="Shop Now">
@@ -2376,32 +2379,35 @@ Whether you're looking to refresh your wardrobe with the latest trends, try some
                 case 'new-product':
                     subject = subject || '✨ New Product Launch - Check It Out!';
                     templateHtml = `
+                        <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="image">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs text-gray-500 font-medium">Image Section</span>
+                                <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
+                            </div>
+                            <input type="url" class="w-full mb-2 px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Image URL..." value="https://dl.dropboxusercontent.com/scl/fi/6ribhwbytdqfqva6jgf3s/1-16.png?rlkey=s61uev3dxmsmo4coifrqtozge&st=z3y4nuri&dl=1">
+                        </div>
                         <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="heading">
                             <div class="flex justify-between items-center mb-2">
-                                <span class="text-xs text-gray-500 font-medium">Main Heading (Title)</span>
+                                <span class="text-xs text-gray-500 font-medium">Heading Section</span>
                                 <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
                             </div>
-                            <input type="text" class="w-full px-3 py-2 border border-gray-200 rounded text-sm font-bold" placeholder="Enter main heading..." value="✨ Introducing Our Latest Collection - Where Innovation Meets Style!">
-                        </div>
-                        <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="subheading">
-                            <div class="flex justify-between items-center mb-2">
-                                <span class="text-xs text-gray-500 font-medium">Subheading (Subtext)</span>
-                                <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
-                            </div>
-                            <input type="text" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Enter subheading..." value="Groundbreaking Designs That Push Creative Boundaries">
+                            <select class="w-full mb-2 px-2 py-1 border border-gray-200 rounded text-sm">
+                                <option value="h1" selected>H1 (Large)</option>
+                                <option value="h2">H2 (Medium)</option>
+                                <option value="h3">H3 (Small)</option>
+                            </select>
+                            <input type="text" class="w-full px-3 py-2 border border-gray-200 rounded text-sm font-bold" placeholder="Enter heading text..." value="✨ New Product Launch!">
                         </div>
                         <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="text">
                             <div class="flex justify-between items-center mb-2">
-                                <span class="text-xs text-gray-500 font-medium">Message Content</span>
+                                <span class="text-xs text-gray-500 font-medium">Text Section</span>
                                 <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
                             </div>
-                            <textarea class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="8" placeholder="Enter your message content...">We're absolutely thrilled and beyond excited to unveil our newest collection, where cutting-edge design meets premium craftsmanship in ways you've never seen before. After months of careful development, extensive research, and meticulous attention to every single detail, we're incredibly proud to present pieces that truly push the boundaries of streetwear fashion and redefine what's possible in contemporary urban style.
-
-This groundbreaking collection represents our unwavering commitment to innovation, uncompromising quality, and forward-thinking style. Each piece has been meticulously designed by our talented team of designers who understand that great fashion is about more than just aesthetics—it's about creating pieces that not only look absolutely incredible but feel amazing when you wear them, move with your body, and become an extension of your personal style.</textarea>
+                            <textarea class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="4" placeholder="Enter text content...">We're excited to introduce our latest collection! Discover new styles and be the first to get your hands on these exclusive pieces.</textarea>
                         </div>
                         <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="button">
                             <div class="flex justify-between items-center mb-2">
-                                <span class="text-xs text-gray-500 font-medium">Call-to-Action Button</span>
+                                <span class="text-xs text-gray-500 font-medium">Button Section</span>
                                 <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
                             </div>
                             <input type="text" class="w-full mb-2 px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Button text..." value="View New Products">
@@ -2412,28 +2418,31 @@ This groundbreaking collection represents our unwavering commitment to innovatio
                 case 'news':
                     subject = subject || '📰 Saint Ventura News & Updates';
                     templateHtml = `
+                        <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="image">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs text-gray-500 font-medium">Image Section</span>
+                                <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
+                            </div>
+                            <input type="url" class="w-full mb-2 px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Image URL..." value="https://dl.dropboxusercontent.com/scl/fi/qs6id9xzrvfp8dctj2lqf/1-15.png?rlkey=shaa8t54va6ap95kulvvk1jee&st=tpwythhm&dl=1">
+                        </div>
                         <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="heading">
                             <div class="flex justify-between items-center mb-2">
-                                <span class="text-xs text-gray-500 font-medium">Main Heading (Title)</span>
+                                <span class="text-xs text-gray-500 font-medium">Heading Section</span>
                                 <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
                             </div>
-                            <input type="text" class="w-full px-3 py-2 border border-gray-200 rounded text-sm font-bold" placeholder="Enter main heading..." value="📰 Latest News & Exciting Updates from Saint Ventura">
-                        </div>
-                        <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="subheading">
-                            <div class="flex justify-between items-center mb-2">
-                                <span class="text-xs text-gray-500 font-medium">Subheading (Subtext)</span>
-                                <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
-                            </div>
-                            <input type="text" class="w-full px-3 py-2 border border-gray-200 rounded text-sm" placeholder="Enter subheading..." value="What's New and What's Coming Next!">
+                            <select class="w-full mb-2 px-2 py-1 border border-gray-200 rounded text-sm">
+                                <option value="h1">H1 (Large)</option>
+                                <option value="h2" selected>H2 (Medium)</option>
+                                <option value="h3">H3 (Small)</option>
+                            </select>
+                            <input type="text" class="w-full px-3 py-2 border border-gray-200 rounded text-sm font-bold" placeholder="Enter heading text..." value="📰 Latest News & Updates">
                         </div>
                         <div class="email-section border border-gray-200 rounded p-3 bg-white" data-type="text">
                             <div class="flex justify-between items-center mb-2">
-                                <span class="text-xs text-gray-500 font-medium">Message Content</span>
+                                <span class="text-xs text-gray-500 font-medium">Text Section</span>
                                 <button type="button" onclick="removeEmailSection(this)" class="text-red-500 text-xs hover:text-red-700">Remove</button>
                             </div>
-                            <textarea class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="8" placeholder="Enter your message content...">We have some absolutely thrilling updates and exciting news to share with you! At Saint Ventura, we're constantly evolving, innovating, and working tirelessly behind the scenes to bring you the best possible experience, the most cutting-edge designs, and the highest quality products. Here's what's been happening in our world and what you can look forward to in the coming months.
-
-We've been incredibly busy developing new designs that push creative boundaries, improving our manufacturing processes to ensure even better quality, and most importantly, listening carefully to your valuable feedback. Your input, suggestions, and honest opinions have been absolutely invaluable in helping us create products that truly resonate with our community and reflect what you actually want to see and wear.</textarea>
+                            <textarea class="w-full px-3 py-2 border border-gray-200 rounded text-sm" rows="6" placeholder="Enter text content...">Stay updated with the latest news from Saint Ventura. We have exciting updates to share with you!</textarea>
                         </div>
                     `;
                     break;
@@ -2786,19 +2795,13 @@ Thank you!</textarea>
                                 }
                                 break;
                             case 'heading':
+                                const headingSelect = section.querySelector('select');
                                 const headingInput = section.querySelector('input');
-                                if (headingInput) {
+                                if (headingSelect && headingInput) {
+                                    const headingLevel = headingSelect.value;
                                     const headingText = headingInput.value;
-                                    html += `<h1 style="margin: 20px 0; font-size: 32px; font-weight: 900; color: #000000; font-family: Arial, sans-serif; line-height: 1.2;">${headingText}</h1>`;
+                                    html += `<${headingLevel} style="margin: 15px 0; font-weight: bold; font-family: Arial, sans-serif;">${headingText}</${headingLevel}>`;
                                     text += headingText + '\n\n';
-                                }
-                                break;
-                            case 'subheading':
-                                const subheadingInput = section.querySelector('input');
-                                if (subheadingInput) {
-                                    const subheadingText = subheadingInput.value;
-                                    html += `<h2 style="margin: 15px 0; font-size: 20px; font-weight: 600; color: #666666; font-family: Arial, sans-serif; line-height: 1.3;">${subheadingText}</h2>`;
-                                    text += subheadingText + '\n\n';
                                 }
                                 break;
                             case 'image':
@@ -3360,11 +3363,8 @@ Thank you!</textarea>
                     if (!Array.isArray(ordersData)) {
                         throw new Error('Invalid orders data format');
                     }
-                    // Filter orders that need fulfillment (pending fulfillment or fulfilled) - treat both spellings as same
-                    const fulfillableOrders = ordersData.filter(o => {
-                        const status = (o.status === 'pending fulfilment' || o.status === 'pending fulfillment') ? 'pending fulfillment' : o.status;
-                        return status === 'pending fulfillment' || status === 'fulfilled';
-                    });
+                    // Filter orders that need fulfillment (pending fulfillment or fulfilled)
+                    const fulfillableOrders = ordersData.filter(o => o.status === 'pending fulfillment' || o.status === 'fulfilled');
                     const orderSelect = document.getElementById('fulfiller-order-select');
                     if (orderSelect) {
                         if (fulfillableOrders.length === 0) {
@@ -3714,7 +3714,7 @@ Thank you!</textarea>
         function loadOrders() {
             const tbody = document.getElementById('orders-table');
             if (tbody) {
-                tbody.innerHTML = '<tr><td colspan="9" class="text-center py-12 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading orders...</span></div></td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-12 text-gray-500"><div class="flex items-center justify-center space-x-2"><div class="loading-spinner"></div><span>Loading orders...</span></div></td></tr>';
             }
             
             adminFetch(`${BACKEND_URL}/api/admin/orders`)
@@ -3729,7 +3729,7 @@ Thank you!</textarea>
                 .catch(err => {
                     console.error('Error loading orders:', err);
                     if (tbody) {
-                        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-12"><div class="error-message">Error loading orders: ${err.message}</div></td></tr>`;
+                        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-12"><div class="error-message">Error loading orders: ${err.message}</div></td></tr>`;
                     }
                 });
         }
@@ -3741,7 +3741,7 @@ Thank you!</textarea>
             if (!tbody) return;
             
             if (orders.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" class="text-center py-12 text-gray-500">No orders found</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-12 text-gray-500">No orders found</td></tr>';
                 if (mobileTable) {
                     mobileTable.innerHTML = '<div class="text-center py-12 text-gray-500">No orders found</div>';
                 }
@@ -3751,19 +3751,14 @@ Thank you!</textarea>
             // Desktop table
             tbody.innerHTML = orders.map(order => {
                 const itemCount = Array.isArray(order.items) ? order.items.length : 0;
-                // Normalize status - treat "pending fulfilment" and "pending fulfillment" as the same
-                const normalizedStatus = (order.status === 'pending fulfilment' || order.status === 'pending fulfillment') ? 'pending fulfillment' : order.status;
                 let statusClass = 'bg-yellow-100 text-yellow-800';
-                if (normalizedStatus === 'fulfilled') {
+                if (order.status === 'fulfilled') {
                     statusClass = 'bg-green-100 text-green-800';
-                } else if (normalizedStatus === 'pending fulfillment') {
+                } else if (order.status === 'pending fulfillment') {
                     statusClass = 'bg-blue-100 text-blue-800';
-                } else if (normalizedStatus === 'pending checkout') {
+                } else if (order.status === 'pending checkout') {
                     statusClass = 'bg-yellow-100 text-yellow-800';
                 }
-                
-                // Get delivery option from order
-                const deliveryOption = order.deliveryLocation || order.shippingMethod || order.deliveryType || 'N/A';
                 return `
                     <tr class="hover:bg-gray-50 transition">
                         <td class="py-4 px-4 md:px-6">
@@ -3785,11 +3780,8 @@ Thank you!</textarea>
                             <span class="font-semibold text-sm">${order.deliveryCost !== undefined && order.deliveryCost !== null ? 'R' + (order.deliveryCost || 0).toFixed(2) : 'N/A'}</span>
                         </td>
                         <td class="py-4 px-4 md:px-6">
-                            <span class="text-sm text-gray-700">${deliveryOption}</span>
-                        </td>
-                        <td class="py-4 px-4 md:px-6">
                             <div class="flex items-center space-x-2">
-                                <span class="px-2 py-1 rounded-full text-xs font-semibold ${statusClass}">${normalizedStatus || 'pending checkout'}</span>
+                                <span class="px-2 py-1 rounded-full text-xs font-semibold ${statusClass}">${order.status || 'pending checkout'}</span>
                                 ${order.hasOutOfStockItems ? '<span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-semibold" title="Some items are out of stock">⚠️ No Stock</span>' : ''}
                             </div>
                         </td>
@@ -3799,9 +3791,9 @@ Thank you!</textarea>
                         <td class="py-4 px-4 md:px-6">
                             <div class="flex items-center space-x-2">
                                 <select onchange="updateOrderStatus('${order.id}', this.value)" class="px-3 py-1 border border-gray-300 rounded-lg text-sm">
-                                    <option value="pending checkout" ${normalizedStatus === 'pending checkout' ? 'selected' : ''}>Pending Checkout</option>
-                                    <option value="pending fulfillment" ${normalizedStatus === 'pending fulfillment' ? 'selected' : ''}>Pending Fulfillment</option>
-                                    <option value="fulfilled" ${normalizedStatus === 'fulfilled' ? 'selected' : ''}>Fulfilled</option>
+                                    <option value="pending checkout" ${order.status === 'pending checkout' ? 'selected' : ''}>Pending Checkout</option>
+                                    <option value="pending fulfillment" ${order.status === 'pending fulfillment' ? 'selected' : ''}>Pending Fulfillment</option>
+                                    <option value="fulfilled" ${order.status === 'fulfilled' ? 'selected' : ''}>Fulfilled</option>
                                 </select>
                                 ${order.hasOutOfStockItems ? '<button onclick="sendToFulfiller(\'' + order.id + '\')" class="px-3 py-1 bg-blue-500 text-white rounded-lg text-xs hover:bg-blue-600 whitespace-nowrap" title="Send order to fulfiller to source out of stock items">📦 Send to Fulfiller</button>' : ''}
                             </div>
@@ -3814,19 +3806,14 @@ Thank you!</textarea>
             if (mobileTable) {
                 mobileTable.innerHTML = orders.map(order => {
                     const itemCount = Array.isArray(order.items) ? order.items.length : 0;
-                    // Normalize status - treat "pending fulfilment" and "pending fulfillment" as the same
-                    const normalizedStatus = (order.status === 'pending fulfilment' || order.status === 'pending fulfillment') ? 'pending fulfillment' : order.status;
                     let statusClass = 'bg-yellow-100 text-yellow-800';
-                    if (normalizedStatus === 'fulfilled') {
+                    if (order.status === 'fulfilled') {
                         statusClass = 'bg-green-100 text-green-800';
-                    } else if (normalizedStatus === 'pending fulfillment') {
+                    } else if (order.status === 'pending fulfillment') {
                     statusClass = 'bg-blue-100 text-blue-800';
-                    } else if (normalizedStatus === 'pending checkout') {
+                    } else if (order.status === 'pending checkout') {
                     statusClass = 'bg-yellow-100 text-yellow-800';
                     }
-                    
-                    // Get delivery option from order
-                    const deliveryOption = order.deliveryLocation || order.shippingMethod || order.deliveryType || 'N/A';
                     
                     // Render order items with images
                     const itemsHtml = Array.isArray(order.items) ? order.items.map(item => {
@@ -3877,7 +3864,7 @@ Thank you!</textarea>
                                     <p class="text-xs text-gray-500">${order.customerEmail || ''}</p>
                                     <p class="text-xs font-mono text-gray-400 mt-1">${order.id || 'N/A'}</p>
                                 </div>
-                                    <span class="px-2 py-1 rounded-full text-xs font-semibold ${statusClass}">${normalizedStatus || 'pending checkout'}</span>
+                                <span class="px-2 py-1 rounded-full text-xs font-semibold ${statusClass}">${order.status || 'pending checkout'}</span>
                             </div>
                             ${order.hasOutOfStockItems ? `
                             <div class="mb-3 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -3900,16 +3887,12 @@ Thank you!</textarea>
                                 <span class="text-xs font-semibold">R${(order.deliveryCost || 0).toFixed(2)}</span>
                             </div>
                             ` : ''}
-                            <div class="flex justify-between items-center mb-3">
-                                <span class="text-xs text-gray-600">Delivery Option:</span>
-                                <span class="text-xs font-semibold text-gray-700">${deliveryOption}</span>
-                            </div>
                             <div class="flex justify-between items-center">
                                 <span class="text-xs text-gray-500">${order.date ? new Date(order.date).toLocaleDateString() : 'N/A'}</span>
                                 <select onchange="updateOrderStatus('${order.id}', this.value)" class="px-2 py-1 border border-gray-300 rounded-lg text-xs">
-                                    <option value="pending checkout" ${normalizedStatus === 'pending checkout' ? 'selected' : ''}>Pending Checkout</option>
-                                    <option value="pending fulfillment" ${normalizedStatus === 'pending fulfillment' ? 'selected' : ''}>Pending Fulfillment</option>
-                                    <option value="fulfilled" ${normalizedStatus === 'fulfilled' ? 'selected' : ''}>Fulfilled</option>
+                                    <option value="pending checkout" ${order.status === 'pending checkout' ? 'selected' : ''}>Pending Checkout</option>
+                                    <option value="pending fulfillment" ${order.status === 'pending fulfillment' ? 'selected' : ''}>Pending Fulfillment</option>
+                                    <option value="fulfilled" ${order.status === 'fulfilled' ? 'selected' : ''}>Fulfilled</option>
                                 </select>
                                 ${order.hasOutOfStockItems ? '<button onclick="sendToFulfiller(\'' + order.id + '\')" class="mt-2 w-full px-3 py-1 bg-blue-500 text-white rounded-lg text-xs hover:bg-blue-600">Send to Fulfiller</button>' : ''}
                             </div>
@@ -3956,10 +3939,8 @@ Thank you!</textarea>
         
         function updateOrderStatus(orderId, status) {
             // Check if changing from pending fulfillment to fulfilled - require delivery cost
-            // Normalize status - treat both spellings as the same
             const order = allOrdersData.find(o => o.id === orderId);
-            const normalizedOrderStatus = (order && (order.status === 'pending fulfilment' || order.status === 'pending fulfillment')) ? 'pending fulfillment' : (order ? order.status : '');
-            if (order && normalizedOrderStatus === 'pending fulfillment' && status === 'fulfilled') {
+            if (order && order.status === 'pending fulfillment' && status === 'fulfilled') {
                 const deliveryCost = prompt('Enter delivery cost for this order (R):');
                 if (deliveryCost === null) {
                     // User cancelled, reset dropdown
