@@ -868,7 +868,7 @@
             </div>
             <div class="space-y-4">
                 <div>
-                    <p class="text-sm text-gray-600">From: <span id="view-email-from" class="font-medium"></span></p>
+                    <p class="text-sm text-gray-600"><span id="view-email-label">From:</span> <span id="view-email-from" class="font-medium"></span></p>
                     <p class="text-sm text-gray-600">Date: <span id="view-email-date" class="font-medium"></span></p>
                 </div>
                 <div class="border-t pt-4">
@@ -1862,7 +1862,7 @@
                             <div class="flex justify-between items-start">
                                 <div class="flex-1">
                                     <p class="font-semibold ${email.read ? 'text-gray-700' : 'text-black'}">${email.subject || '(No Subject)'}</p>
-                                    <p class="text-sm text-gray-600 mt-1">${email.sent ? 'To:' : 'From:'} ${email.name || email.from || email.to || 'Unknown'}</p>
+                                    <p class="text-sm text-gray-600 mt-1">${email.sent ? 'To:' : 'From:'} ${email.sent ? (email.to || 'Unknown') : (email.name || email.from || 'Unknown')}</p>
                                     <p class="text-xs text-gray-500 mt-1">${email.date ? new Date(email.date).toLocaleString() : 'Unknown date'}</p>
                                 </div>
                                 <div class="flex items-center space-x-2">
@@ -1892,7 +1892,13 @@
                     
                     currentViewingEmail = email;
                     document.getElementById('view-email-subject').textContent = email.subject || '(No Subject)';
-                    document.getElementById('view-email-from').textContent = email.name || email.from || email.to || 'Unknown';
+                    if (email.sent) {
+                        document.getElementById('view-email-label').textContent = 'To:';
+                        document.getElementById('view-email-from').textContent = email.to || 'Unknown';
+                    } else {
+                        document.getElementById('view-email-label').textContent = 'From:';
+                        document.getElementById('view-email-from').textContent = email.name || email.from || 'Unknown';
+                    }
                     document.getElementById('view-email-date').textContent = email.date ? new Date(email.date).toLocaleString() : 'Unknown';
                     
                     // Render email content with HTML support
@@ -3022,7 +3028,7 @@ Thank you!</textarea>
                             <div class="flex justify-between items-start">
                                 <div class="flex-1">
                                     <p class="font-semibold ${email.read ? 'text-gray-700' : 'text-black'}">${email.subject || '(No Subject)'}</p>
-                                    <p class="text-sm text-gray-600 mt-1">${email.sent ? 'To:' : 'From:'} ${email.name || email.from || email.to || 'Unknown'}</p>
+                                    <p class="text-sm text-gray-600 mt-1">${email.sent ? 'To:' : 'From:'} ${email.sent ? (email.to || 'Unknown') : (email.name || email.from || 'Unknown')}</p>
                                     <p class="text-xs text-gray-500 mt-1">${email.date ? new Date(email.date).toLocaleString() : 'Unknown date'}</p>
                                 </div>
                                 <div class="flex items-center space-x-2">
