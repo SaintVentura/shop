@@ -34,7 +34,9 @@
     "resend": "^3.2.0"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "nodemon": "^3.0.1",
+    "ssh2-sftp-client": "^12.0.1",
+    "xlsx": "^0.18.5"
   },
   "optionalDependencies": {
     "pm2": "^5.4.3"
