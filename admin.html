@@ -1464,6 +1464,9 @@
 
             const clone = section.cloneNode(true);
             clone.querySelectorAll('[data-print-exclude="true"]').forEach(el => el.remove());
+            clone.querySelectorAll('button, select, input, textarea').forEach(el => {
+                el.setAttribute('data-print-hidden', 'true');
+            });
 
             const printWindow = window.open('', '_blank');
             if (!printWindow) {
@@ -1472,6 +1475,9 @@
             }
 
             const docTitle = title || 'Report';
+            const reportDate = new Date().toLocaleString();
+            const brandName = 'Saint Ventura';
+            const logoUrl = 'https://dl.dropboxusercontent.com/scl/fi/pew6zj6bt0myobu7zl4eu/1-21.png?rlkey=z6jhjxe71rpuk37td9ktwvqmg&st=303hz8tw&dl=1';
             printWindow.document.open();
             printWindow.document.write(`
                 <!DOCTYPE html>
@@ -1481,18 +1487,156 @@
                     <meta charset="utf-8">
                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
                     <style>
-                        body { font-family: Arial, sans-serif; margin: 24px; color: #111; }
-                        h2, h3 { margin: 0 0 12px 0; }
-                        table { width: 100%; border-collapse: collapse; }
-                        th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; }
-                        .report-container { max-width: 1200px; margin: 0 auto; }
+                        :root {
+                            color-scheme: light;
+                        }
+                        * { box-sizing: border-box; }
+                        body {
+                            font-family: "Inter", "Segoe UI", Arial, sans-serif;
+                            margin: 0;
+                            color: #111;
+                            background: #f4f4f5;
+                        }
+                        .report-page {
+                            padding: 32px 24px 40px;
+                        }
+                        .report-container {
+                            max-width: 1100px;
+                            margin: 0 auto;
+                            background: #ffffff;
+                            border: 1px solid #e5e7eb;
+                            border-radius: 16px;
+                            overflow: hidden;
+                            box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+                        }
+                        .report-header {
+                            display: flex;
+                            align-items: center;
+                            justify-content: space-between;
+                            gap: 16px;
+                            padding: 24px 28px;
+                            background: linear-gradient(135deg, #0f0f0f 0%, #1f1f1f 100%);
+                            color: #fff;
+                        }
+                        .brand {
+                            display: flex;
+                            align-items: center;
+                            gap: 16px;
+                        }
+                        .brand img {
+                            width: 56px;
+                            height: 56px;
+                            border-radius: 14px;
+                            border: 2px solid #fff;
+                            object-fit: cover;
+                        }
+                        .brand h1 {
+                            margin: 0;
+                            font-size: 20px;
+                            letter-spacing: 1px;
+                            text-transform: uppercase;
+                        }
+                        .report-meta {
+                            text-align: right;
+                            font-size: 12px;
+                            line-height: 1.6;
+                            opacity: 0.9;
+                        }
+                        .report-title {
+                            padding: 20px 28px 0;
+                        }
+                        .report-title h2 {
+                            margin: 0;
+                            font-size: 26px;
+                            font-weight: 800;
+                            color: #111827;
+                        }
+                        .report-title p {
+                            margin: 6px 0 0;
+                            color: #6b7280;
+                            font-size: 14px;
+                        }
+                        .report-content {
+                            padding: 20px 28px 32px;
+                        }
+                        .report-content h3 {
+                            margin: 18px 0 10px;
+                            font-size: 18px;
+                            font-weight: 700;
+                            color: #111827;
+                        }
+                        .report-content p,
+                        .report-content span {
+                            color: #1f2937;
+                        }
+                        table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            font-size: 12px;
+                        }
+                        th, td {
+                            border: 1px solid #e5e7eb;
+                            padding: 8px 10px;
+                            text-align: left;
+                        }
+                        thead th {
+                            background: #f3f4f6;
+                            font-weight: 700;
+                            text-transform: uppercase;
+                            font-size: 11px;
+                            letter-spacing: 0.4px;
+                        }
+                        tbody tr:nth-child(even) {
+                            background: #fafafa;
+                        }
+                        .badge {
+                            display: inline-block;
+                            padding: 2px 8px;
+                            border-radius: 999px;
+                            font-size: 11px;
+                            font-weight: 600;
+                        }
+                        [data-print-hidden="true"] { display: none !important; }
+                        .report-footer {
+                            padding: 16px 28px 24px;
+                            border-top: 1px solid #e5e7eb;
+                            font-size: 12px;
+                            color: #6b7280;
+                            display: flex;
+                            justify-content: space-between;
+                            gap: 12px;
+                        }
                         .page-break { page-break-after: always; }
                     </style>
                 </head>
                 <body>
-                    <div class="report-container">
-                        <h2>${docTitle}</h2>
-                        ${clone.innerHTML}
+                    <div class="report-page">
+                        <div class="report-container">
+                            <div class="report-header">
+                                <div class="brand">
+                                    <img src="${logoUrl}" alt="${brandName} logo">
+                                    <div>
+                                        <h1>${brandName}</h1>
+                                        <div style="font-size: 12px; opacity: 0.8;">Admin Report</div>
+                                    </div>
+                                </div>
+                                <div class="report-meta">
+                                    <div>${docTitle}</div>
+                                    <div>${reportDate}</div>
+                                </div>
+                            </div>
+                            <div class="report-title">
+                                <h2>${docTitle}</h2>
+                                <p>Generated automatically from the admin dashboard.</p>
+                            </div>
+                            <div class="report-content">
+                                ${clone.innerHTML}
+                            </div>
+                            <div class="report-footer">
+                                <span>${brandName} • Internal Use</span>
+                                <span>https://saintventura.co.za</span>
+                            </div>
+                        </div>
                     </div>
                 </body>
                 </html>
