@@ -1551,19 +1551,49 @@
                             font-weight: 800;
                             color: #111827;
                         }
-                        .report-title p {
-                            margin: 6px 0 0;
-                            color: #6b7280;
-                            font-size: 14px;
-                        }
                         .report-content {
                             padding: 20px 28px 32px;
+                        }
+                        .report-content img {
+                            max-height: 48px;
+                            width: auto;
+                            object-fit: contain;
                         }
                         .report-content h3 {
                             margin: 18px 0 10px;
                             font-size: 18px;
                             font-weight: 700;
                             color: #111827;
+                        }
+                        .product-group {
+                            border: 1px solid #e5e7eb;
+                            border-radius: 12px;
+                            overflow: hidden;
+                            margin-bottom: 16px;
+                        }
+                        .product-header {
+                            background: #f9fafb;
+                            padding: 12px 16px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: space-between;
+                        }
+                        .product-header img {
+                            max-height: 48px;
+                            width: 48px;
+                            border-radius: 8px;
+                            border: 1px solid #e5e7eb;
+                        }
+                        .variant-row {
+                            display: grid;
+                            grid-template-columns: 2fr 1fr 1fr 1fr;
+                            gap: 12px;
+                            padding: 10px 16px;
+                            border-top: 1px solid #f3f4f6;
+                            align-items: center;
+                        }
+                        .variant-row span {
+                            font-size: 12px;
                         }
                         .report-content p,
                         .report-content span {
@@ -1627,14 +1657,9 @@
                             </div>
                             <div class="report-title">
                                 <h2>${docTitle}</h2>
-                                <p>Generated automatically from the admin dashboard.</p>
                             </div>
                             <div class="report-content">
                                 ${clone.innerHTML}
-                            </div>
-                            <div class="report-footer">
-                                <span>${brandName} • Internal Use</span>
-                                <span>https://saintventura.co.za</span>
                             </div>
                         </div>
                     </div>
